@@ -13,6 +13,8 @@
 *.userprefs
 
 # Build results
+[Dd]ebug[Bb]uild/
+[Rr]elease[Bb]uild/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

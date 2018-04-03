@@ -140,3 +140,26 @@ void PrimoMeshViewer::setup_prisms(EPrismExtrudeMode PrismExtrudeMode /*= EPrism
 	}
 }
 
+void PrimoMeshViewer::manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location)
+{
+
+}
+
+void PrimoMeshViewer::local_optimize(int iterations)
+{
+	//TODO: Randomly sample one face
+	Mesh::FaceHandle fh;
+	//TODO: optimize for that face
+	local_optimize_face(fh);
+}
+
+void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
+{
+	//TODO: optimize for this face
+}
+
+void PrimoMeshViewer::global_optimize_all_faces(int iterations)
+{
+
+}
+

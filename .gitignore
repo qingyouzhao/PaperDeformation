@@ -26,6 +26,10 @@ bld/
 [Oo]bj/
 [Ll]og/
 
+# Linux Build results
+[bB]uild/
+.vscode
+
 # Libraries for Windows
 OpenMesh/
 freeglut/

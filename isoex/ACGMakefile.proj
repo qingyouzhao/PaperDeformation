@@ -1,0 +1,4 @@
+# for gcc the max. template depth has to be increased
+ifeq ($(CXX_COMP),g++)
+  CXX_DEFS += -ftemplate-depth-100
+endif 

@@ -1,0 +1,6 @@
+F:/PaperDeformation/DebugBuild/CMakeFiles/ann.dir
+F:/PaperDeformation/DebugBuild/CMakeFiles/isoex.dir
+F:/PaperDeformation/DebugBuild/CMakeFiles/reconstruct.dir
+F:/PaperDeformation/DebugBuild/CMakeFiles/viewer.dir
+F:/PaperDeformation/DebugBuild/CMakeFiles/ALL_BUILD.dir
+F:/PaperDeformation/DebugBuild/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Utils\conio.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\getopt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Gnuplot.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Timer.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Decimater\CollapseInfoT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\CompositeLoopT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\CompositeSqrt3T.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\Composite\CompositeT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Adaptive\Composite\CompositeT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\Composite\CompositeTraits.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Adaptive\Composite\CompositeTraits.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Config.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\conio.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\DecimaterT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\GLConstAsString.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Gnuplot.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\HeapT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Smoother\JacobiLaplaceSmootherT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Smoother\LaplaceSmootherT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\LoopT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\MeshCheckerT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModBaseT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModIndependentSetsT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModNormalFlippingT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModProgMeshT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModQuadricT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decimater\ModRoundnessT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\NumLimitsT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Adaptive\Composite\RuleInterfaceT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Adaptive\Composite\RulesT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Smoother\smooth_mesh.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Smoother\SmootherT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\Sqrt3T.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\StripifierT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Uniform\SubdividerT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\TestingFramework.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Timer.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Subdivider\Adaptive\Composite\Traits.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

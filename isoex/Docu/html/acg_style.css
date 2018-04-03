@@ -1,0 +1,98 @@
+/*
+  Style sheet for the webpages of the
+
+  Institut fuer Informatik VIII, RWTH Aachen
+
+*/
+
+body {
+ color:#e0e070;
+ background-color:#106050;
+/* background-color:#606050;*/
+/* background-color:#000; */
+ font-family:sans-serif;
+/* background-image: url(pics/background_2.gif);
+ background-position: bottom left;
+ background-repeat:no-repeat;
+ background-attachment:fixed; */
+}
+
+a:link       { color: #F07850;}
+a:active     { color: #E0E070;}
+a:visited    { color: #F07850;}
+a:hover      { color: #E0E070;}
+a            { text-decoration: none }
+
+/* NETSCAPE 4.x needs this: */
+th,td,table {
+ color:#e0e070;
+ background-color:#106050;
+ font-family:sans-serif;
+}
+
+h1,h2,h3,h4,h5,h6,p {
+ color:#e0e070;
+/* background-color:#106050;*/
+ font-family:sans-serif;
+}
+
+H1 {
+ 	font-family:sans-serif;
+	 color : #E0E070;
+}
+H2 {
+	font-family:sans-serif;
+	background-color : #E0E070;
+	color : #106050;
+}
+
+p {
+  text-align:left;
+}
+
+body p:first-child { margin-top: 0px; }
+body h1:first-child { margin-top: 0px; }
+body h2:first-child { margin-top: 0px; }
+body h3:first-child { margin-top: 0px; }
+body h4:first-child { margin-top: 0px; }
+body h5:first-child { margin-top: 0px; }
+body h6:first-child { margin-top: 0px; }
+
+/* DISCLAIMER */
+
+p.disclaimer { text-align:right; }
+a.disclaimer { font-size: 8px; }
+
+/* NAVIGATION BAR */
+
+a.navbar { font-size: 130%; }
+
+p.navbar {
+ text-align:right;
+}
+
+p:first-child
+
+/* Doxygen */
+A.qindex { }
+A.qindexRef { }
+A.el { text-decoration: none; font-weight: bold }
+A.elRef { font-weight: bold }
+A.code { text-decoration: none; font-weight: normal; color: #4444ee }
+A.codeRef { font-weight: normal; color: #4444ee }
+DL.el { margin-left: -1cm }
+DIV.fragment { border: none; 
+	       margin-right: 4px;
+               padding: 4px;
+               background-color: #d8ffe8; color: #000000; }
+DIV.ah { background-color: black; margin-bottom: 3; margin-top: 3; }
+TD.md { background-color: #106050; border-width: 2px; padding: 5px;}
+DIV.groupHeader { margin-left: 16; margin-top: 12; margin-bottom: 6; font-weight: bold }
+DIV.groupText { margin-left: 16; font-style: italic; font-size: smaller }
+FONT.keyword       { color: #008000 }
+FONT.keywordtype   { color: #604020 }
+FONT.keywordflow   { color: #e08000 }
+FONT.comment       { color: #800000 }
+FONT.preprocessor  { color: #806020 }
+FONT.stringliteral { color: #002080 }
+FONT.charliteral   { color: #008080 }

@@ -1,0 +1,23 @@
+#==  SYSTEM PART -- DON'T TOUCH  ==============================================
+include $(ACGMAKE)/Config
+#==============================================================================
+
+
+MODULES := doxygen
+
+DOXY_PROJECT_NAME     =  IsoEx
+
+DOXY_FILE_PATTERNS    =  *.cc *.hh *.docu
+DOXY_EXCLUDE_PATTERNS = CVS $(build-dir)
+
+DOXY_GENERATE_HTML    =  YES
+DOXY_GENERATE_LATEX   =  NO
+DOXY_GENERATE_RTF     =  NO
+DOXY_GENERATE_MAN     =  NO
+
+#DOXY_ACG_STYLE        = YES
+
+
+#==  SYSTEM PART -- DON'T TOUCH  ==============================================
+include $(ACGMAKE)/Rules
+#==============================================================================

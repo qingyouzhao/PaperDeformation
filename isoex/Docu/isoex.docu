@@ -1,0 +1,82 @@
+//=============================================================================
+//
+//  Main page
+//
+//=============================================================================
+
+/** \mainpage IsoEx Documentation
+
+The IsoEx package provides some simple classes and algorithm for isosurface
+extraction. Its main purpose is to provide a sample implementation of the
+Extended Marching Cubes algorithm:
+
+Kobbelt, Botsch, Schwanecke, Seidel, 
+<em>Feature Sensitive Surface Extraction from Volume Data</em>,
+Siggraph 2001.
+
+<br>
+
+This code should compile using any standard compliant C++ compiler,
+it has been tested on GNU gcc 2.95.3 and Irix MIPSpro 7.3. In order
+to use this code you will need these two additional packages:
+<ul>
+<li> The mesh data structure \b OpenMesh, available at 
+     <a href="http://www.openmesh.org"> www.openmesh.org </a>. 
+<li> Our tool for compiling this code: \b acgmake, available
+     <a href="http://www-i8.informatik.rwth-aachen.de/publications/software.html"> here </a>. 
+</ul>
+You have to place OpenMesh and IsoEx in the same directory for the
+includes to work. 
+
+There is an example application located in IsoEx/Apps/emc.
+
+
+<br><br><em> Sep 2002 <br> Mario Botsch, botsch@cs.rwth-aachen.de </em>
+**/
+
+
+
+//=============================================================================
+//
+//  Documents all used namespaces for doxygen
+//
+//=============================================================================
+
+
+/** \namespace IsoEx
+    Main namespace for this project.
+*/
+
+
+/** \namespace IsoEx::Math
+    Contains some vector/matrix classes.
+**/
+
+
+/** \namespace IsoEx::CSG
+    Defines CSG operations for implicit objects.
+*/
+
+
+
+//=============================================================================
+//
+//  Documents all groups
+//
+//=============================================================================
+
+
+/** \defgroup implicits Implicit objects/functions
+This group holds all classes regarding to or using implicit objects.
+*/
+
+
+/** \defgroup grids 3D Grids
+This group holds all kinds of grids/obtrees, defining the cubes to be 
+marched over by marching cubes.
+*/
+
+
+/** \defgroup extractors Extraction Algorithms
+This group holds the different algorithms used for isosurface extraction.
+*/

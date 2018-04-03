@@ -1,0 +1,75 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="F:\PaperDeformation\isoex\Extractors\ExtendedMarchingCubesT.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\PaperDeformation\isoex\Extractors\MCTables.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\PaperDeformation\isoex\Extractors\MarchingCubesT.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\PaperDeformation\isoex\Grids\RegularGrid.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\PaperDeformation\isoex\Grids\ScalarGridT.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\PaperDeformation\isoex\Math\svd.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="F:\PaperDeformation\isoex\Extractors\Edge2VertexMapT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Extractors\ExtendedMarchingCubesT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Extractors\MCTables.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Extractors\MarchingCubesT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Grids\Grid.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Grids\ImplicitGrid.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Grids\RegularGrid.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Grids\ScalarGridT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Implicits\CSG.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Implicits\Implicit.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Implicits\ImplicitSphere.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Math\MatrixT.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\PaperDeformation\isoex\Math\svd.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\PaperDeformation\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{19B3C96F-90C4-35A6-B588-F0A1FC00EA51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{E3875814-EA41-3538-A056-0410288E4D80}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

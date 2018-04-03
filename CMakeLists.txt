@@ -40,8 +40,8 @@ set_property(
 )
 
 # collect sources
-file(GLOB viewer_sources viewer/*.cc)
-file(GLOB viewer_headers viewer/*.hh)
+file(GLOB viewer_sources viewer/*.cc viewer/*.cpp)
+file(GLOB viewer_headers viewer/*.hh viewer/*.h)
 
 file(GLOB reconstruct_sources reconstruct/*.cc)
 file(GLOB reconstruct_headers reconstruct/*.hh)

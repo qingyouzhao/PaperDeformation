@@ -14,6 +14,32 @@ struct PrismProperty {
 	float FromVertPrismSize;
 	Vec3f ToVertPrimsDir;
 	float ToVertPrismSize;
+
+	// A simple illustration of how the prism is stored
+	/*
+	10---------11 ^       10------------11   ^
+	| f_ij     |  |       |  f_ji       |    |
+	f-he_ij-->to  |       to<--he_ji---from  |
+	00---------01 normal  00------------01   normal
+	*/
+	Vec3f calc_f_uv(int u, int v, bool is_i_j) const
+	{
+		Vec3f result;
+		// We only care uv edges
+		assert(u == 0 || u == 1);
+		assert(v == 0 || v == 1);
+		if (is_i_j)
+		{
+			result = v == 0 ? (FromVertPrismDir * FromVertPrismSize) : (ToVertPrimsDir * ToVertPrismSize);
+			result *= (u == 0 ? -1 : 1);
+		}
+		else
+		{
+			result = v == 0 ? (ToVertPrimsDir * ToVertPrismSize) : (FromVertPrismDir * FromVertPrismSize);
+			result *= (u == 0 ? -1 : 1);
+		}
+		return result;
+	}
 };
 
 class PrimoMeshViewer :public MeshViewer
@@ -52,6 +78,11 @@ protected:
 
 	// globally solve for all prism faces
 	virtual void global_optimize_all_faces(int iterations);
+
+	float calc_face_area(Mesh::FaceHandle _fh) const;
+
+	// For primo hierarchical, the solution should be based on a, say randomly sampled points, 
+	// then find the shortest path along the edges
 
 	enum class EViewMode{VIEW, MOVE} mode_;
 private:

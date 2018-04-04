@@ -60,16 +60,18 @@ file(GLOB_RECURSE eigen_headers Eigen/src/*.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${EIGEN_INCLUDE_DIRECTORY})
-include_directories(gmm)
+# no need for gmm here
+# include_directories(gmm)
 
 # for isoex
 add_definitions(-DINCLUDE_TEMPLATES)
 
 # compile and link
 add_library(ann ${ann_sources} ${ann_headers})
-add_library(isoex ${isoex_sources} ${isoex_headers})
+# no need for isoex, reconstruct here.
+# add_library(isoex ${isoex_sources} ${isoex_headers})
 # add_library(eigen ${eigen_sources} ${eigen_headers})
-add_executable(reconstruct ${reconstruct_sources} ${reconstruct_headers})
+# add_executable(reconstruct ${reconstruct_sources} ${reconstruct_headers})
 add_executable(viewer ${viewer_sources} ${viewer_headers})
 target_link_libraries(viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
-target_link_libraries(reconstruct ${OPENMESH_LIBRARIES} isoex)
+# target_link_libraries(reconstruct ${OPENMESH_LIBRARIES} isoex)

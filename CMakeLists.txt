@@ -67,7 +67,7 @@ include_directories(${EIGEN_INCLUDE_DIRECTORY})
 add_definitions(-DINCLUDE_TEMPLATES)
 
 # compile and link
-add_library(ann ${ann_sources} ${ann_headers})
+# add_library(ann ${ann_sources} ${ann_headers})
 # no need for isoex, reconstruct here.
 # add_library(isoex ${isoex_sources} ${isoex_headers})
 # add_library(eigen ${eigen_sources} ${eigen_headers})

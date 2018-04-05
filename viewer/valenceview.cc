@@ -37,6 +37,7 @@
 int main(int argc, char **argv)
 {
   glutInit(&argc, argv);
+  printf("Usage:\na: Toggle prism visualization\n+: add prism height\n-: minus prism height\n");
 
   // ValenceViewer window("Valence Viewer", 512, 512);
   PrimoMeshViewer window("Primo Demo", 1024, 1024);

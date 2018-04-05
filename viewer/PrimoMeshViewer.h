@@ -104,15 +104,25 @@ private:
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	std::vector<unsigned int> optimizedVertexIndices_;
 	// static faces(prisms) as hard constraints
 	std::vector<OpenMesh::FaceHandle> staticFaceHandles_;
+	std::vector<unsigned int> staticVertexIndices_;
 	// dynamic faces(prisms) could be moved by UI, also hard constraints when doing optimization
 	std::vector<OpenMesh::FaceHandle> dynamicFaceHandles_;
+	std::vector<unsigned int> dynamicVertexIndices_;
 
 	// used for ray-casting, from prim_id to faceHandle
 	std::vector<OpenMesh::FaceHandle> allFaceHandles_;
 	nanort::BVHAccel<float> allFaces_BVH_;
 	void update_allFace_handles();
 	void build_allFace_BVH();
+	
+	// 1. ray cast allfaces
+	// 2. add to STATIC/DYNAMIC faces based on selectMode_
+	// 3. update face STATIC/DYNAMIC indices for drawing
+	void raycast_faces(int x, int y);
+	void update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
+										std::vector<unsigned int>& indices);
 
 };

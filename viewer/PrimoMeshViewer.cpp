@@ -185,7 +185,7 @@ void PrimoMeshViewer::motion(int x, int y)
 			// and in ESelect::None mode
 
 			if(selectMode_ == ESelectMode::NONE){
-				// TODO[ZJW]: rotate or translate dynamicFaces when pressing shift + left/middle mouse button 
+				// #TODO[ZJW]: rotate or translate dynamicFaces when pressing shift + left/middle mouse button 
 				// and in ESelect::None mode
 			}
 
@@ -263,16 +263,20 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 			// release button, each mode does different thing
 			switch(selectMode_){
 				case ESelectMode::DYNAMIC:{
-					// TODO[ZJW]: ray cast and give back a face handle, add to dynamic faces
-					break;
+					// 1. ray cast allfaces
+					// 2. add to STATIC/DYNAMIC faces based on selectMode_
+					// 3. update face STATIC/DYNAMIC indices for drawing
 				}
 				case ESelectMode::STATIC:{
-					// TODO[ZJW]: ray cast and give back a face handle, add to static faces
+					// 1. ray cast allfaces
+					// 2. add to STATIC/DYNAMIC faces based on selectMode_
+					// 3. update face STATIC/DYNAMIC indices for drawing
+					raycast_faces(x, y);
 					break;
 				}
 				case ESelectMode::NONE:{
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
-					// TODO[ZJW][QYZ]: minimize all optimizedFaces
+					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					break;
 				}
 				default:
@@ -547,4 +551,114 @@ void PrimoMeshViewer::build_allFace_BVH()
     printf(
       "[BVH statistics]: %d leaf nodes, %d branch nodes, max tree depth %d\n",
       stats.num_leaf_nodes, stats.num_branch_nodes, stats.max_tree_depth);
+}
+void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
+										std::vector<unsigned int>& indices_array){
+
+    Mesh::ConstFaceVertexIter  fv_it;
+    indices_array.clear();
+    indices_array.reserve(face_handles.size()*3);
+    for (size_t i = 0; i < face_handles.size(); ++i)
+    {
+        Mesh::FaceHandle fh = face_handles[i];
+        indices_array.push_back((*(fv_it=mesh_.cfv_iter(fh))).idx());
+        indices_array.push_back((*(++fv_it)).idx());
+        indices_array.push_back((*(++fv_it)).idx());
+    }
+}
+void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
+	// #TODO[ZJW]:
+	// 1. ray cast allfaces
+	// 1.1 find origin
+	//  http://antongerdelan.net/opengl/raycasting.html
+	/*  Step 1: 3d Normalised Device Coordinates, range [-1:1, -1:1, -1:1]
+		The next step is to transform it into 3d normalised device coordinates. 
+		This should be in the ranges of x [-1:1] y [-1:1] and z [-1:1]. 
+		We have an x and y already, so we scale their range, and reverse the direction of y.
+	*/
+	float x = (2.0f * mouse_x) / width_ - 1.0f;
+	float y = 1.0f - (2.0f * mouse_y) / height_;
+	float z = 1.0f;
+	Eigen::Vector3f ray_nds(x, y, z);
+	/*  Step 2: 4d Homogeneous Clip Coordinates, range [-1:1, -1:1, -1:1, -1:1]
+	    We want our ray's z to point forwards - this is usually the negative z direction in OpenGL style. 
+		We can add a w, just so that we have a 4d vector.
+		we do not need to reverse perspective division here because this is a ray with no intrinsic depth. 
+		We would do that only in the special case of points, for certain special effects.
+	*/
+	Eigen::Vector4f ray_clip(ray_nds.x(), ray_nds.y(), -1.0, 1.0);
+	/*  Step 3: 4d Eye (Camera) Coordinates, range [-x:x, -y:y, -z:z, -w:w]
+	    Normally, to get into clip space from eye space we multiply the vector by a projection matrix. 
+		We can go backwards by multiplying by the inverse of this matrix.
+	*/
+	Eigen::Matrix4f proMatrix;
+	proMatrix << projection_matrix_[0], projection_matrix_[4], projection_matrix_[8],  projection_matrix_[12],
+	             projection_matrix_[1], projection_matrix_[5], projection_matrix_[9],  projection_matrix_[13],
+			     projection_matrix_[2], projection_matrix_[6], projection_matrix_[10], projection_matrix_[14],
+			     projection_matrix_[3], projection_matrix_[7], projection_matrix_[11], projection_matrix_[15];
+	Eigen::Vector4f ray_eye = proMatrix.inverse() * ray_clip;
+	/*  Now, we only needed to un-project the x,y part, so let's manually set the z,w part to mean "forwards, and not a point".
+	*/
+	ray_eye = Eigen::Vector4f(ray_eye.x(), ray_eye.y(), -1.0, 0.0);
+	/*  Step 4: 4d World Coordinates, range [-x:x, -y:y, -z:z, -w:w]
+	    Same again, to go back another step in the transformation pipeline. 
+		Remember that we manually specified a -1 for the z component, which means that our ray isn't normalised. 
+		We should do this before we use it.
+		This should balance the up-and-down, left-and-right, and forwards components for us. 
+		So, assuming our camera is looking directly along the -Z world axis, 
+		we should get [0,0,-1] when the mouse is in the centre of the screen, 
+		and less significant z values when the mouse moves around the screen. 
+		This will depend on the aspect ratio, and field-of-view defined in the view and projection matrices. 
+		We now have a ray that we can compare with surfaces in world space.
+	*/
+	Eigen::Matrix4f viewMatrix;
+	viewMatrix << modelview_matrix_[0], modelview_matrix_[4], modelview_matrix_[8],  modelview_matrix_[12],
+	              modelview_matrix_[1], modelview_matrix_[5], modelview_matrix_[9],  modelview_matrix_[13],
+			      modelview_matrix_[2], modelview_matrix_[6], modelview_matrix_[10], modelview_matrix_[14],
+			      modelview_matrix_[3], modelview_matrix_[7], modelview_matrix_[11], modelview_matrix_[15];
+	Eigen::Matrix4f viewToWorld(viewMatrix.inverse());
+	Eigen::Vector4f ray_dir4 = (viewToWorld * ray_eye);
+	Eigen::Vector3f ray_ori3(viewToWorld(0, 3), viewToWorld(1, 3), viewToWorld(2, 3));
+	Eigen::Vector3f ray_dir3(ray_dir4.x(),ray_dir4.y(),ray_dir4.z());
+	// don't forget to normalise the vector at some point
+	ray_dir3.normalize();
+	// 1.2 set nanort intersection and traverse bvh
+	nanort::TriangleIntersector<float, nanort::TriangleIntersection<float>>
+      triangle_intersecter((const float *)mesh_.points(),
+	  indices_.data(), sizeof(float) * 3);
+	static const float tFar = 1e30;
+	nanort::Ray<float> ray;
+    ray.min_t = 0.0f;
+    ray.max_t = tFar;
+    ray.org[0] = ray_ori3[0];
+    ray.org[1] = ray_ori3[1];
+    ray.org[2] = ray_ori3[2];
+
+    ray.dir[0] = ray_dir3[0];
+    ray.dir[1] = ray_dir3[1];
+    ray.dir[2] = ray_dir3[2];
+    nanort::TriangleIntersection<float> isect;
+    bool hit = allFaces_BVH_.Traverse(ray, triangle_intersecter, &isect);
+	// 2. add to STATIC/DYNAMIC faces based on selectMode_
+	bool needUpdateStatic = false;
+	bool needUpdateDynamic = false;
+	if(selectMode_ == ESelectMode::STATIC){
+
+	}else if(selectMode_ == ESelectMode::DYNAMIC){
+
+	}else{
+		// [ERROR]: raycast_faces could not be called in ESelectMode::NONE mode
+		assert(false); 
+	}
+	// 3. update face STATIC/DYNAMIC optimized indices for drawing(That's why they should be update immediatly if necessary)
+	if(needUpdateStatic){
+		update_1typeface_indices(staticFaceHandles_, staticVertexIndices_);
+	}
+	if(needUpdateDynamic){
+		update_1typeface_indices(dynamicFaceHandles_, dynamicVertexIndices_);
+	}
+	if((needUpdateStatic && !needUpdateDynamic) || (!needUpdateStatic && needUpdateDynamic)){
+		// need to update optimized when only one type of STATIC/DYNAMIC is changed.
+		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+	}
 }

@@ -288,19 +288,62 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	Eigen::EigenSolver<Eigen::Matrix4f> es;
 	es.compute(N, true);
 	auto eigenvectors = es.eigenvectors();
-	auto eigenvalues = es.eigenvalues();
+	Eigen::Matrix<std::complex<float>,4,1> eigenvalues = es.eigenvalues();
 	std::cout << "We have " << es.eigenvectors().size() << " eigen vectors" << std::endl;
 	
 	// Now if we can find that max eigen value -> eigen vector, we get the rotation
+	float max_eigen_val = INT_MIN;
+	for (int i = 0; i < eigenvalues.rows(); i++)
+	{
+		// Values 
+		if (eigenvalues(i, 0).real() > max_eigen_val)
+		{
+			max_eigen_val = eigenvalues(i, 0).real();
+		}
+	}
+	int max_col = 0;
+	Eigen::Quaternion<float> target_quat;
 	for (int col_i = 0; col_i < eigenvectors.cols(); col_i++)
 	{
+		Eigen::Quaternion<float> rot_quat;
+		// #TODOZQY: there must be a better way to fill the quat
 		auto eigenvector = eigenvectors.col(col_i);
+		rot_quat.coeffs()(0,0) = eigenvector(0).real() * max_eigen_val;
+		rot_quat.coeffs()(1,0) = eigenvector(1).real() * max_eigen_val;
+		rot_quat.coeffs()(2,0) = eigenvector(2).real() * max_eigen_val;
+		rot_quat.coeffs()(3,0) = eigenvector(3).real() * max_eigen_val;
+
+		auto Nv = (N * eigenvector);
+
+		Eigen::Vector4f diff;
+		diff(0) = Nv(0).real() - rot_quat.coeffs()(0,0);
+		diff(1) = Nv(1).real() - rot_quat.coeffs()(1, 0);
+		diff(2) = Nv(2).real() - rot_quat.coeffs()(2, 0);
+		diff(3) = Nv(3).real() - rot_quat.coeffs()(3, 0);
+		
+		if (diff.dot(diff) < 1E-4 && diff.dot(diff) > -1E-4)
+		{
+			// WE got that 
+			std::cout << "hey rot quat is " << eigenvector << std::endl;
+			target_quat.x() = eigenvector(0).real();
+			target_quat.y() = eigenvector(1).real();
+			target_quat.z() = eigenvector(2).real();
+			target_quat.w() = eigenvector(3).real();
+		}
 	}
 
-	// Eigen::Vector3f x = A.colPivHouseholderQr().solve(b);
+	// Calculate R, t and c
+	Eigen::Vector3f T_i = Eigen::Vector3f(centroid_star[0],centroid_star[1],centroid_star[2]) - target_quat._transformVector(Eigen::Vector3f(centroid_i[0],centroid_i[1],centroid_i[2]));
+	std::cout << "Target translation = " << T_i << std::endl;
 
-	// Now we have th rotation Ri, just need to compute ti with the two centroids.
-	// Wish I have a rotation class, I don't want to do that ,Ask Zejian Tomorrow, need to sleep
+	// Update verts
+	for (Mesh::FaceVertexCCWIter fv_ccwit = mesh_.fv_ccwbegin(_fh); fv_ccwit.is_valid(); fv_ccwit++)
+	{
+		Vec3f& pt = mesh_.point(*fv_ccwit);
+		Eigen::Vector3f NewPos = target_quat._transformVector(Eigen::Vector3f(pt[0],pt[1],pt[2])) + T_i;
+		mesh_.point(*fv_ccwit) = Vec3f(NewPos[0], NewPos[1], NewPos[2]);
+	}
+
 }
 
 void PrimoMeshViewer::global_optimize_all_faces(int iterations)

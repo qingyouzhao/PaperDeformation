@@ -1,8 +1,10 @@
 #pragma once
 
 #include "MeshViewer.hh"
-
-
+#include "nanort.h"
+#include "Transformation.hh"
+#include <vector>
+#include <unordered_map>
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
@@ -81,11 +83,68 @@ protected:
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 
+	/// get average vertex distance
+    float get_average_vertex_distance(const Mesh& mesh) const;
 	// For primo hierarchical, the solution should be based on a, say randomly sampled points, 
 	// then find the shortest path along the edges
 
-	enum class EViewMode{VIEW, MOVE} mode_;
+	enum class EViewMode{VIEW, MOVE} viewMode_;
+	enum class ESelectMode{STATIC, DYNAMIC, OPTIMIZED, NONE} selectMode_;
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
+	// press p to visualize prisms
+	bool drawPrisms_;
+	// colors of faces of prisms
+	GLfloat staticFacesColor_[3];
+	GLfloat dynamicFacesColor_[3];
+	GLfloat optimizedFacesColor_[3];
+	// prism' height (homogeneous: all prisms' height are same now)
+	float prismHeight_;
+	float averageVertexDisance_;
+	// 3 types of face handles
+	// only optimize the optimizedFaces
+	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	std::vector<unsigned int> optimizedVertexIndices_;
+	// static faces(prisms) as hard constraints
+	std::vector<OpenMesh::FaceHandle> staticFaceHandles_;
+	std::vector<unsigned int> staticVertexIndices_;
+	// dynamic faces(prisms) could be moved by UI, also hard constraints when doing optimization
+	std::vector<OpenMesh::FaceHandle> dynamicFaceHandles_;
+	std::vector<unsigned int> dynamicVertexIndices_;
+
+	// used for ray-casting, from prim_id to faceHandle
+	std::vector<OpenMesh::FaceHandle> allFaceHandles_;
+	nanort::BVHAccel<float> allFaces_BVH_;
+	// face_handles is cleared and filled with all face handles in mesh_
+	void get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles);
+	void build_allFace_BVH();
+	
+	// 1. ray cast allfaces
+	// 2. add to STATIC/DYNAMIC faces based on selectMode_
+	// 3. update face STATIC/DYNAMIC indices for drawing
+	void raycast_faces(int x, int y);
+	void update_1typeface_indices(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										std::vector<unsigned int> &indices);
+	
+	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
+	// O(n), need optimize if this is raycast bottleneck
+	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles);
+	// each face could only have one type of STATIC/DYNAMI/NONE
+	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
+	// draw prisms for all faces in array(vector)
+	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
+	// transformation for all dynamic faces. changed in ESelectMode::NONE(press 3)
+	// 1 transformation for all dynamic faces, just for simplicity
+	Transformation dynamic_faces_transform_;
+
+	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
+	void transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
+											std::vector<OpenMesh::FaceHandle> &dyFaces);
+	
+	// it is avg of all dynamic faces' normals. 
+	OpenMesh::Vec3f dynamic_rotation_axis_;
+	OpenMesh::Vec3f dynamic_rotation_centroid_;
+	void update_dynamic_rotation_axis_and_centroid();
+
 };

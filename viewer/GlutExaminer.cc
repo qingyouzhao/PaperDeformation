@@ -72,7 +72,7 @@ void
 GlutExaminer::init()
 {
   // OpenGL state
-  glClearColor(0.0, 0.0, 0.0, 0.0);
+  glClearColor(0.3, 0.3, 0.3, 0.0);
   glDisable( GL_DITHER );
   glEnable( GL_DEPTH_TEST );
 
@@ -284,7 +284,6 @@ GlutExaminer::mouse(int button, int state, int x, int y)
     last_point_ok_ = map_to_sphere( last_point_2D_, last_point_3D_ );
     button_down_[button] = true;
   }
-
 
   // mouse release
   else

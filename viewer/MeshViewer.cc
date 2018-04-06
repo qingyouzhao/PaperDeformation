@@ -166,7 +166,7 @@ draw(const std::string& _draw_mode)
 
 	  glDisable(GL_LIGHTING);
 	  glShadeModel(GL_SMOOTH);
-	  glColor3f(0.3, 0.3, 0.3);
+	  glColor3f(0.0, 0.0, 0.0);
 
 	  glEnableClientState(GL_VERTEX_ARRAY);
 	  GL::glVertexPointer(mesh_.points());
@@ -200,8 +200,7 @@ draw(const std::string& _draw_mode)
 
     glEnable(GL_LIGHTING);
     glShadeModel(GL_FLAT);
-    glEnable(GL_COLOR_MATERIAL);
-    glColor3f(0.7, 0.7, 0.7);
+
     glBegin(GL_TRIANGLES);
     for (; f_it!=f_end; ++f_it)
     {
@@ -214,8 +213,6 @@ draw(const std::string& _draw_mode)
       GL::glVertex(mesh_.point(fv_it));
     }
     glEnd();
-    glDisable(GL_COLOR_MATERIAL);
-
   }
 
 
@@ -223,8 +220,7 @@ draw(const std::string& _draw_mode)
   {
     glEnable(GL_LIGHTING);
     glShadeModel(GL_SMOOTH);
-		glEnable(GL_COLOR_MATERIAL);
-    glColor3f(0.7, 0.7, 0.7);
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     GL::glVertexPointer(mesh_.points());
@@ -234,8 +230,6 @@ draw(const std::string& _draw_mode)
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
-    glDisable(GL_COLOR_MATERIAL);
-
   }
 }
 

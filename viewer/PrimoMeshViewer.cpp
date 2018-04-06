@@ -17,10 +17,10 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	dynamicFacesColor_[0] = 1.0f;
 	dynamicFacesColor_[1] = 0.64453125f;
 	dynamicFacesColor_[2] = 0.0f;
-	// static(white)
-	staticFacesColor_[0] = 1.0f;
-	staticFacesColor_[1] = 1.0f;
-	staticFacesColor_[2] = 1.0f;
+	// static(dark green)
+	staticFacesColor_[0] = 0.18039215686f;
+	staticFacesColor_[1] = 0.54509803921f;
+	staticFacesColor_[2] = 0.34117647058f;
 	// optimized(blue)
 	optimizedFacesColor_[0] = 0.5294117647f;
 	optimizedFacesColor_[1] = 0.80784313725f;
@@ -54,11 +54,18 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		prismHeight_ = averageVertexDisance_;
 
 		// init face handles for ray-casting lookup from prim_id to faceHandle
-		update_allFace_handles();
+		get_allFace_handles(allFaceHandles_);
 		// build bvh for all faces using nanort at first
 		build_allFace_BVH();
 		// and then, prisms are set up 
 		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
+
+		// default: all faces are optimizable
+		get_allFace_handles(optimizedFaceHandles_);
+		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+			faceIdx_to_selType[fh.idx()] = ESelectMode::NONE;
+		}
 
 		return true;
 	}
@@ -67,33 +74,145 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 
 void PrimoMeshViewer::draw(const std::string& _draw_mode)
 {
-	MeshViewer::draw(_draw_mode);
+	if (indices_.empty())
+	{
+        GlutExaminer::draw(_draw_mode);
+        return;
+    }
+
+
+
+    if (_draw_mode == "Wireframe")
+    {
+        glDisable(GL_LIGHTING);
+        glColor3f(1.0, 1.0, 1.0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        GL::glVertexPointer(mesh_.points());
+
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+	else if (_draw_mode == "Hidden Line")
+	{
+
+	    glDisable(GL_LIGHTING);
+	    glShadeModel(GL_SMOOTH);
+	    glColor3f(0.3, 0.3, 0.3);
+
+	    glEnableClientState(GL_VERTEX_ARRAY);
+	    GL::glVertexPointer(mesh_.points());
+
+	    glDepthRange(0.01, 1.0);
+	    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
+	    glDisableClientState(GL_VERTEX_ARRAY);
+	    glColor3f(1.0, 1.0, 1.0);
+
+	    glEnableClientState(GL_VERTEX_ARRAY);
+	    GL::glVertexPointer(mesh_.points());
+
+	    glDrawBuffer(GL_BACK);
+	    glDepthRange(0.0, 1.0);
+	    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	    glDepthFunc(GL_LEQUAL);
+	    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
+
+	    glDisableClientState(GL_VERTEX_ARRAY);
+	    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	    glDepthFunc(GL_LESS);
+	}
+	else if (_draw_mode == "Solid Flat")
+	{
+
+		Mesh::ConstFaceVertexIter  fv_it;
+		glEnable(GL_LIGHTING);
+		glShadeModel(GL_FLAT);
+		glEnable(GL_COLOR_MATERIAL);
+		// draw 3 kind of faces
+		glColor3fv(optimizedFacesColor_);
+		glBegin(GL_TRIANGLES);
+		for (const OpenMesh::FaceHandle& fh : optimizedFaceHandles_)
+		{
+			GL::glNormal(mesh_.normal(fh));
+			fv_it = mesh_.cfv_iter(fh); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+		}
+		glEnd();
+		//
+		glColor3fv(dynamicFacesColor_);
+		glBegin(GL_TRIANGLES);
+		for (const OpenMesh::FaceHandle& fh : dynamicFaceHandles_)		
+		{
+			GL::glNormal(mesh_.normal(fh));
+			fv_it = mesh_.cfv_iter(fh); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+		}
+		glEnd();
+		//
+		glColor3fv(staticFacesColor_);
+		glBegin(GL_TRIANGLES);
+		for (const OpenMesh::FaceHandle& fh : staticFaceHandles_)	
+		{
+			GL::glNormal(mesh_.normal(fh));
+			fv_it = mesh_.cfv_iter(fh); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+		}
+		glEnd();
+		glDisable(GL_COLOR_MATERIAL);
+	}
+	else if (_draw_mode == "Solid Smooth")
+	{
+		glEnable(GL_LIGHTING);
+		glShadeModel(GL_SMOOTH);
+		glEnable(GL_COLOR_MATERIAL);
+		
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		GL::glVertexPointer(mesh_.points());
+		GL::glNormalPointer(mesh_.vertex_normals());
+		// draw 3 type of faces
+		glColor3fv(optimizedFacesColor_);
+		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(optimizedVertexIndices_.size()), GL_UNSIGNED_INT, &optimizedVertexIndices_[0]);
+
+		glColor3fv(dynamicFacesColor_);
+		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(dynamicVertexIndices_.size()), GL_UNSIGNED_INT, &dynamicVertexIndices_[0]);
+
+		glColor3fv(staticFacesColor_);
+		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(staticVertexIndices_.size()), GL_UNSIGNED_INT, &staticVertexIndices_[0]);
+		//
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+		glDisable(GL_COLOR_MATERIAL);
+	}
 	if(drawPrisms_){
 		// visualize prisms with wireframes
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
 		glColor3fv(dynamicFacesColor_);
 		glBegin(GL_LINES);
-		// each triangle face has 6 prism vertices and 9 edges
-		for (Mesh::FaceIter f_iter = mesh_.faces_begin(); f_iter!= mesh_.faces_end(); ++f_iter){
-			Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(*f_iter);
-			Vec3f pv[6];// 6 vertices of prism
-			for (int i = 0; fh_cwit.is_valid(); ++fh_cwit,++i){
-				assert(i < 3);
-				const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
-				const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-				pv[i]     = from_v + prop.FromVertPrismDir * prop.FromVertPrismSize;
-				pv[i + 3] = from_v - prop.FromVertPrismDir * prop.FromVertPrismSize;
-			}
-			// have got all six vertices of prism, draw 9 edges
-			// 01, 12, 02, 34, 45, 35, 03, 14, 25
-			static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-			static const int pv2i[9] = {1, 2, 2, 3, 5, 5, 3, 4, 5};
-			for(int i = 0; i < 9; ++i){
-				glVertex3f(pv[pv1i[i]][0], pv[pv1i[i]][1], pv[pv1i[i]][2]);
-				glVertex3f(pv[pv2i[i]][0], pv[pv2i[i]][1], pv[pv2i[i]][2]);
-			}
-		}
+		// draw 3 types of prisms with different color
+		glColor3fv(dynamicFacesColor_);
+		draw_prisms(dynamicFaceHandles_);
+		glColor3fv(staticFacesColor_);
+		draw_prisms(staticFaceHandles_);
+		glColor3fv(optimizedFacesColor_);
+		draw_prisms(optimizedFaceHandles_);
+		//
 		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
@@ -119,16 +238,23 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// immediately update all prisms
 		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
+
+		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
+		// based on the new prism height.
 		glutPostRedisplay();
 	}
 		break;
 	case '-':
 	{
-		// minus prisms' height
-		prismHeight_ -= averageVertexDisance_ * 0.1f;
+		// minus prisms' height(keep prisms' height > 0)
+		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
+			prismHeight_ -= averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
 		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
+
+		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
+		// based on the new prism height.
 		glutPostRedisplay();
 	}
 		break;
@@ -136,22 +262,27 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	{
 		// select mode changed to STATIC
 		// which means that pressing shift + left mouse will select STATIC faces
-		selectMode_ = ESelectMode::STATIC;
 		printf("Select Mode: Static\n");
 
 		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC faces
-		build_allFace_BVH();
+		if(selectMode_ == ESelectMode::NONE){
+			build_allFace_BVH();
+		}
+		selectMode_ = ESelectMode::STATIC;
 	}
 		break;
 	case '2':
 	{
 		// select mode changed to DYNAMIC
 		// which means that pressing shift + left mouse will select DYNAMIC faces
-		selectMode_ = ESelectMode::DYNAMIC;
 		printf("Select Mode: Dynamic\n");
 
 		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC faces
-		build_allFace_BVH();
+		if(selectMode_ == ESelectMode::NONE){
+			build_allFace_BVH();
+		}
+		selectMode_ = ESelectMode::DYNAMIC;
+
 	}
 		break;
 	case '3':
@@ -519,18 +650,18 @@ float PrimoMeshViewer::get_average_vertex_distance(const Mesh& _mesh) const
     else
         return 0;
 }
-void PrimoMeshViewer::update_allFace_handles()
+void PrimoMeshViewer::get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles)
 {
 	Mesh::ConstFaceIter        f_it(mesh_.faces_sbegin()), 
                                f_end(mesh_.faces_end());
     Mesh::ConstFaceVertexIter  fv_it;
 
-    allFaceHandles_.clear();
-    allFaceHandles_.reserve(mesh_.n_faces());
+    face_handles.clear();
+    face_handles.reserve(mesh_.n_faces());
 
     for (; f_it!=f_end; ++f_it)
     {
-      allFaceHandles_.push_back(*f_it);
+      face_handles.push_back(*f_it);
     }
 
 }
@@ -567,7 +698,6 @@ void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceH
     }
 }
 void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
-	// #TODO[ZJW]:
 	// 1. ray cast allfaces
 	// 1.1 find origin
 	//  http://antongerdelan.net/opengl/raycasting.html
@@ -639,17 +769,56 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
     ray.dir[2] = ray_dir3[2];
     nanort::TriangleIntersection<float> isect;
     bool hit = allFaces_BVH_.Traverse(ray, triangle_intersecter, &isect);
+	if(!hit) return;
 	// 2. add to STATIC/DYNAMIC faces based on selectMode_
+	auto hit_faceIter = faceIdx_to_selType.find(isect.prim_id);
+	assert(hit_faceIter != faceIdx_to_selType.end());
 	bool needUpdateStatic = false;
 	bool needUpdateDynamic = false;
+	unsigned int hit_faceId = hit_faceIter->first;
+	ESelectMode hit_faceType = hit_faceIter->second;
 	if(selectMode_ == ESelectMode::STATIC){
-
+		if(hit_faceType == ESelectMode::DYNAMIC){
+			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
+			needUpdateDynamic = true;
+			needUpdateStatic = true;
+			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = selectMode_;
+		}else if(hit_faceType == ESelectMode::NONE){
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			needUpdateStatic = true;
+			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = selectMode_;
+		}else{
+			delete_faceHandle(hit_faceId, staticFaceHandles_);
+			needUpdateStatic = true;
+			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = ESelectMode::NONE;
+		}
 	}else if(selectMode_ == ESelectMode::DYNAMIC){
-
+		if(hit_faceType == ESelectMode::STATIC){
+			delete_faceHandle(hit_faceId, staticFaceHandles_);
+			needUpdateStatic = true;
+			needUpdateDynamic = true;
+			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = selectMode_;
+		}else if(hit_faceType == ESelectMode::NONE){
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			needUpdateDynamic = true;
+			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = selectMode_;
+		}
+		else{
+			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
+			needUpdateDynamic = true;
+			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			faceIdx_to_selType[hit_faceId] = ESelectMode::NONE;
+		}
 	}else{
-		// [ERROR]: raycast_faces could not be called in ESelectMode::NONE mode
-		assert(false); 
+		// assertion: raycast_faces could not be called in ESelectMode::NONE mode
+		assert(selectMode_ != ESelectMode::NONE); 
 	}
+	
 	// 3. update face STATIC/DYNAMIC optimized indices for drawing(That's why they should be update immediatly if necessary)
 	if(needUpdateStatic){
 		update_1typeface_indices(staticFaceHandles_, staticVertexIndices_);
@@ -660,5 +829,46 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 	if((needUpdateStatic && !needUpdateDynamic) || (!needUpdateStatic && needUpdateDynamic)){
 		// need to update optimized when only one type of STATIC/DYNAMIC is changed.
 		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+	}
+	// assertion for debug face number and indices number
+	assert(dynamicFaceHandles_.size() * 3 == dynamicVertexIndices_.size());
+	assert(staticFaceHandles_.size() * 3 == staticVertexIndices_.size());
+	assert(optimizedFaceHandles_.size() * 3 == optimizedVertexIndices_.size());
+	assert(dynamicFaceHandles_.size() + staticFaceHandles_.size() + optimizedFaceHandles_.size()
+			== mesh_.n_faces());
+
+}
+void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle>& face_handles){
+	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
+		if(it->idx() == faceId){
+			// remove this fh
+			face_handles.erase(it);
+			return;
+		}
+	}
+	// this funtion is only used by raycast, and fh must be in face_handles where fh.idx()==faceId
+	// this assert is just for debug
+	assert(false);
+}
+void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> face_handles) const{
+	// each triangle face has 6 prism vertices and 9 edges
+	for (const OpenMesh::FaceHandle& fh : face_handles){
+		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
+		Vec3f pv[6];// 6 vertices of prism
+		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
+			assert(i < 3);
+			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
+			const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+			pv[i]     = from_v + prop.FromVertPrismDir * prop.FromVertPrismSize;
+			pv[i + 3] = from_v - prop.FromVertPrismDir * prop.FromVertPrismSize;
+		}
+		// have got all six vertices of prism, draw 9 edges
+		// 01, 12, 02, 34, 45, 35, 03, 14, 25
+		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+		static const int pv2i[9] = {1, 2, 2, 3, 5, 5, 3, 4, 5};
+		for(int i = 0; i < 9; ++i){
+			glVertex3f(pv[pv1i[i]][0], pv[pv1i[i]][1], pv[pv1i[i]][2]);
+			glVertex3f(pv[pv2i[i]][0], pv[pv2i[i]][1], pv[pv2i[i]][2]);
+		}
 	}
 }

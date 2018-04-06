@@ -3,7 +3,7 @@
 #include "MeshViewer.hh"
 #include "nanort.h"
 #include <vector>
-
+#include <unordered_map>
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
@@ -115,7 +115,8 @@ private:
 	// used for ray-casting, from prim_id to faceHandle
 	std::vector<OpenMesh::FaceHandle> allFaceHandles_;
 	nanort::BVHAccel<float> allFaces_BVH_;
-	void update_allFace_handles();
+	// face_handles is cleared and filled with all face handles in mesh_
+	void get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles);
 	void build_allFace_BVH();
 	
 	// 1. ray cast allfaces
@@ -124,5 +125,13 @@ private:
 	void raycast_faces(int x, int y);
 	void update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
 										std::vector<unsigned int>& indices);
+	
+	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
+	// O(n), need optimize if this is raycast bottleneck
+	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle>& face_handles);
+	// each face could only have one type of STATIC/DYNAMI/NONE
+	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType;
+	// draw prisms for all faces in array(vector)
+	void draw_prisms(const std::vector<OpenMesh::FaceHandle> face_handles) const;
 
 };

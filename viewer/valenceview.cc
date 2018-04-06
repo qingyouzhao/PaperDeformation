@@ -37,7 +37,10 @@
 int main(int argc, char **argv)
 {
   glutInit(&argc, argv);
-  printf("Usage:\na: Toggle prism visualization\n+: add prism height\n-: minus prism height\n");
+  printf("Usage:\na: Toggle prism visualization\n+: Add prism height\n-: Minus prism height\n\n");
+  printf("Legend:\nOrange: dynamic faces\nBlue: optimizable faces\nDark Green: static faces\n-------"
+          "---------------------------------------------------\n\n");
+  printf("Logging:\n");
 
   // ValenceViewer window("Valence Viewer", 512, 512);
   PrimoMeshViewer window("Primo Demo", 1024, 1024);

@@ -161,9 +161,16 @@ void PrimoMeshViewer::manipulate(Mesh::VertexHandle vh_, Mesh::Point target_loca
 void PrimoMeshViewer::local_optimize(int iterations)
 {
 	//TODO: Randomly sample one face
-	Mesh::FaceHandle fh;
-	//TODO: optimize for that face
-	local_optimize_face(fh);
+	for(int i = 0; i < iterations; i++)
+	{
+		Mesh::FaceHandle fh;
+		int num_faces = mesh_.n_faces();
+		int idx = rand() % num_faces;
+
+		fh = mesh_.face_handle(idx);
+		//TODO: optimize for that face
+		local_optimize_face(fh);
+	}
 }
 
 void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
@@ -343,6 +350,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		Eigen::Vector3f NewPos = target_quat._transformVector(Eigen::Vector3f(pt[0],pt[1],pt[2])) + T_i;
 		mesh_.point(*fv_ccwit) = Vec3f(NewPos[0], NewPos[1], NewPos[2]);
 	}
+	mesh_.update_face_normals();
 
 }
 

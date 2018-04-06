@@ -2,6 +2,7 @@
 
 #include "MeshViewer.hh"
 #include "nanort.h"
+#include "Transformation.hh"
 #include <vector>
 #include <unordered_map>
 enum class EPrismExtrudeMode {
@@ -88,7 +89,7 @@ protected:
 	// then find the shortest path along the edges
 
 	enum class EViewMode{VIEW, MOVE} viewMode_;
-	enum class ESelectMode{STATIC, DYNAMIC, NONE} selectMode_;
+	enum class ESelectMode{STATIC, DYNAMIC, OPTIMIZED, NONE} selectMode_;
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
@@ -123,15 +124,27 @@ private:
 	// 2. add to STATIC/DYNAMIC faces based on selectMode_
 	// 3. update face STATIC/DYNAMIC indices for drawing
 	void raycast_faces(int x, int y);
-	void update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
-										std::vector<unsigned int>& indices);
+	void update_1typeface_indices(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										std::vector<unsigned int> &indices);
 	
 	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
 	// O(n), need optimize if this is raycast bottleneck
-	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle>& face_handles);
+	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles);
 	// each face could only have one type of STATIC/DYNAMI/NONE
-	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType;
+	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
 	// draw prisms for all faces in array(vector)
-	void draw_prisms(const std::vector<OpenMesh::FaceHandle> face_handles) const;
+	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
+	// transformation for all dynamic faces. changed in ESelectMode::NONE(press 3)
+	// 1 transformation for all dynamic faces, just for simplicity
+	Transformation dynamic_faces_transform_;
+
+	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
+	void transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
+											std::vector<OpenMesh::FaceHandle> &dyFaces);
+	
+	// it is avg of all dynamic faces' normals. 
+	OpenMesh::Vec3f dynamic_rotation_axis_;
+	OpenMesh::Vec3f dynamic_rotation_centroid_;
+	void update_dynamic_rotation_axis_and_centroid();
 
 };

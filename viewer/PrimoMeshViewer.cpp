@@ -29,10 +29,12 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	// do not draw prisms at first
 	drawPrisms_ = false;
 	
-	// Select mode is STATIC at first
+	// select mode is STATIC at first
 	selectMode_ = ESelectMode::STATIC;
 	printf("Select Mode: Static\n");
 
+	// set dynamic faces' transform as Identity with 0 translation at first
+	dynamic_faces_transform_.set_identity();
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -64,7 +66,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		get_allFace_handles(optimizedFaceHandles_);
 		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
 		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
-			faceIdx_to_selType[fh.idx()] = ESelectMode::NONE;
+			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
 		}
 
 		return true;
@@ -203,7 +205,6 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		// visualize prisms with wireframes
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
-		glColor3fv(dynamicFacesColor_);
 		glBegin(GL_LINES);
 		// draw 3 types of prisms with different color
 		glColor3fv(dynamicFacesColor_);
@@ -214,6 +215,25 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		draw_prisms(optimizedFaceHandles_);
 		//
 		glEnd();
+		glDisable(GL_COLOR_MATERIAL);
+	}
+	// draw dynamic faces rotation axis
+
+	if(dynamicFaceHandles_.size() > 0){
+		float prev_line_width;
+		glGetFloatv(GL_LINE_WIDTH, &prev_line_width);
+		glEnable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHTING);
+		glColor3fv(dynamicFacesColor_);
+		glLineWidth(5 * prev_line_width);
+		glBegin(GL_LINES);
+		const OpenMesh::Vec3f &arrow_from = dynamic_rotation_centroid_;
+		OpenMesh::Vec3f arrow_to = arrow_from + dynamic_rotation_axis_ * averageVertexDisance_ * 5;
+		glVertex3f(arrow_from[0], arrow_from[1],arrow_from[2]);
+		glVertex3f(arrow_to[0], arrow_to[1], arrow_to[2]);
+		//
+		glEnd();
+		glLineWidth(prev_line_width);
 		glDisable(GL_COLOR_MATERIAL);
 	}
 }
@@ -264,7 +284,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// which means that pressing shift + left mouse will select STATIC faces
 		printf("Select Mode: Static\n");
 
-		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC faces
+		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC/OPTIMIZED faces
 		if(selectMode_ == ESelectMode::NONE){
 			build_allFace_BVH();
 		}
@@ -277,7 +297,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// which means that pressing shift + left mouse will select DYNAMIC faces
 		printf("Select Mode: Dynamic\n");
 
-		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC faces
+		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC/OPTIMIZED faces
 		if(selectMode_ == ESelectMode::NONE){
 			build_allFace_BVH();
 		}
@@ -286,6 +306,20 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	}
 		break;
 	case '3':
+	{
+		// select mode changed to OPTIMIZED
+		// which means that pressing shift + left mouse will select OPTIMIZED faces
+		printf("Select Mode: Optimized\n");
+
+		// rebuild nanort bvh for all faces before selecting STATIC/DYNAMIC/OPTIMIZED faces
+		if(selectMode_ == ESelectMode::NONE){
+			build_allFace_BVH();
+		}
+		selectMode_ = ESelectMode::OPTIMIZED;
+
+	}
+		break;
+	case '4':
 	{
 		// select mode changed to NONE
 		// which means that pressing shift + left mouse and moving mouse will rotate all DYNAMIC faces
@@ -316,70 +350,72 @@ void PrimoMeshViewer::motion(int x, int y)
 			// and in ESelect::None mode
 
 			if(selectMode_ == ESelectMode::NONE){
-				// #TODO[ZJW]: rotate or translate dynamicFaces when pressing shift + left/middle mouse button 
+				// rotate or translate dynamicFaces when pressing shift + left/middle mouse button 
 				// and in ESelect::None mode
+				// rotation
+            	// if (button_down_[0])
+            	// {
+                // 	if (last_point_ok_)
+                // 	{
+                //     	Vec2i  new_point_2D;
+                //     	Vec3f  new_point_3D;
+                //     	bool   new_point_ok;
+
+                //     	new_point_2D = Vec2i(x, y);
+                //     	new_point_ok = map_to_sphere(new_point_2D, new_point_3D);
+
+                //     	if (new_point_ok)
+                //     	{
+                //         	//Vec3f axis      = (last_point_3D_ % new_point_3D);
+                //         	//float cos_angle = (last_point_3D_ | new_point_3D);
+
+                //         	//if (fabs(cos_angle) < 1.0)
+                //         	//{
+                //             	float angle = (new_point_2D[0] - last_point_2D_[0]) / width_;
+                //             	//rotate(axis, angle);
+                //             	//Transformation mv_tr = Transformation::retrieve_gl();
+                //             	//mv_tr.translation_.fill(0);
+                //             	// Transformation tr(angle, Vector3f(dynamic_rotation_axis_[0], dynamic_rotation_axis_[1],dynamic_rotation_axis_[2]));
+				// 				// dynamic_faces_transform_ = tr;
+				// 				rotate_faces_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
+                //         	//}
+                //     	}
+                // 	}
+            	// }
+            	// // translation
+            	// else if (button_down_[1])
+            	// {
+                // 	float dx = x - last_point_2D_[0];
+                // 	float dy = y - last_point_2D_[1];
+
+                // 	float z = - ((modelview_matrix_[ 2]*center_[0] +
+                //  	             modelview_matrix_[ 6]*center_[1] +
+                // 	              modelview_matrix_[10]*center_[2] +
+                // 	              modelview_matrix_[14]) /
+                // 	             (modelview_matrix_[ 3]*center_[0] +
+                // 	              modelview_matrix_[ 7]*center_[1] +
+                // 	              modelview_matrix_[11]*center_[2] +
+                // 	              modelview_matrix_[15]));
+
+                // 	float aspect = (float)width_ / (float)height_;
+                // 	float up     = tan(fovy_/2.0f*M_PI/180.f) * near_;
+                // 	float right  = aspect*up;
+
+                // 	Transformation mv_tr = Transformation::retrieve_gl();
+                // 	Transformation tr(2.0*dx/width_*right/near_*z, -2.0*dy/height_*up/near_*z, 0.0f);
+				// 	dynamic_faces_transform_ = mv_tr.inverse() * tr * mv_tr;
+				// 	transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
+            	// }
+
+
+            	// // remeber points
+            	// last_point_2D_ = Vec2i(x, y);
+            	// last_point_ok_ = map_to_sphere(last_point_2D_, last_point_3D_);
+            	// glutPostRedisplay();
 			}
-
-            // // rotation
-            // if (button_down_[0])
-            // {
-            //     if (last_point_ok_)
-            //     {
-            //         Vec2i  new_point_2D;
-            //         Vec3f  new_point_3D;
-            //         bool   new_point_ok;
-
-            //         new_point_2D = Vec2i(x, y);
-            //         new_point_ok = map_to_sphere(new_point_2D, new_point_3D);
-
-            //         if (new_point_ok)
-            //         {
-            //             Vec3f axis      = (last_point_3D_ % new_point_3D);
-            //             float cos_angle = (last_point_3D_ | new_point_3D);
-
-            //             if (fabs(cos_angle) < 1.0)
-            //             {
-            //                 float angle = 2.0*acos(cos_angle);
-            //                 //rotate(axis, angle);
-            //                 Transformation mv_tr = Transformation::retrieve_gl();
-            //                 mv_tr.translation_.fill(0);
-            //                 Transformation tr(angle, Vector3f(axis[0],axis[1],axis[2]));
-
-            //                 transformations_[currIndex_] = mv_tr.inverse() * tr * mv_tr * transformations_[currIndex_];
-            //             }
-            //         }
-            //     }
-            // }
-            // // translation
-            // else if (button_down_[1])
-            // {
-            //     float dx = x - last_point_2D_[0];
-            //     float dy = y - last_point_2D_[1];
-
-            //     float z = - ((modelview_matrix_[ 2]*center_[0] +
-            //                   modelview_matrix_[ 6]*center_[1] +
-            //                   modelview_matrix_[10]*center_[2] +
-            //                   modelview_matrix_[14]) /
-            //                  (modelview_matrix_[ 3]*center_[0] +
-            //                   modelview_matrix_[ 7]*center_[1] +
-            //                   modelview_matrix_[11]*center_[2] +
-            //                   modelview_matrix_[15]));
-
-            //     float aspect = (float)width_ / (float)height_;
-            //     float up     = tan(fovy_/2.0f*M_PI/180.f) * near_;
-            //     float right  = aspect*up;
-
-            //     Transformation mv_tr = Transformation::retrieve_gl();
-            //     Transformation tr(2.0*dx/width_*right/near_*z, -2.0*dy/height_*up/near_*z, 0.0f);
-            //     transformations_[currIndex_] = mv_tr.inverse() * tr * mv_tr * transformations_[currIndex_];
-            // }
-
-
-            // // remeber points
-            // last_point_2D_ = Vec2i(x, y);
-            // last_point_ok_ = map_to_sphere(last_point_2D_, last_point_3D_);
-
-            // glutPostRedisplay();
+			else{
+				raycast_faces(x, y);
+			}
             break;
         }
     }
@@ -402,11 +438,18 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// 1. ray cast allfaces
 					// 2. add to STATIC/DYNAMIC faces based on selectMode_
 					// 3. update face STATIC/DYNAMIC indices for drawing
+				}
+				case ESelectMode::OPTIMIZED:{
+					// 1. ray cast allfaces
+					// 2. add to STATIC/DYNAMIC faces based on selectMode_
+					// 3. update face STATIC/DYNAMIC indices for drawing
 					raycast_faces(x, y);
 					break;
 				}
 				case ESelectMode::NONE:{
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
+					//transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
+
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					break;
 				}
@@ -631,7 +674,7 @@ float PrimoMeshViewer::calc_face_area(Mesh::FaceHandle _fh) const
 	return 1.0f;
 }
 
-float PrimoMeshViewer::get_average_vertex_distance(const Mesh& _mesh) const
+float PrimoMeshViewer::get_average_vertex_distance(const Mesh &_mesh) const
 {
 	float accDist = 0;
     int accCount = 0;
@@ -684,7 +727,7 @@ void PrimoMeshViewer::build_allFace_BVH()
       stats.num_leaf_nodes, stats.num_branch_nodes, stats.max_tree_depth);
 }
 void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
-										std::vector<unsigned int>& indices_array){
+										std::vector<unsigned int> &indices_array){
 
     Mesh::ConstFaceVertexIter  fv_it;
     indices_array.clear();
@@ -771,8 +814,8 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
     bool hit = allFaces_BVH_.Traverse(ray, triangle_intersecter, &isect);
 	if(!hit) return;
 	// 2. add to STATIC/DYNAMIC faces based on selectMode_
-	auto hit_faceIter = faceIdx_to_selType.find(isect.prim_id);
-	assert(hit_faceIter != faceIdx_to_selType.end());
+	auto hit_faceIter = faceIdx_to_selType_.find(isect.prim_id);
+	assert(hit_faceIter != faceIdx_to_selType_.end());
 	bool needUpdateStatic = false;
 	bool needUpdateDynamic = false;
 	unsigned int hit_faceId = hit_faceIter->first;
@@ -783,17 +826,10 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateDynamic = true;
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = selectMode_;
-		}else if(hit_faceType == ESelectMode::NONE){
+		}else if(hit_faceType == ESelectMode::OPTIMIZED){
 			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = selectMode_;
-		}else{
-			delete_faceHandle(hit_faceId, staticFaceHandles_);
-			needUpdateStatic = true;
-			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = ESelectMode::NONE;
 		}
 	}else if(selectMode_ == ESelectMode::DYNAMIC){
 		if(hit_faceType == ESelectMode::STATIC){
@@ -801,30 +837,35 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateStatic = true;
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = selectMode_;
-		}else if(hit_faceType == ESelectMode::NONE){
+		}else if(hit_faceType == ESelectMode::OPTIMIZED){
 			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = selectMode_;
 		}
-		else{
+	}else if(selectMode_ == ESelectMode::OPTIMIZED){
+		if(hit_faceType == ESelectMode::STATIC){
+			delete_faceHandle(hit_faceId, staticFaceHandles_);
+			needUpdateStatic = true;
+			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+		}else if(hit_faceType == ESelectMode::DYNAMIC){
 			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
 			needUpdateDynamic = true;
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			faceIdx_to_selType[hit_faceId] = ESelectMode::NONE;
 		}
-	}else{
+	}
+	else{
 		// assertion: raycast_faces could not be called in ESelectMode::NONE mode
 		assert(selectMode_ != ESelectMode::NONE); 
 	}
-	
+	faceIdx_to_selType_[hit_faceId] = selectMode_;
+
 	// 3. update face STATIC/DYNAMIC optimized indices for drawing(That's why they should be update immediatly if necessary)
 	if(needUpdateStatic){
 		update_1typeface_indices(staticFaceHandles_, staticVertexIndices_);
 	}
 	if(needUpdateDynamic){
 		update_1typeface_indices(dynamicFaceHandles_, dynamicVertexIndices_);
+		update_dynamic_rotation_axis_and_centroid();
 	}
 	if((needUpdateStatic && !needUpdateDynamic) || (!needUpdateStatic && needUpdateDynamic)){
 		// need to update optimized when only one type of STATIC/DYNAMIC is changed.
@@ -837,8 +878,9 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 	assert(dynamicFaceHandles_.size() + staticFaceHandles_.size() + optimizedFaceHandles_.size()
 			== mesh_.n_faces());
 
+	glutPostRedisplay();
 }
-void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle>& face_handles){
+void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles){
 	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
 		if(it->idx() == faceId){
 			// remove this fh
@@ -850,7 +892,7 @@ void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMes
 	// this assert is just for debug
 	assert(false);
 }
-void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> face_handles) const{
+void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
 	// each triangle face has 6 prism vertices and 9 edges
 	for (const OpenMesh::FaceHandle& fh : face_handles){
 		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
@@ -870,5 +912,42 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> face_h
 			glVertex3f(pv[pv1i[i]][0], pv[pv1i[i]][1], pv[pv1i[i]][2]);
 			glVertex3f(pv[pv2i[i]][0], pv[pv2i[i]][1], pv[pv2i[i]][2]);
 		}
+	}
+}
+void PrimoMeshViewer::transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
+														std::vector<OpenMesh::FaceHandle> &dyFaces){
+	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
+	for(OpenMesh::FaceHandle &fh : dyFaces){
+		// rotate & translate 3 vertices of this face
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			mesh_.point(*fv_it) = dyTrans.transformPoint(mesh_.point(*fv_it));
+		}
+		// rotate inner half edges' prism
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			OpenMesh::Vec3f &fromDir = mesh_.property(P_PrismProperty, *fh_it).FromVertPrismDir;
+			OpenMesh::Vec3f &toDir   = mesh_.property(P_PrismProperty, *fh_it).ToVertPrimsDir;
+			fromDir = dyTrans.transformVector(fromDir);
+			toDir   = dyTrans.transformVector(toDir);
+		}
+	}
+	// update face & vertices normals in mesh_
+	mesh_.update_normals();
+}
+void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
+	dynamic_rotation_axis_[0] = 0.0f;
+	dynamic_rotation_axis_[1] = 0.0f;
+	dynamic_rotation_axis_[2] = 0.0f;
+	dynamic_rotation_centroid_[0] = 0.0f;
+	dynamic_rotation_centroid_[1] = 0.0f;
+	dynamic_rotation_centroid_[2] = 0.0f;
+	for(const OpenMesh::FaceHandle& fh: dynamicFaceHandles_){
+		dynamic_rotation_axis_ += mesh_.normal(fh);
+		for(Mesh::ConstFaceVertexIter cfv_it = mesh_.cfv_begin(fh); cfv_it.is_valid(); ++cfv_it){
+			dynamic_rotation_centroid_ += mesh_.point(*cfv_it);
+		}
+	}
+	dynamic_rotation_axis_.normalize();
+	if(dynamicFaceHandles_.size() > 0){
+		dynamic_rotation_centroid_ /= (float)(dynamicFaceHandles_.size() * 3);
 	}
 }

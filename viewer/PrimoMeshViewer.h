@@ -11,11 +11,20 @@ enum class EPrismExtrudeMode {
 	CUSTOM
 };
 
+/// This struct store the prism data structure and provides basic functionalities for retrieval and claculation
 struct PrismProperty {
-	Vec3f FromVertPrismDir;
-	float FromVertPrismSize;
-	Vec3f ToVertPrimsDir;
-	float ToVertPrismSize;
+	Vec3f FromVertPrismDir_DEPRECATED;
+	float FromVertPrismSize_DEPRECATED;
+	Vec3f ToVertPrimsDir_DEPRECATED;
+	float ToVertPrismSize_DEPRECATED;
+
+	Vec3f FromVertPrismUp;
+	Vec3f FromVertPrismDown;
+	Vec3f ToVertPrismUp;
+	Vec3f ToVertPrismDown;
+
+	Vec3f FromVertNormal;
+	Vec3f ToVertNormal;
 
 	// A simple illustration of how the prism is stored
 	/*
@@ -24,7 +33,17 @@ struct PrismProperty {
 	f-he_ij-->to  |       to<--he_ji---from  |
 	00---------01 normal  00------------01   normal
 	*/
-	Vec3f calc_f_uv(int u, int v, bool is_i_j) const
+
+	// A simple illustration of how the prism is stored
+	/*
+	From up		
+	01---------11 ^       01------------11   ^
+	| f_ij     |  |       |  f_ji       |    |
+	f-he_ij-->to  |       to<--he_ji---from  |
+	00---------10 normal  00------------10   normal
+	*/
+
+	Vec3f f_uv(int u, int v, bool is_i_j)
 	{
 		Vec3f result;
 		// We only care uv edges
@@ -32,16 +51,37 @@ struct PrismProperty {
 		assert(v == 0 || v == 1);
 		if (is_i_j)
 		{
-			result = v == 0 ? (FromVertPrismDir * FromVertPrismSize) : (ToVertPrimsDir * ToVertPrismSize);
-			result *= (u == 0 ? -1 : 1);
+			result = (v == 1) ? ( u == 0 ? FromVertPrismUp : ToVertPrismUp)
+							  : ( u == 0 ? FromVertPrismDown : ToVertPrismDown);
 		}
 		else
 		{
-			result = v == 0 ? (ToVertPrimsDir * ToVertPrismSize) : (FromVertPrismDir * FromVertPrismSize);
-			result *= (u == 0 ? -1 : 1);
+			result = (v == 1) ? (u == 0 ? ToVertPrismUp: FromVertPrismUp)
+							  : (u == 0 ? ToVertPrismDown: FromVertPrismDown);
 		}
 		return result;
 	}
+
+	Vec3f TargetPosFrom()
+	{
+		return (FromVertPrismUp + FromVertPrismDown) * 0.5f;
+	}
+	Vec3f TargetPosTo()
+	{	
+		return (ToVertPrismDown + ToVertPrismUp) * 0.5f;
+
+	}
+
+	void TransformPrism(const Transformation& Transform)
+	{
+		FromVertPrismUp = Transform * (FromVertPrismUp);
+		FromVertPrismDown = Transform * (FromVertPrismDown);
+		ToVertPrismUp = Transform * (ToVertPrismUp);
+		ToVertPrismDown = Transform * (ToVertPrismDown);
+		Transform.transformVector(FromVertNormal);
+		Transform.transformVector(ToVertNormal);
+	}
+
 };
 
 class PrimoMeshViewer :public MeshViewer
@@ -102,6 +142,7 @@ private:
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
 	float averageVertexDisance_;
+	int local_optimize_iterations_;
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;

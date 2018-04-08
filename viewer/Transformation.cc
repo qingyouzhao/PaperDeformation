@@ -35,16 +35,21 @@
 //
 //=============================================================================
 
+// Modified by Qingyou Zhao and Zejian Wang for better utility
+
 //== INCLUDES =================================================================
 
 #include "Transformation.hh"
 #include <cmath>
 #include <cstring>
 #include "gl.hh"
+#include <Eigen/Geometry>
 
 //== IMPLEMENTATION ==========================================================
 
 Transformation::Transformation() { set_identity(); }
+
+
 
 //=============================================================================
 Transformation::Transformation(float tx, float ty, float tz) {
@@ -78,6 +83,12 @@ Transformation::Transformation(float angle, Vector3f axis) {
   }
 }
 
+
+Transformation::Transformation(Eigen::Quaternion<float> Q, Vector3f T, Vector3f S /*= Vector3f(1,1,1)*/)
+{
+
+}
+
 //=============================================================================
 
 void Transformation::set_identity() {
@@ -94,6 +105,11 @@ Transformation Transformation::operator*(const Transformation& o) const {
   t.translation_ = rotation_ * o.translation_ + translation_;
 
   return t;
+}
+
+OpenMesh::Vec3f Transformation::operator*(const OpenMesh::Vec3f& p) const
+{
+	return transformPoint(p);
 }
 
 //=============================================================================

@@ -2,11 +2,14 @@ project(Primo CXX)
 
 cmake_minimum_required(VERSION 2.8)
 
+
+
 # setup output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(EIGEN_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
+set(GLM_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glm)
 
 # additional CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -55,11 +58,12 @@ file(GLOB_RECURSE isoex_sources isoex/*.cc)
 file(GLOB_RECURSE isoex_headers isoex/*.hh)
 
 # setup Eigen
-file(GLOB_RECURSE eigen_sources Eigen/src/*.cpp)
-file(GLOB_RECURSE eigen_headers Eigen/src/*.h)
+# file(GLOB_RECURSE eigen_sources Eigen/src/*.cpp)
+# file(GLOB_RECURSE eigen_headers Eigen/src/*.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${EIGEN_INCLUDE_DIRECTORY})
+include_directories(${GLM_INCLUDE_DIRECTORY})
 # no need for gmm here
 # include_directories(gmm)
 

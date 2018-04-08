@@ -41,6 +41,8 @@
 #include <vector>
 #include "Matrix.hh"
 #include "Vector.hh"
+#include <Eigen/Geometry>
+
 
 /**
  * Transformation class
@@ -57,6 +59,12 @@ class Transformation {
 
   /// constructor: rotation around axis
   Transformation(float angle, Vector3f axis);
+
+  /// constructor: rotation and translation
+  Transformation(Eigen::Quaternion<float> Q, Vector3f T, Vector3f S = Vector3f(1,1,1));
+
+
+  /// constructor: with a rotation matrix and translation vector
 
   /// set identity transformation
   void set_identity();
@@ -77,6 +85,7 @@ class Transformation {
   Vector3d transformPoint(const Vector3d& p) const;
 
   OpenMesh::Vec3f transformPoint(const OpenMesh::Vec3f& p) const;
+  OpenMesh::Vec3f operator*(const OpenMesh::Vec3f& p) const;
 
   /// Transform vector
   Vector3d transformVector(const Vector3d& v) const;

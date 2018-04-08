@@ -44,6 +44,7 @@
 #include <cstring>
 #include "gl.hh"
 #include <Eigen/Geometry>
+#include <glm/gtc/quaternion.hpp>
 
 //== IMPLEMENTATION ==========================================================
 
@@ -83,9 +84,29 @@ Transformation::Transformation(float angle, Vector3f axis) {
   }
 }
 
-
-Transformation::Transformation(Eigen::Quaternion<float> Q, Vector3f T, Vector3f S /*= Vector3f(1,1,1)*/)
+Transformation::Transformation(const Eigen::Quaternion<float>& Q, const Vector3f& T)
 {
+	set_identity();
+	//
+#if DEBUG
+	Q.norm();
+#endif
+	// Set up 3x3 rot from quat
+	const float x2 = Q.x() + Q.x();  const float y2 = Q.y() + Q.y();  const float z2 = Q.z() + Q.z();
+	const float xx = Q.x() * x2;   const float xy = Q.x() * y2;   const float xz = Q.x() * z2;
+	const float yy = Q.y() * y2;   const float yz = Q.y() * z2;   const float zz = Q.y() * z2;
+	const float wx = Q.w() * x2;   const float wy = Q.w() * y2;   const float wz = Q.w() * z2;
+	
+	Matrix3x3d& M = rotation_;
+
+	M[0][0] = 1.0f - (yy + zz);	M[1][0] = xy - wz;				M[2][0] = xz + wy;			
+	M[0][1] = xy + wz;			M[1][1] = 1.0f - (xx + zz);		M[2][1] = yz - wx;			
+	M[0][2] = xz - wy;			M[1][2] = yz + wx;				M[2][2] = 1.0f - (xx + yy);	
+	// set up translation
+
+	translation_[0] = T[0];
+	translation_[1] = T[1];
+	translation_[2] = T[2];
 
 }
 
@@ -154,6 +175,12 @@ std::vector<Vector3d> Transformation::transformVectors(
   std::vector<Vector3d> vs_out = vs;
   for (int i = 0; i < (int)vs.size(); i++) vs_out[i] = transformVector(vs[i]);
   return vs_out;
+}
+
+std::string Transformation::to_string()
+{
+	std::string s;
+	return s;
 }
 
 //=============================================================================

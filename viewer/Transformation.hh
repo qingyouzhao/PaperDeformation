@@ -60,8 +60,8 @@ class Transformation {
   /// constructor: rotation around axis
   Transformation(float angle, Vector3f axis);
 
-  /// constructor: rotation and translation
-  Transformation(Eigen::Quaternion<float> Q, Vector3f T, Vector3f S = Vector3f(1,1,1));
+  /// constructor: rotation and translation, assume we just get the eigen quaternion directly
+  Transformation(const Eigen::Quaternion<float>& Q, const Vector3f& T);
 
 
   /// constructor: with a rotation matrix and translation vector
@@ -98,6 +98,9 @@ class Transformation {
 
   /// Transform vectors
   std::vector<Vector3d> transformVectors(const std::vector<Vector3d>& vs);
+
+  /// A nicedly formated string form of this rotaion
+  std::string to_string();
 
   Matrix3x3d rotation_;
   Vector3d translation_;

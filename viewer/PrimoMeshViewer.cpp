@@ -389,7 +389,7 @@ void PrimoMeshViewer::motion(int x, int y)
                             	//mv_tr.translation_.fill(0);
                             	// Transformation tr(angle, Vector3f(dynamic_rotation_axis_[0], dynamic_rotation_axis_[1],dynamic_rotation_axis_[2]));
 								// dynamic_faces_transform_ = tr;
-								rotate_faces_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
+								rotate_faces_and_prisms_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
                         	//}
                     	}
                 	}

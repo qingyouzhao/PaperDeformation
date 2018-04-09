@@ -37,8 +37,6 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	viewMode_ = EViewMode::VIEW;
 	printf("Select Mode: Static\n");
 
-	// set dynamic faces' transform as Identity with 0 translation at first
-	dynamic_faces_transform_.set_identity();
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -63,8 +61,6 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		get_allFace_handles(allFaceHandles_);
 		// build bvh for all faces using nanort at first
 		build_allFace_BVH();
-		// and then, prisms are set up 
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
 
 		// default: all faces are optimizable
 		get_allFace_handles(optimizedFaceHandles_);
@@ -72,7 +68,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
 			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
 		}
-
+		// and then, prisms are set up 
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		return true;
 	}
 	return false;
@@ -268,7 +265,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// add prisms' height
 		prismHeight_ += averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -282,7 +279,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
 			prismHeight_ -= averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -434,7 +431,6 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 				}
 				case ESelectMode::NONE:{
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
-					//transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					// local_optimize(local_optimize_iterations_);
@@ -455,7 +451,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 	GlutExaminer::mouse(button, state, x, y);
 }
 
-void PrimoMeshViewer::setup_prisms(EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
+void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
 {
 	for (Mesh::FaceIter f_iter = mesh_.faces_begin(); f_iter!= mesh_.faces_end(); f_iter++)
 	{

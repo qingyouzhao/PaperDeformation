@@ -107,7 +107,8 @@ protected:
 
 	// Setup prisms for the meshes
 	// default to face normals, this makes the prism very flat
-	virtual void setup_prisms(EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
+	virtual void setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, 
+								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
 	// Move this vertex to the targeted handles
 	virtual void manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location);

@@ -4,6 +4,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
+#include <unordered_set>
 
 
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
@@ -33,10 +34,9 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	
 	// select mode is STATIC at first
 	selectMode_ = ESelectMode::STATIC;
+	viewMode_ = EViewMode::VIEW;
 	printf("Select Mode: Static\n");
 
-	// set dynamic faces' transform as Identity with 0 translation at first
-	dynamic_faces_transform_.set_identity();
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -61,8 +61,6 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		get_allFace_handles(allFaceHandles_);
 		// build bvh for all faces using nanort at first
 		build_allFace_BVH();
-		// and then, prisms are set up 
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
 
 		// default: all faces are optimizable
 		get_allFace_handles(optimizedFaceHandles_);
@@ -70,7 +68,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
 			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
 		}
-
+		// and then, prisms are set up 
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		return true;
 	}
 	return false;
@@ -266,7 +265,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// add prisms' height
 		prismHeight_ += averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -280,7 +279,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
 			prismHeight_ -= averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(EPrismExtrudeMode::VERT_NORMAL);
+		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -363,68 +362,42 @@ void PrimoMeshViewer::motion(int x, int y)
 				// rotate or translate dynamicFaces when pressing shift + left/middle mouse button 
 				// and in ESelect::None mode
 				// rotation
-            	// if (button_down_[0])
-            	// {
-                // 	if (last_point_ok_)
-                // 	{
-                //     	Vec2i  new_point_2D;
-                //     	Vec3f  new_point_3D;
-                //     	bool   new_point_ok;
+            	if (button_down_[0])
+            	{
+                	if (last_point_ok_)
+                	{
+                    	Vec2i  new_point_2D;
+                    	Vec3f  new_point_3D;
+                    	bool   new_point_ok;
 
-                //     	new_point_2D = Vec2i(x, y);
-                //     	new_point_ok = map_to_sphere(new_point_2D, new_point_3D);
+                    	new_point_2D = Vec2i(x, y);
+                    	new_point_ok = map_to_sphere(new_point_2D, new_point_3D);
 
-                //     	if (new_point_ok)
-                //     	{
-                //         	//Vec3f axis      = (last_point_3D_ % new_point_3D);
-                //         	//float cos_angle = (last_point_3D_ | new_point_3D);
-
-                //         	//if (fabs(cos_angle) < 1.0)
-                //         	//{
-                //             	float angle = (new_point_2D[0] - last_point_2D_[0]) / width_;
-                //             	//rotate(axis, angle);
-                //             	//Transformation mv_tr = Transformation::retrieve_gl();
-                //             	//mv_tr.translation_.fill(0);
-                //             	// Transformation tr(angle, Vector3f(dynamic_rotation_axis_[0], dynamic_rotation_axis_[1],dynamic_rotation_axis_[2]));
-				// 				// dynamic_faces_transform_ = tr;
-				// 				rotate_faces_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
-                //         	//}
-                //     	}
-                // 	}
-            	// }
-            	// // translation
-            	// else if (button_down_[1])
-            	// {
-                // 	float dx = x - last_point_2D_[0];
-                // 	float dy = y - last_point_2D_[1];
-
-                // 	float z = - ((modelview_matrix_[ 2]*center_[0] +
-                //  	             modelview_matrix_[ 6]*center_[1] +
-                // 	              modelview_matrix_[10]*center_[2] +
-                // 	              modelview_matrix_[14]) /
-                // 	             (modelview_matrix_[ 3]*center_[0] +
-                // 	              modelview_matrix_[ 7]*center_[1] +
-                // 	              modelview_matrix_[11]*center_[2] +
-                // 	              modelview_matrix_[15]));
-
-                // 	float aspect = (float)width_ / (float)height_;
-                // 	float up     = tan(fovy_/2.0f*M_PI/180.f) * near_;
-                // 	float right  = aspect*up;
-
-                // 	Transformation mv_tr = Transformation::retrieve_gl();
-                // 	Transformation tr(2.0*dx/width_*right/near_*z, -2.0*dy/height_*up/near_*z, 0.0f);
-				// 	dynamic_faces_transform_ = mv_tr.inverse() * tr * mv_tr;
-				// 	transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
-            	// }
+                    	if (new_point_ok)
+                    	{
+                            float angle = (new_point_2D[0] - last_point_2D_[0]) / (float)width_;
+							rotate_faces_and_prisms_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
+                    	}
+                	}
+            	}
+            	// translation
+            	else if (button_down_[1])
+            	{
+					//printf("button1\n");
+					float dist = (last_point_2D_[1] - y) / (float)height_ * averageVertexDisance_ * 1.5f;
+					translate_faces_and_prisms_along_axis(dynamic_rotation_axis_, dist, dynamicFaceHandles_);
+            	}
 
 
-            	// // remeber points
-            	// last_point_2D_ = Vec2i(x, y);
-            	// last_point_ok_ = map_to_sphere(last_point_2D_, last_point_3D_);
-            	// glutPostRedisplay();
+            	// remeber points
+            	last_point_2D_ = Vec2i(x, y);
+            	last_point_ok_ = map_to_sphere(last_point_2D_, last_point_3D_);
+            	glutPostRedisplay();
 			}
 			else{
 				raycast_faces(x, y);
+				// static int debug_time = 0;
+				// printf("ray_cast_motion%d!\n",++debug_time);
 			}
             break;
         }
@@ -458,27 +431,27 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 				}
 				case ESelectMode::NONE:{
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
-					//transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
-					local_optimize(local_optimize_iterations_);
+					// local_optimize(local_optimize_iterations_);
 					break;
 				}
 				default:
 					assert(false);
 					break;
 			}
+			viewMode_ = EViewMode::VIEW;
 		}
 	}
     else{
 		viewMode_ = EViewMode::VIEW;
-		// printf("View Mode: View\n");
+		//printf("View Mode: View\n");
 	}
 
 	GlutExaminer::mouse(button, state, x, y);
 }
 
-void PrimoMeshViewer::setup_prisms(EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
+void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
 {
 	for (Mesh::FaceIter f_iter = mesh_.faces_begin(); f_iter!= mesh_.faces_end(); f_iter++)
 	{
@@ -499,8 +472,8 @@ void PrimoMeshViewer::setup_prisms(EPrismExtrudeMode PrismExtrudeMode /*= EPrism
 				Mesh::Point p1 = mesh_.point(v1);
 				prop.FromVertPrismUp = p0 + n0 * prismHeight_;
 				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
-				prop.ToVertPrismUp = p1+n1 * prismHeight_;
-				prop.ToVertPrismDown = p1-n1 * prismHeight_;
+				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
+				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;
@@ -768,45 +741,47 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 	// each triangle face has 6 prism vertices and 9 edges
 	for (const OpenMesh::FaceHandle& fh : face_handles){
 		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
-		Vec3f pv[6];// 6 vertices of prism
+		const Vec3f* pv[6];// 6 vertices of prism
 		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
 			assert(i < 3);
 			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
-			const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-			pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-			pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			pv[i] = &(prop.FromVertPrismUp);
+			pv[i + 3] = &(prop.FromVertPrismDown);
 		}
 		// have got all six vertices of prism, draw 9 edges
 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
 		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
 		static const int pv2i[9] = {1, 2, 2, 3, 5, 5, 3, 4, 5};
 		for(int i = 0; i < 9; ++i){
-			glVertex3f(pv[pv1i[i]][0], pv[pv1i[i]][1], pv[pv1i[i]][2]);
-			glVertex3f(pv[pv2i[i]][0], pv[pv2i[i]][1], pv[pv2i[i]][2]);
+			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
+			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
 		}
 	}
 }
-void PrimoMeshViewer::transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
-														std::vector<OpenMesh::FaceHandle> &dyFaces){
-	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
-	for(OpenMesh::FaceHandle &fh : dyFaces){
-		// rotate & translate 3 vertices of this face
-		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
-			mesh_.point(*fv_it) = dyTrans.transformPoint(mesh_.point(*fv_it));
-		}
-		// rotate inner half edges' prism
-		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
-			// OpenMesh::Vec3f &fromDir = mesh_.property(P_PrismProperty, *fh_it).FromVertPrismDir;
-			// OpenMesh::Vec3f &toDir   = mesh_.property(P_PrismProperty, *fh_it).ToVertPrimsDir;
-			// fromDir = dyTrans.transformVector(fromDir);
-			// toDir   = dyTrans.transformVector(toDir);
-			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
-			prop.TransformPrism(dyTrans);
-		}
-	}
-	// update face & vertices normals in mesh_
-	mesh_.update_normals();
-}
+// void PrimoMeshViewer::transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
+// 														std::vector<OpenMesh::FaceHandle> &dyFaces){
+// 	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
+// 	for(OpenMesh::FaceHandle &fh : dyFaces){
+// 		// rotate & translate 3 vertices of this face
+// 		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+// 			mesh_.point(*fv_it) = dyTrans.transformPoint(mesh_.point(*fv_it));
+// 		}
+// 		// rotate inner half edges' prism
+// 		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+// 			// OpenMesh::Vec3f &fromDir = mesh_.property(P_PrismProperty, *fh_it).FromVertPrismDir;
+// 			// OpenMesh::Vec3f &toDir   = mesh_.property(P_PrismProperty, *fh_it).ToVertPrimsDir;
+// 			// fromDir = dyTrans.transformVector(fromDir);
+// 			// toDir   = dyTrans.transformVector(toDir);
+// 			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+// 			prop.TransformPrism(dyTrans);
+// 		}
+// 	}
+// 	// update face & vertices normals in mesh_
+// 	mesh_.update_normals();
+// }
 void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	dynamic_rotation_axis_[0] = 0.0f;
 	dynamic_rotation_axis_[1] = 0.0f;
@@ -823,5 +798,67 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	dynamic_rotation_axis_.normalize();
 	if(dynamicFaceHandles_.size() > 0){
 		dynamic_rotation_centroid_ /= (float)(dynamicFaceHandles_.size() * 3);
+	}
+}
+void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
+										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles){
+	// rotate all the vertices and prisms of face_handles, around rotation_centroid & axis, angle rad
+	std::unordered_set<int> vertex_idxs;
+	Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
+	for(OpenMesh::FaceHandle &fh : face_handles){
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			// if vertex is visited, do nothing
+ 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
+			vertex_idxs.insert(fv_it->idx());
+			// rotate this vertex
+			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it) - rotation_centroid) + rotation_centroid;
+ 		}
+		// transform all vertices of this face
+		// #TODO[ZJW][QYZ]: only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		// are not transformed. CHECK IT OUT if it is correct.
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+			prop.FromVertPrismUp -= rotation_centroid;
+			prop.FromVertPrismDown -= rotation_centroid;
+			prop.ToVertPrismUp -= rotation_centroid;
+			prop.ToVertPrismDown -= rotation_centroid;
+			
+			prop.FromVertPrismUp = tr.transformPoint(prop.FromVertPrismUp);
+			prop.FromVertPrismDown = tr.transformPoint(prop.FromVertPrismDown);
+			prop.ToVertPrismUp = tr.transformPoint(prop.ToVertPrismUp);
+			prop.ToVertPrismDown = tr.transformPoint(prop.ToVertPrismDown);
+
+			prop.FromVertPrismUp += rotation_centroid;
+			prop.FromVertPrismDown += rotation_centroid;
+			prop.ToVertPrismUp += rotation_centroid;
+			prop.ToVertPrismDown += rotation_centroid;
+		}
+	}
+}
+void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, 
+											std::vector<OpenMesh::FaceHandle> &face_handles){
+	// translate all the vertices and prisms of face_handles, along axis, dist 
+	std::unordered_set<int> vertex_idxs;
+	OpenMesh::Vec3f trans(dist * axis);
+	//Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
+	for(OpenMesh::FaceHandle &fh : face_handles){
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			// if vertex is visited, do nothing
+ 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
+			vertex_idxs.insert(fv_it->idx());
+			// rotate this vertex
+			mesh_.point(*fv_it) += trans;
+ 		}
+		// transform all vertices of this face
+		// #TODO[ZJW][QYZ]: only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		// are not transformed. CHECK IT OUT if it is correct.
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+
+			prop.FromVertPrismUp += trans;
+			prop.FromVertPrismDown += trans;
+			prop.ToVertPrismUp += trans;
+			prop.ToVertPrismDown += trans;
+		}
 	}
 }

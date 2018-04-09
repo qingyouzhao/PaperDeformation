@@ -178,16 +178,13 @@ private:
 	// transformation for all dynamic faces. changed in ESelectMode::NONE(press 3)
 	// 1 transformation for all dynamic faces, just for simplicity
 	Transformation dynamic_faces_transform_;
-
-	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
-	// void transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
-	// 										std::vector<OpenMesh::FaceHandle> &dyFaces);
 	
 	// it is avg of all dynamic faces' normals. 
 	OpenMesh::Vec3f dynamic_rotation_axis_;
 	OpenMesh::Vec3f dynamic_rotation_centroid_;
 	void update_dynamic_rotation_axis_and_centroid();
 	void rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
-										, float angle, std::vector<OpenMesh::FaceHandle> face_handles);
+										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles);
+	void translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, std::vector<OpenMesh::FaceHandle> &face_handles);
 
 };

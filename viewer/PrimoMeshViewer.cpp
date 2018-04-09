@@ -378,46 +378,18 @@ void PrimoMeshViewer::motion(int x, int y)
 
                     	if (new_point_ok)
                     	{
-                        	//Vec3f axis      = (last_point_3D_ % new_point_3D);
-                        	//float cos_angle = (last_point_3D_ | new_point_3D);
-
-                        	//if (fabs(cos_angle) < 1.0)
-                        	//{
-                            	float angle = (new_point_2D[0] - last_point_2D_[0]) / (float)width_;
-                            	//rotate(axis, angle);
-                            	//Transformation mv_tr = Transformation::retrieve_gl();
-                            	//mv_tr.translation_.fill(0);
-                            	// Transformation tr(angle, Vector3f(dynamic_rotation_axis_[0], dynamic_rotation_axis_[1],dynamic_rotation_axis_[2]));
-								// dynamic_faces_transform_ = tr;
-								rotate_faces_and_prisms_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
-                        	//}
+                            float angle = (new_point_2D[0] - last_point_2D_[0]) / (float)width_;
+							rotate_faces_and_prisms_around_centroid(dynamic_rotation_centroid_, dynamic_rotation_axis_, angle, dynamicFaceHandles_);
                     	}
                 	}
             	}
             	// translation
-            	// else if (button_down_[1])
-            	// {
-                // 	float dx = x - last_point_2D_[0];
-                // 	float dy = y - last_point_2D_[1];
-
-                // 	float z = - ((modelview_matrix_[ 2]*center_[0] +
-                //  	             modelview_matrix_[ 6]*center_[1] +
-                // 	              modelview_matrix_[10]*center_[2] +
-                // 	              modelview_matrix_[14]) /
-                // 	             (modelview_matrix_[ 3]*center_[0] +
-                // 	              modelview_matrix_[ 7]*center_[1] +
-                // 	              modelview_matrix_[11]*center_[2] +
-                // 	              modelview_matrix_[15]));
-
-                // 	float aspect = (float)width_ / (float)height_;
-                // 	float up     = tan(fovy_/2.0f*M_PI/180.f) * near_;
-                // 	float right  = aspect*up;
-
-                // 	Transformation mv_tr = Transformation::retrieve_gl();
-                // 	Transformation tr(2.0*dx/width_*right/near_*z, -2.0*dy/height_*up/near_*z, 0.0f);
-				// 	dynamic_faces_transform_ = mv_tr.inverse() * tr * mv_tr;
-				// 	transform_dynamic_faces_and_prisms(dynamic_faces_transform_, dynamicFaceHandles_);
-            	// }
+            	else if (button_down_[1])
+            	{
+					printf("button1\n");
+					float dist = (last_point_2D_[1] - y) / (float)height_ * averageVertexDisance_ * 1.5f;
+					translate_faces_and_prisms_along_axis(dynamic_rotation_axis_, dist, dynamicFaceHandles_);
+            	}
 
 
             	// remeber points
@@ -833,8 +805,8 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	}
 }
 void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
-										, float angle, std::vector<OpenMesh::FaceHandle> face_handles){
-	// rotate all the vertices and prisms of face_handles, arount rotation_centroid & axis, angle degree(not rad)
+										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles){
+	// rotate all the vertices and prisms of face_handles, around rotation_centroid & axis, angle rad
 	std::unordered_set<int> vertex_idxs;
 	Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
 	for(OpenMesh::FaceHandle &fh : face_handles){
@@ -864,6 +836,33 @@ void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Ve
 			prop.FromVertPrismDown += rotation_centroid;
 			prop.ToVertPrismUp += rotation_centroid;
 			prop.ToVertPrismDown += rotation_centroid;
+		}
+	}
+}
+void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, 
+											std::vector<OpenMesh::FaceHandle> &face_handles){
+	// translate all the vertices and prisms of face_handles, along axis, dist 
+	std::unordered_set<int> vertex_idxs;
+	OpenMesh::Vec3f trans(dist * axis);
+	//Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
+	for(OpenMesh::FaceHandle &fh : face_handles){
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			// if vertex is visited, do nothing
+ 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
+			vertex_idxs.insert(fv_it->idx());
+			// rotate this vertex
+			mesh_.point(*fv_it) += trans;
+ 		}
+		// transform all vertices of this face
+		// #TODO[ZJW][QYZ]: only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		// are not transformed. CHECK IT OUT if it is correct.
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+
+			prop.FromVertPrismUp += trans;
+			prop.FromVertPrismDown += trans;
+			prop.ToVertPrismUp += trans;
+			prop.ToVertPrismDown += trans;
 		}
 	}
 }

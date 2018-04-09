@@ -188,4 +188,7 @@ private:
 	OpenMesh::Vec3f dynamic_rotation_centroid_;
 	void update_dynamic_rotation_axis_and_centroid();
 
+
+public:
+	// Utilities
 };

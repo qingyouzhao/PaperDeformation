@@ -453,9 +453,9 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 
 void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
 {
-	for (Mesh::FaceIter f_iter = mesh_.faces_begin(); f_iter!= mesh_.faces_end(); f_iter++)
+	for (Mesh::FaceHandle &fh : face_handles)
 	{
-		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(*f_iter);
+		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
 		for (; fh_cwit.is_valid(); fh_cwit++)
 		{
 			switch (PrismExtrudeMode)
@@ -480,8 +480,8 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 			case EPrismExtrudeMode::FACE_NORMAL:
 			{
 				PrismProperty prop;
-				Mesh::Normal n0 = mesh_.normal(*f_iter);
-				Mesh::Normal n1 = mesh_.normal(*f_iter);
+				Mesh::Normal n0 = mesh_.normal(fh);
+				Mesh::Normal n1 = mesh_.normal(fh);
 				Mesh::VertexHandle v0 = mesh_.from_vertex_handle(*fh_cwit);
 				Mesh::VertexHandle v1 = mesh_.to_vertex_handle(*fh_cwit);
 				Mesh::Point  p0 = mesh_.point(v0);
@@ -754,7 +754,7 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 		// have got all six vertices of prism, draw 9 edges
 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
 		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-		static const int pv2i[9] = {1, 2, 2, 3, 5, 5, 3, 4, 5};
+		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
 		for(int i = 0; i < 9; ++i){
 			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);

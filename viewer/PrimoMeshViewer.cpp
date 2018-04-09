@@ -386,7 +386,7 @@ void PrimoMeshViewer::motion(int x, int y)
             	// translation
             	else if (button_down_[1])
             	{
-					printf("button1\n");
+					//printf("button1\n");
 					float dist = (last_point_2D_[1] - y) / (float)height_ * averageVertexDisance_ * 1.5f;
 					translate_faces_and_prisms_along_axis(dynamic_rotation_axis_, dist, dynamicFaceHandles_);
             	}

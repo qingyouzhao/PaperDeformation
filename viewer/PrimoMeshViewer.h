@@ -180,12 +180,14 @@ private:
 	Transformation dynamic_faces_transform_;
 
 	// given transforamtion of dynamic faces, transform dynamic faces & vertices & prisms to new position
-	void transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
-											std::vector<OpenMesh::FaceHandle> &dyFaces);
+	// void transform_dynamic_faces_and_prisms(const Transformation &dyTrans, 
+	// 										std::vector<OpenMesh::FaceHandle> &dyFaces);
 	
 	// it is avg of all dynamic faces' normals. 
 	OpenMesh::Vec3f dynamic_rotation_axis_;
 	OpenMesh::Vec3f dynamic_rotation_centroid_;
 	void update_dynamic_rotation_axis_and_centroid();
+	void rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
+										, float angle, std::vector<OpenMesh::FaceHandle> face_handles);
 
 };

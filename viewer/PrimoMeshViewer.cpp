@@ -512,13 +512,6 @@ void PrimoMeshViewer::manipulate(Mesh::VertexHandle vh_, Mesh::Point target_loca
 }
 
 
-
-void PrimoMeshViewer::global_optimize_all_faces(int iterations)
-{
-
-}
-
-
 float PrimoMeshViewer::get_average_vertex_distance(const Mesh &_mesh) const
 {
 	float accDist = 0;

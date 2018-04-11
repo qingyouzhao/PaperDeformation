@@ -10,7 +10,6 @@ enum class EPrismExtrudeMode {
 	FACE_NORMAL,
 	CUSTOM
 };
-
 /// This struct store the prism data structure and provides basic functionalities for retrieval and claculation
 struct PrismProperty {
 	Vec3f FromVertPrismDir_DEPRECATED;
@@ -122,7 +121,7 @@ protected:
 
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_
-	virtual void global_optimize_all_faces(std::vector<OpenMesh::FaceHandle> &face_handles);
+	virtual void global_optimize_faces(std::vector<OpenMesh::FaceHandle> &face_handles);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 

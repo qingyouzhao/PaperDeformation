@@ -264,8 +264,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	{
 		// add prisms' height
 		prismHeight_ += averageVertexDisance_ * 0.1f;
-		// immediately update all prisms
-		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
+		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -279,7 +279,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
 			prismHeight_ -= averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
+		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -433,7 +434,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
-					// local_optimize(local_optimize_iterations_);
+					global_optimize_faces(optimizedFaceHandles_);
 					break;
 				}
 				default:
@@ -481,12 +482,13 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
 				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
 				float area_face_j = 0.0f;
-				float edge_len = (p0 - p1).sqrnorm();
+				float edge_len_sqr = (p0 - p1).sqrnorm();
 				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
 				{
 					//opposite halfedge and face exist.
-					prop.weight_ij = edge_len / (area_face_i + area_face_j);
+					area_face_j = calc_face_area(fh_j);
 				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;
@@ -504,6 +506,20 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
 				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
 				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len_sqr = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					area_face_j = calc_face_area(fh_j);
+				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;

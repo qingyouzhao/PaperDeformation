@@ -3,61 +3,64 @@
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;
 typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
-static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, const OpenMesh::Vec3f &p_ji,
-                        const int f_i_id, const int f_j_id, SpMat &D_T){
+static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, 
+                        const int f_i_id, bool is_filling_i, SpMat &D_T){
     //helper function to fill in D_ab and D_cd, refer to ZJW's note
     const int i_startId = f_i_id * 6;
-    const int j_startId = f_j_id * 6;
+    const OpenMesh::Vec3f p = is_filling_i ? p_ij : -p_ij;
+    const int one = is_filling_i ? 1 : -1;
+    // const int j_startId = f_j_id * 6;
     // fill in first column
-    D_T.insert(i_startId + 1, 0) =  p_ij[2];
-    D_T.insert(i_startId + 2, 0) = -p_ij[1];
-    D_T.insert(i_startId + 3, 0) =  1;
-    D_T.insert(i_startId + 4, 0) =  1;
-    D_T.insert(i_startId + 5, 0) =  1;
+    D_T.insert(i_startId + 1, 0) =  p[2];
+    D_T.insert(i_startId + 2, 0) = -p[1];
+    D_T.insert(i_startId + 3, 0) =  one;
+    D_T.insert(i_startId + 4, 0) =  one;
+    D_T.insert(i_startId + 5, 0) =  one;
 
-    D_T.insert(j_startId + 1, 0) = -p_ji[2];
-    D_T.insert(j_startId + 1, 0) =  p_ji[1];
-    D_T.insert(j_startId + 1, 0) = -1;
-    D_T.insert(j_startId + 1, 0) = -1;
-    D_T.insert(j_startId + 1, 0) = -1;
+    // D_T.insert(j_startId + 1, 0) = -p_ji[2];
+    // D_T.insert(j_startId + 2, 0) =  p_ji[1];
+    // D_T.insert(j_startId + 3, 0) = -1;
+    // D_T.insert(j_startId + 4, 0) = -1;
+    // D_T.insert(j_startId + 5, 0) = -1;
 
     // fill in second column
-    D_T.insert(i_startId    , 1) = -p_ij[2];
-    D_T.insert(i_startId + 2, 1) =  p_ij[0];
-    D_T.insert(i_startId + 3, 1) =  1;
-    D_T.insert(i_startId + 4, 1) =  1;
-    D_T.insert(i_startId + 5, 1) =  1;
+    D_T.insert(i_startId    , 1) = -p[2];
+    D_T.insert(i_startId + 2, 1) =  p[0];
+    D_T.insert(i_startId + 3, 1) =  one;
+    D_T.insert(i_startId + 4, 1) =  one;
+    D_T.insert(i_startId + 5, 1) =  one;
 
-    D_T.insert(j_startId    , 1) =  p_ji[2];
-    D_T.insert(j_startId + 2, 1) = -p_ji[0];
-    D_T.insert(j_startId + 3, 1) = -1;
-    D_T.insert(j_startId + 4, 1) = -1;
-    D_T.insert(j_startId + 5, 1) = -1;
+    // D_T.insert(j_startId    , 1) =  p_ji[2];
+    // D_T.insert(j_startId + 2, 1) = -p_ji[0];
+    // D_T.insert(j_startId + 3, 1) = -1;
+    // D_T.insert(j_startId + 4, 1) = -1;
+    // D_T.insert(j_startId + 5, 1) = -1;
 
     // fill in third column
-    D_T.insert(i_startId    , 2) =  p_ij[1];
-    D_T.insert(i_startId + 1, 2) = -p_ij[0];
-    D_T.insert(i_startId + 3, 2) =  1;
-    D_T.insert(i_startId + 4, 2) =  1;
-    D_T.insert(i_startId + 5, 2) =  1;
+    D_T.insert(i_startId    , 2) =  p[1];
+    D_T.insert(i_startId + 1, 2) = -p[0];
+    D_T.insert(i_startId + 3, 2) =  one;
+    D_T.insert(i_startId + 4, 2) =  one;
+    D_T.insert(i_startId + 5, 2) =  one;
 
-    D_T.insert(j_startId    , 2) = -p_ji[1];
-    D_T.insert(j_startId + 1, 2) =  p_ji[0];
-    D_T.insert(j_startId + 3, 2) = -1;
-    D_T.insert(j_startId + 4, 2) = -1;
-    D_T.insert(j_startId + 5, 2) = -1;
+    // D_T.insert(j_startId    , 2) = -p_ji[1];
+    // D_T.insert(j_startId + 1, 2) =  p_ji[0];
+    // D_T.insert(j_startId + 3, 2) = -1;
+    // D_T.insert(j_startId + 4, 2) = -1;
+    // D_T.insert(j_startId + 5, 2) = -1;
 }
 // helper funtion to build linear system
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
-                            const std::vector<OpenMesh::FaceHandle> &face_handles, SpMat &B_add_BT, 
+                            const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_set<int> &face_id_set, 
+                            SpMat &B_add_BT, 
                             Eigen::VectorXf &negA_T){
     std::unordered_set<int> he_id_set;
-    // static const float one_ninth = 1.0f / 9.0f; 
-    
+    assert(face_handles.size() == face_id_set.size());
     for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
         const OpenMesh::FaceHandle &fh_i = face_handles[i];
         const int f_i_id = fh_i.idx();
+        assert(face_id_set.find(f_i_id) != face_id_set.end());
         for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
             // Grab the opposite half edge and face
             const Mesh::HalfedgeHandle he_i = *fhe_it;
@@ -149,11 +152,20 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 
                 SpMat D_ab_T(n6, 3);
                 SpMat D_cd_T(n6, 3);
-                D_ab_T.reserve(Eigen::VectorXi::Constant(3, 10));
-                D_cd_T.reserve(Eigen::VectorXi::Constant(3, 10));
+                // Boundary condition: one of the face(prisms)'s velocity(w, v) should be zero 
+                D_ab_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
+                D_cd_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
 
-                fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
-                fill_in_D_T(c, d, f_i_id, f_j_id, D_ab_T);
+                // fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
+                // fill_in_D_T(c, d, f_i_id, f_j_id, D_cd_T);
+                fill_in_D_T(a, f_i_id, true, D_ab_T);
+                fill_in_D_T(c, f_i_id, true, D_cd_T);
+                if(face_id_set.find(f_j_id) != face_id_set.end()){
+                    // opposite is optimizable face, fill it in
+                    fill_in_D_T(b, f_j_id, false, D_ab_T);
+                    fill_in_D_T(d, f_j_id, false, D_cd_T);
+                }
+
                 SpMat D_ab = D_ab_T.transpose();
                 SpMat D_cd = D_cd_T.transpose();
                 // add contribution to -A^T ("b" in "Ax = b")
@@ -176,7 +188,8 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     }
     
 }
-void PrimoMeshViewer::global_optimize_faces(std::vector<OpenMesh::FaceHandle> &face_handles)
+void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										const std::unordered_set<int> &face_idx_set)
 {
     /* #TODO[ZJW][QYZ]: Here we are using Eigen to solve the SPD(symmetric positive definite) linear system.
        if it is the speed bottleneck, try SuiteSparse(even cuda - GPU implementation) with more pain :)
@@ -193,12 +206,18 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpenMesh::FaceHandle> &f
     SpMat B_add_BT(n6, n6);
     
     //  
-    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, B_add_BT, negA_T);
+    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_set, B_add_BT, negA_T);
+    std::cout<< "B_and_BT:\n" <<  B_add_BT<<std::endl;
+    std::cout<< "-A^T:\n" << negA_T << std::endl;
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen 
-    Eigen::SimplicialCholesky<SpMat> chol(B_add_BT);  // performs a Cholesky factorization of A
-    Eigen::VectorXf x = chol.solve(negA_T);    // use the factorization to solve for the given right hand side
-   
+    Eigen::SparseLU<SpMat> solver;  // performs a Cholesky factorization of A
+    solver.compute(B_add_BT);
+    // decompose should be success
+    assert(solver.info() == Eigen::Success);
+
+    Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
+    std::cout<< x << std::endl;
     // #TODO[ZJW]: update vertices position based on faces(prisms) around each vertex
    
     // update OpenMesh's normals

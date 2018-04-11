@@ -73,6 +73,11 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		}
 		// and then, prisms are set up 
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		
+		// init the set of idx of opmizedFaces only for global optimization
+		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+			optimizedFaceIdx_.insert(fh.idx());
+		}
 		return true;
 	}
 	return false;
@@ -344,9 +349,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'o':
 	{
 		// switch optimization method (default: local)
-		bool opIsLocal = optimizeMode_ == EOptimizeMode::LOCAL;
+		bool opIsLocal = (optimizeMode_ == EOptimizeMode::LOCAL);
 		optimizeMode_ = (opIsLocal ? EOptimizeMode::GLOBAL : EOptimizeMode::LOCAL);
-		printf("Optimize Mode: %s\n", opIsLocal ? "Local" : "Global");
+		printf("Optimize Mode: %s\n", opIsLocal ? "Global" : "Local");
 	}
 		break;
 	default:
@@ -449,7 +454,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 						local_optimize(100);
 					}
 					else{
-						global_optimize_faces(optimizedFaceHandles_);
+						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_);
 					}
 					break;
 				}
@@ -705,6 +710,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
 			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			optimizedFaceIdx_.erase(hit_faceId);
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -716,6 +722,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
 			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			optimizedFaceIdx_.erase(hit_faceId);
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -724,10 +731,12 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			delete_faceHandle(hit_faceId, staticFaceHandles_);
 			needUpdateStatic = true;
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			optimizedFaceIdx_.insert(hit_faceId);
 		}else if(hit_faceType == ESelectMode::DYNAMIC){
 			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
 			needUpdateDynamic = true;
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			optimizedFaceIdx_.insert(hit_faceId);
 		}
 	}
 	else{

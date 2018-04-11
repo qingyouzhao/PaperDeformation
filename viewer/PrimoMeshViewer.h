@@ -5,6 +5,7 @@
 #include "Transformation.hh"
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
@@ -121,7 +122,8 @@ protected:
 
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_
-	virtual void global_optimize_faces(std::vector<OpenMesh::FaceHandle> &face_handles);
+	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										const std::unordered_set<int> &face_idx_set);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 
@@ -149,6 +151,10 @@ private:
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	// maintain a set of optimized faces' idx only for global optimization
+	
+	// #TODO[ZJW][QYZ]: redundant now, if have time, try to only mantain handles/idxs
+	std::unordered_set<int> optimizedFaceIdx_;
 	std::vector<unsigned int> optimizedVertexIndices_;
 	// static faces(prisms) as hard constraints
 	std::vector<OpenMesh::FaceHandle> staticFaceHandles_;

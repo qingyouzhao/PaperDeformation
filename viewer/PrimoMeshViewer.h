@@ -120,7 +120,8 @@ protected:
 	virtual void local_optimize_face(Mesh::FaceHandle _fh);
 
 	// globally solve for all prism faces
-	virtual void global_optimize_all_faces();
+	// mostly face_handles should be optimizedFaceHandles_
+	virtual void global_optimize_all_faces(std::vector<OpenMesh::FaceHandle> &face_handles);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 

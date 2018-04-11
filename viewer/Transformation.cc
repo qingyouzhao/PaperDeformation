@@ -180,7 +180,14 @@ std::vector<Vector3d> Transformation::transformVectors(
 std::string Transformation::to_string()
 {
 	std::string s;
-	return s;
+	std::ostringstream oss;
+	oss << "Rotation \n";
+	oss << rotation_(0, 0)<< ' ' << rotation_(0, 1) << ' ' << rotation_(0, 2) << '\n';
+	oss << rotation_(1, 0) << ' ' << rotation_(1, 1) << ' ' << rotation_(1, 2) << '\n';
+	oss << rotation_(2, 0) << ' ' << rotation_(2, 1) << ' ' << rotation_(2, 2) << '\n';
+	oss << "Translation \n";
+	oss << translation_[0] << ' ' << translation_[1] << ' ' << translation_[2] << '\n';
+	return oss.str();
 }
 
 //=============================================================================

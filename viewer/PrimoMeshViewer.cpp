@@ -13,6 +13,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	mesh_.request_vertex_colors();
 
 	mesh_.add_property(P_PrismProperty);
+	mesh_.add_property(P_FaceTransformationCache);
 
 	// set color of 3 kind of faces(prisms) here 
 	// default: dynamic(orange), 
@@ -30,7 +31,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	
 	// do not draw prisms at first
 	drawPrisms_ = false;
-	local_optimize_iterations_ = 10;
+	local_optimize_iterations_ = 1;
 	
 	// select mode is STATIC at first
 	selectMode_ = ESelectMode::STATIC;
@@ -212,6 +213,22 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	}
 	if(drawPrisms_){
 		// visualize prisms with wireframes
+		glEnable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHTING);
+		glBegin(GL_LINES);
+		// draw 3 types of prisms with different color
+		glColor3fv(dynamicFacesColor_);
+		draw_prisms(dynamicFaceHandles_);
+		glColor3fv(staticFacesColor_);
+		draw_prisms(staticFaceHandles_);
+		glColor3fv(optimizedFacesColor_);
+		draw_prisms(optimizedFaceHandles_);
+		//
+		glEnd();
+		glDisable(GL_COLOR_MATERIAL);
+	}
+	if (drawDebugInfo_)
+	{
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
 		glBegin(GL_LINES);
@@ -417,7 +434,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// 2. add to STATIC/DYNAMIC faces based on selectMode_
 					// 3. update face STATIC/DYNAMIC indices for drawing
 				}
-				case ESelectMode::STATIC:{
+				case ESelectMode::STATIC:{ 
 					// 1. ray cast allfaces
 					// 2. add to STATIC/DYNAMIC faces based on selectMode_
 					// 3. update face STATIC/DYNAMIC indices for drawing
@@ -433,7 +450,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
-					// local_optimize(local_optimize_iterations_);
+					local_optimize(local_optimize_iterations_);
 					break;
 				}
 				default:
@@ -453,9 +470,11 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 
 void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
 {
-	for (Mesh::FaceIter f_iter = mesh_.faces_begin(); f_iter!= mesh_.faces_end(); f_iter++)
+	for (Mesh::FaceHandle &fh : face_handles)
 	{
-		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(*f_iter);
+		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
+		// Initialize a default face transformation
+		mesh_.property(P_FaceTransformationCache, fh) = Transformation();
 		for (; fh_cwit.is_valid(); fh_cwit++)
 		{
 			switch (PrismExtrudeMode)
@@ -480,8 +499,8 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 			case EPrismExtrudeMode::FACE_NORMAL:
 			{
 				PrismProperty prop;
-				Mesh::Normal n0 = mesh_.normal(*f_iter);
-				Mesh::Normal n1 = mesh_.normal(*f_iter);
+				Mesh::Normal n0 = mesh_.normal(fh);
+				Mesh::Normal n1 = mesh_.normal(fh);
 				Mesh::VertexHandle v0 = mesh_.from_vertex_handle(*fh_cwit);
 				Mesh::VertexHandle v1 = mesh_.to_vertex_handle(*fh_cwit);
 				Mesh::Point  p0 = mesh_.point(v0);
@@ -754,7 +773,7 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 		// have got all six vertices of prism, draw 9 edges
 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
 		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-		static const int pv2i[9] = {1, 2, 2, 3, 5, 5, 3, 4, 5};
+		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
 		for(int i = 0; i < 9; ++i){
 			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);

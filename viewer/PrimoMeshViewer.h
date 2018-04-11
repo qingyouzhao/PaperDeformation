@@ -84,6 +84,48 @@ struct PrismProperty {
 
 };
 
+// A wrapper for GL color functionality
+struct LinearColor
+{
+	GLfloat rgba_[4];
+	LinearColor(float r, float g, float b, float a = 1.0f) {
+		rgba_[0] = r; rgba_[1] = g; rgba_[2] = b; rgba_[4] = a;
+	}
+
+	float r() { return rgba_[0]; }
+	float g() { return rgba_[1]; }
+	float b() { return rgba_[2]; }
+	float a() { return rgba_[3]; }
+	float v() {
+		return  (rgba_[0] + rgba_[1] + rgba_[2]) / 3.0f;
+	}
+
+	static const LinearColor RED;
+	static const LinearColor BLUE;
+	static const LinearColor GREEN;
+	static const LinearColor BLACK;
+	static const LinearColor GREY;
+	static const LinearColor WHITE;
+	static const LinearColor YELLOW;
+	static const LinearColor CYAN;
+	static const LinearColor MAGENTA;
+	static const LinearColor ORANGE;
+	static const LinearColor PURPLE;
+	static const LinearColor TURQUOISE;
+	static const LinearColor SILVER;
+	static const LinearColor EMERALD;
+};
+
+struct DebugLine
+{
+	DebugLine(Vec3f& _from, Vec3f& _to, float _width, LinearColor& _color): from_(_from), to_(_to), width_(_width), color_(_color){}
+
+	Vec3f from_;
+	Vec3f to_;
+	float width_;
+	LinearColor color_;
+};
+
 class PrimoMeshViewer :public MeshViewer
 {
 public:
@@ -134,8 +176,11 @@ protected:
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
+	OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
 	// press p to visualize prisms
 	bool drawPrisms_;
+	// press x to visualize other stuff
+	bool drawDebugInfo_;
 	// colors of faces of prisms
 	GLfloat staticFacesColor_[3];
 	GLfloat dynamicFacesColor_[3];
@@ -190,5 +235,11 @@ private:
 
 
 public:
-	// Utilities
+	// Debug Utilities
+	void add_debug_arrow(Vec3f& from, Vec3f& to, float arrow_size, LinearColor color);
+	void add_debug_coordinate(Transformation& world_transform, float size);
+private:
+	std::vector<DebugLine> debug_lines_;
+	// Draw the lines and flush them
+	void draw_debug_lines();	
 };

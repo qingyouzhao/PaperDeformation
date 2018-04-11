@@ -26,6 +26,10 @@ struct PrismProperty {
 	Vec3f FromVertNormal;
 	Vec3f ToVertNormal;
 
+	// This weight is set up in setup_prisms() in the beginning,
+	// and it is NEVER changed when deformation happens
+	float weight_ij;
+
 	// A simple illustration of how the prism is stored
 	/*
 	10---------11 ^       10------------11   ^
@@ -110,9 +114,6 @@ protected:
 	virtual void setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, 
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
-	// Move this vertex to the targeted handles
-	virtual void manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location);
-
 	// Locally optimize for one prism
 	virtual void local_optimize(int iterations);
 

@@ -456,6 +456,7 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 	for (Mesh::FaceHandle &fh : face_handles)
 	{
 		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
+		float area_face_i = calc_face_area(fh);
 		for (; fh_cwit.is_valid(); fh_cwit++)
 		{
 			switch (PrismExtrudeMode)
@@ -474,6 +475,18 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
 				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
 				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					prop.weight_ij = edge_len / (area_face_i + area_face_j);
+				}
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;
@@ -505,12 +518,6 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 		}
 	}
 }
-
-void PrimoMeshViewer::manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location)
-{
-
-}
-
 
 float PrimoMeshViewer::get_average_vertex_distance(const Mesh &_mesh) const
 {

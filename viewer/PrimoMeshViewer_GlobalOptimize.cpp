@@ -4,8 +4,7 @@ typedef Eigen::SparseMatrix<float> SpMat;
 // helper funtion to build linear system
 static void build_problem_Eigen(const std::vector<OpenMesh::FaceHandle> &face_handles, SpMat &B, 
                                 Eigen::VectorXf &negA_T){
-    //
-    //                
+                    
 }
 void PrimoMeshViewer::global_optimize_all_faces(std::vector<OpenMesh::FaceHandle> &face_handles)
 {

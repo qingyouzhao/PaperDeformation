@@ -3,9 +3,52 @@
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;
 typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
+static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, const OpenMesh::Vec3f &p_ji,
+                        const int f_i_id, const int f_j_id, SpMat &D_T){
+    //helper function to fill in D_ab and D_cd, refer to ZJW's note
+    const int i_startId = f_i_id * 6;
+    const int j_startId = f_j_id * 6;
+    // fill in first column
+    D_T.insert(i_startId + 1, 0) =  p_ij[2];
+    D_T.insert(i_startId + 2, 0) = -p_ij[1];
+    D_T.insert(i_startId + 3, 0) =  1;
+    D_T.insert(i_startId + 4, 0) =  1;
+    D_T.insert(i_startId + 5, 0) =  1;
 
+    D_T.insert(j_startId + 1, 0) = -p_ji[2];
+    D_T.insert(j_startId + 1, 0) =  p_ji[1];
+    D_T.insert(j_startId + 1, 0) = -1;
+    D_T.insert(j_startId + 1, 0) = -1;
+    D_T.insert(j_startId + 1, 0) = -1;
+
+    // fill in second column
+    D_T.insert(i_startId    , 1) = -p_ij[2];
+    D_T.insert(i_startId + 2, 1) =  p_ij[0];
+    D_T.insert(i_startId + 3, 1) =  1;
+    D_T.insert(i_startId + 4, 1) =  1;
+    D_T.insert(i_startId + 5, 1) =  1;
+
+    D_T.insert(j_startId    , 1) =  p_ji[2];
+    D_T.insert(j_startId + 2, 1) = -p_ji[0];
+    D_T.insert(j_startId + 3, 1) = -1;
+    D_T.insert(j_startId + 4, 1) = -1;
+    D_T.insert(j_startId + 5, 1) = -1;
+
+    // fill in third column
+    D_T.insert(i_startId    , 2) =  p_ij[1];
+    D_T.insert(i_startId + 1, 2) = -p_ij[0];
+    D_T.insert(i_startId + 3, 2) =  1;
+    D_T.insert(i_startId + 4, 2) =  1;
+    D_T.insert(i_startId + 5, 2) =  1;
+
+    D_T.insert(j_startId    , 2) = -p_ji[1];
+    D_T.insert(j_startId + 1, 2) =  p_ji[0];
+    D_T.insert(j_startId + 3, 2) = -1;
+    D_T.insert(j_startId + 4, 2) = -1;
+    D_T.insert(j_startId + 5, 2) = -1;
+}
 // helper funtion to build linear system
-static void build_problem_Eigen(const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
+static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
                             const std::vector<OpenMesh::FaceHandle> &face_handles, SpMat &B_add_BT, 
                             Eigen::VectorXf &negA_T){
     std::unordered_set<int> he_id_set;
@@ -102,8 +145,32 @@ static void build_problem_Eigen(const Mesh &mesh, const OpenMesh::HPropHandleT<P
                 const OpenMesh::Vec3f &d = f_ji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
                 const float lambda = lambdas[cid];
 
-                // #TODO[ZJW]: add contribution to -A^T ("b" in "Ax = b")
-                // #TODO[ZJW]: add contribution to B + B^T ("A" in "Ax = b")
+                // Compute SparseMatrix D_ab, D_cd in ZJW's note
+                
+                SpMat D_ab_T(n6, 3);
+                SpMat D_cd_T(n6, 3);
+                D_ab_T.reserve(Eigen::VectorXi::Constant(3, 10));
+                D_cd_T.reserve(Eigen::VectorXi::Constant(3, 10));
+
+                fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
+                fill_in_D_T(c, d, f_i_id, f_j_id, D_ab_T);
+                SpMat D_ab = D_ab_T.transpose();
+                SpMat D_cd = D_cd_T.transpose();
+                // add contribution to -A^T ("b" in "Ax = b")
+                OpenMesh::Vec3f lambda_b_minus_a_OpenMesh = lambda * (b - a);
+                OpenMesh::Vec3f lambda_d_minus_c_OpenMesh = lambda * (d - c);
+                Eigen::Vector3f lambda_b_minus_a_Eigen;
+                Eigen::Vector3f lambda_d_minus_c_Eigen;
+                lambda_b_minus_a_Eigen(0) = lambda_b_minus_a_OpenMesh[0];
+                lambda_b_minus_a_Eigen(1) = lambda_b_minus_a_OpenMesh[1];
+                lambda_b_minus_a_Eigen(2) = lambda_b_minus_a_OpenMesh[2];
+                
+                lambda_d_minus_c_Eigen(0) = lambda_d_minus_c_OpenMesh[0];
+                lambda_d_minus_c_Eigen(1) = lambda_d_minus_c_OpenMesh[1];
+                lambda_d_minus_c_Eigen(2) = lambda_d_minus_c_OpenMesh[2];
+                negA_T += D_cd_T * lambda_b_minus_a_Eigen + D_ab_T * lambda_d_minus_c_Eigen;
+                // add contribution to B + B^T ("A" in "Ax = b")
+                B_add_BT += D_ab_T * D_cd + D_cd_T * D_ab;
             }
         }
     }
@@ -119,14 +186,14 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpenMesh::FaceHandle> &f
        [PLH02]:http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F1D81AF3257335BC6E902048DF161317?doi=10.1.1.6.5569&rep=rep1&type=pdf
        (B + B^T) C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
     */
-    int n = (int)face_handles.size() * 6;
-    // -A^T ("b" in "Ax = b")
-    Eigen::VectorXf negA_T(n);
+    int n6 = (int)face_handles.size() * 6;
+    // -A^T ("b" in "Ax = b"), it is init to zero.
+    Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
     // B + B^T ("A" in "Ax = b")
-    SpMat B_add_BT(n, n);
+    SpMat B_add_BT(n6, n6);
     
     //  
-    build_problem_Eigen(mesh_, P_PrismProperty, face_handles, B_add_BT, negA_T);
+    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, B_add_BT, negA_T);
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen 
     Eigen::SimplicialCholesky<SpMat> chol(B_add_BT);  // performs a Cholesky factorization of A

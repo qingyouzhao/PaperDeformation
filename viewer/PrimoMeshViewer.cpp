@@ -36,7 +36,10 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	selectMode_ = ESelectMode::STATIC;
 	viewMode_ = EViewMode::VIEW;
 	printf("Select Mode: Static\n");
-
+	
+	// optimize mode is LOCAL at first
+	optimizeMode_ = EOptimizeMode::LOCAL;
+	printf("Optimize Mode: Local\n");
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -338,6 +341,14 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		printf("Select Mode: None\n"); 
 	}
 		break;
+	case 'o':
+	{
+		// switch optimization method (default: local)
+		bool opIsLocal = optimizeMode_ == EOptimizeMode::LOCAL;
+		optimizeMode_ = (opIsLocal ? EOptimizeMode::GLOBAL : EOptimizeMode::LOCAL);
+		printf("Optimize Mode: %s\n", opIsLocal ? "Local" : "Global");
+	}
+		break;
 	default:
 		GlutExaminer::keyboard(key, x, y);
 		break;
@@ -434,7 +445,12 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
-					global_optimize_faces(optimizedFaceHandles_);
+					if(optimizeMode_ == EOptimizeMode::LOCAL){
+						local_optimize(100);
+					}
+					else{
+						global_optimize_faces(optimizedFaceHandles_);
+					}
 					break;
 				}
 				default:

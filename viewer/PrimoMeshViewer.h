@@ -132,6 +132,7 @@ protected:
 
 	enum class EViewMode{VIEW, MOVE} viewMode_;
 	enum class ESelectMode{STATIC, DYNAMIC, OPTIMIZED, NONE} selectMode_;
+	enum class EOptimizeMode{LOCAL = 0, GLOBAL = 1} optimizeMode_ ;
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;

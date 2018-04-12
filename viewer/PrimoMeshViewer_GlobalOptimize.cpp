@@ -184,6 +184,7 @@ private:
         for(int cid = 0; cid < 10; ++cid){
             float a = first_array[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ][first];
             float b = second_array[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ][second];
+            value += a * b;
         }
         return value;
     }

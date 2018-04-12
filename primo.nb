@@ -1,0 +1,974 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.2' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     31342,        966]
+NotebookOptionsPosition[     28726,        917]
+NotebookOutlinePosition[     29065,        932]
+CellTagsIndexPosition[     29022,        929]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"d", " ", "=", " ", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", "         ", 
+      RowBox[{"0", ",", "pijz", ",", " ", 
+       RowBox[{"-", "pijy"}], ",", " ", "1", ",", " ", "1", ",", " ", "1", 
+       ",", "         ", "0", ",", " ", 
+       RowBox[{"-", "pjiz"}], ",", "   ", "pjiy", ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "pijz"}], ",", "        ", "0", ",", "   ", "pijx", ",", 
+       " ", "1", ",", " ", "1", ",", " ", "1", ",", "  ", "pjiz", ",", 
+       "          ", "0", ",", " ", 
+       RowBox[{"-", "pjix"}], ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+     RowBox[{"{", "  ", 
+      RowBox[{"pijy", ",", 
+       RowBox[{"-", "pijx"}], ",", "         ", "0", ",", " ", "1", ",", " ", 
+       "1", ",", " ", "1", ",", 
+       RowBox[{"-", "pjiy"}], ",", "  ", "pjix", ",", "            ", "0", 
+       ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}], ",", " ", 
+       RowBox[{"-", "1"}]}], "}"}]}], "}"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.73249235637543*^9, 3.7324924716897097`*^9}, {
+   3.7324925197064323`*^9, 3.732492824557625*^9}, {3.732492992366276*^9, 
+   3.73249305155656*^9}, 
+   3.73249429616148*^9},ExpressionUUID->"d7b765bd-3954-43c8-9072-\
+6849b271cdb9"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "d", "]"}]], "Input",
+ CellChangeTimes->{{3.732492880779284*^9, 
+  3.73249293368384*^9}},ExpressionUUID->"3592e4ba-f4dc-4754-bca4-\
+bf2bda2626ae"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0", "pijz", 
+      RowBox[{"-", "pijy"}], "1", "1", "1", "0", 
+      RowBox[{"-", "pjiz"}], "pjiy", 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}]},
+     {
+      RowBox[{"-", "pijz"}], "0", "pijx", "1", "1", "1", "pjiz", "0", 
+      RowBox[{"-", "pjix"}], 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}]},
+     {"pijy", 
+      RowBox[{"-", "pijx"}], "0", "1", "1", "1", 
+      RowBox[{"-", "pjiy"}], "pjix", "0", 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}], 
+      RowBox[{"-", "1"}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{3.732492934486843*^9, 3.7324930244465847`*^9, 
+  3.732493101453538*^9, 
+  3.732494300224434*^9},ExpressionUUID->"b7147c55-e6b9-40ed-9361-\
+44b0931e94a9"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"b", " ", "=", " ", 
+   RowBox[{
+    RowBox[{"Transpose", "[", "d", "]"}], ".", "d"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.7324931066530848`*^9, 3.732493141693475*^9}, {
+  3.73249317361513*^9, 3.732493199984881*^9}, {3.732494260402677*^9, 
+  3.732494281987054*^9}},ExpressionUUID->"36533f96-2804-43f1-aa1b-\
+4e83842ad616"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "b", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"63b65b4c-32ac-415a-bf0b-0d0f3893a597"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       SuperscriptBox["pijy", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijy"}], " ", "pjiy"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijy", " ", "pjix"}], 
+      RowBox[{"pijz", " ", "pjix"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijy"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], " ", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijz", " ", "pjiy"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], " ", "pijz"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijy", "2"]}], 
+      RowBox[{"pijx", "-", "pijy"}], 
+      RowBox[{"pijx", "-", "pijy"}], 
+      RowBox[{"pijx", "-", "pijy"}], 
+      RowBox[{"pijx", " ", "pjiz"}], 
+      RowBox[{"pijy", " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijy", " ", "pjiy"}]}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}]},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3", 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3", 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3", 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijy"}], " ", "pjiy"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijx", " ", "pjiy"}], 
+      RowBox[{"pijx", " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       SuperscriptBox["pjiy", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}]},
+     {
+      RowBox[{"pijy", " ", "pjix"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijy", " ", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiy"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}]},
+     {
+      RowBox[{"pijz", " ", "pjix"}], 
+      RowBox[{"pijz", " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijy", " ", "pjiy"}]}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], " ", "pjiz"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiy", "2"]}], 
+      RowBox[{"pjix", "-", "pjiy"}], 
+      RowBox[{"pjix", "-", "pjiy"}], 
+      RowBox[{"pjix", "-", "pjiy"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.732494273714489*^9, 
+  3.7324943048326597`*^9}},ExpressionUUID->"8c389a32-75d1-4db7-9a0e-\
+a1a92262fdf3"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"b1", " ", "=", " ", 
+   RowBox[{"b", "[", 
+    RowBox[{"[", 
+     RowBox[{
+      RowBox[{"1", " ", ";;", " ", "6"}], " ", ",", " ", 
+      RowBox[{"1", ";;", " ", "6"}]}], " ", "]"}], "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.732494588686759*^9, 3.732494589885542*^9}, {
+  3.7324946378113937`*^9, 
+  3.732494775180462*^9}},ExpressionUUID->"23b20fd2-9616-44d2-a12d-\
+732e69f96fdc"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "%16", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"b58248bd-63d1-4cf5-93b3-ad6d2ff9276a"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       SuperscriptBox["pijy", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{"pijy", "-", "pijz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijy"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], " ", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], " ", "pijz"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijy", "2"]}], 
+      RowBox[{"pijx", "-", "pijy"}], 
+      RowBox[{"pijx", "-", "pijy"}], 
+      RowBox[{"pijx", "-", "pijy"}]},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3"},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3"},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.7324947784015827`*^9},ExpressionUUID->"a70866ec-174a-4b3c-97e8-\
+a1ba9f17eb02"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"b2", " ", "=", " ", 
+   RowBox[{"b", "[", 
+    RowBox[{"[", 
+     RowBox[{
+      RowBox[{"1", ";;", "6"}], ",", " ", 
+      RowBox[{"7", ";;", "12"}]}], "]"}], "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.7324947889379597`*^9, 
+  3.732494831131065*^9}},ExpressionUUID->"71402520-3f13-43e4-9733-\
+48ed32422eb1"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "%18", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"c7f914c6-ad18-4092-a5c4-02c75a93b295"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijy"}], " ", "pjiy"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijy", " ", "pjix"}], 
+      RowBox[{"pijz", " ", "pjix"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}]},
+     {
+      RowBox[{"pijx", " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijz", " ", "pjiy"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}]},
+     {
+      RowBox[{"pijx", " ", "pjiz"}], 
+      RowBox[{"pijy", " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijy", " ", "pjiy"}]}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.732494836082844*^9},ExpressionUUID->"b0b370a6-0773-42d6-9784-\
+a83e41df7e72"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"b3", " ", "=", " ", 
+   RowBox[{"b", "[", 
+    RowBox[{"[", 
+     RowBox[{
+      RowBox[{"7", ";;", "12"}], ",", " ", 
+      RowBox[{"1", ";;", "6"}]}], "]"}], "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.732494846459598*^9, 
+  3.732494858384191*^9}},ExpressionUUID->"159f4a67-7895-4cd6-ae58-\
+ab5ee2ebaadc"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "%20", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"76d68405-8f77-4e73-ad74-2904ade311da"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijy"}], " ", "pjiy"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijx", " ", "pjiy"}], 
+      RowBox[{"pijx", " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}]},
+     {
+      RowBox[{"pijy", " ", "pjix"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijy", " ", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}]},
+     {
+      RowBox[{"pijz", " ", "pjix"}], 
+      RowBox[{"pijz", " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijy", " ", "pjiy"}]}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.732494863350732*^9},ExpressionUUID->"380451c9-6d12-4bb6-b50a-\
+ed7858e542bb"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"b4", " ", "=", " ", 
+   RowBox[{"b", "[", 
+    RowBox[{"[", 
+     RowBox[{
+      RowBox[{"7", ";;", "12"}], ",", " ", 
+      RowBox[{"7", ";;", "12"}]}], "]"}], "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.732494870219654*^9, 
+  3.732494882879088*^9}},ExpressionUUID->"927e3e84-f36b-4661-ae4f-\
+cd65873f750a"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "%22", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"fa7c5ecc-25a3-4434-adb5-3ccc1df4b135"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       SuperscriptBox["pjiy", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{"pjiy", "-", "pjiz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiy"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], " ", "pjiz"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiy", "2"]}], 
+      RowBox[{"pjix", "-", "pjiy"}], 
+      RowBox[{"pjix", "-", "pjiy"}], 
+      RowBox[{"pjix", "-", "pjiy"}]},
+     {
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"},
+     {
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"},
+     {
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.7324948864236403`*^9},ExpressionUUID->"f342d275-4999-4875-8b7f-\
+7c343e8e0be0"]
+}, Open  ]],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.732495223922401*^9, 
+  3.7324952252098837`*^9}},ExpressionUUID->"4de1d19e-1bfe-45aa-a68d-\
+162da0574af6"],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.732495055589633*^9, 3.732495060599147*^9}, 
+   3.732495223290895*^9},ExpressionUUID->"2cd26245-00e5-4e27-ab07-\
+0383fbaa8fe4"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"lowerb", " ", "=", " ", 
+   RowBox[{"LowerTriangularize", "[", "b", "]"}]}], ";"}]], "Input",
+ CellChangeTimes->{{3.7324957142686234`*^9, 
+  3.732495743643867*^9}},ExpressionUUID->"6124996e-f3f6-40e0-850c-\
+1c1292de5d2b"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"MatrixForm", "[", "%25", "]"}]], "Input",
+ NumberMarks->False,ExpressionUUID->"e440d29a-1995-4aeb-ada7-77871876dcdd"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       SuperscriptBox["pijy", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], "0", "0", "0", "0", "0", "0", "0", "0", 
+      "0", "0", "0"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijy"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijz", "2"]}], "0", "0", "0", "0", "0", "0", "0", "0", 
+      "0", "0"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijx"}], " ", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijy"}], " ", "pijz"}], 
+      RowBox[{
+       SuperscriptBox["pijx", "2"], "+", 
+       SuperscriptBox["pijy", "2"]}], "0", "0", "0", "0", "0", "0", "0", "0", 
+      "0"},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "0", "0", "0", "0", "0", "0", "0", 
+      "0"},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "0", "0", "0", "0", "0", "0", 
+      "0"},
+     {
+      RowBox[{"pijy", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijy"}], "3", "3", "3", "0", "0", "0", "0", "0", 
+      "0"},
+     {
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijy"}], " ", "pjiy"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijx", " ", "pjiy"}], 
+      RowBox[{"pijx", " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], "+", "pjiz"}], 
+      RowBox[{
+       SuperscriptBox["pjiy", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], "0", "0", "0", "0", "0"},
+     {
+      RowBox[{"pijy", " ", "pjix"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijz", " ", "pjiz"}]}], 
+      RowBox[{"pijy", " ", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiy"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiz", "2"]}], "0", "0", "0", "0"},
+     {
+      RowBox[{"pijz", " ", "pjix"}], 
+      RowBox[{"pijz", " ", "pjiy"}], 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", "pijx"}], " ", "pjix"}], "-", 
+       RowBox[{"pijy", " ", "pjiy"}]}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiy"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], " ", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjiy"}], " ", "pjiz"}], 
+      RowBox[{
+       SuperscriptBox["pjix", "2"], "+", 
+       SuperscriptBox["pjiy", "2"]}], "0", "0", "0"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "0", "0"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "0"},
+     {
+      RowBox[{
+       RowBox[{"-", "pijy"}], "+", "pijz"}], 
+      RowBox[{"pijx", "-", "pijz"}], 
+      RowBox[{
+       RowBox[{"-", "pijx"}], "+", "pijy"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"-", "3"}], 
+      RowBox[{"pjiy", "-", "pjiz"}], 
+      RowBox[{
+       RowBox[{"-", "pjix"}], "+", "pjiz"}], 
+      RowBox[{"pjix", "-", "pjiy"}], "3", "3", "3"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.732495748394273*^9},ExpressionUUID->"9981d85b-e8be-4dfe-953d-\
+0b3b4fc6825f"]
+}, Open  ]]
+},
+WindowSize->{3200, 1728},
+WindowMargins->{{0, Automatic}, {0, Automatic}},
+FrontEndVersion->"11.2 for Linux x86 (64-bit) (September 10, 2017)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 1550, 35, 78, "Input",ExpressionUUID->"d7b765bd-3954-43c8-9072-6849b271cdb9"],
+Cell[CellGroupData[{
+Cell[2133, 59, 188, 4, 31, "Input",ExpressionUUID->"3592e4ba-f4dc-4754-bca4-bf2bda2626ae"],
+Cell[2324, 65, 1291, 37, 83, "Output",ExpressionUUID->"b7147c55-e6b9-40ed-9361-44b0931e94a9"]
+}, Open  ]],
+Cell[3630, 105, 361, 8, 31, "Input",ExpressionUUID->"36533f96-2804-43f1-aa1b-4e83842ad616"],
+Cell[CellGroupData[{
+Cell[4016, 117, 139, 2, 31, "Input",ExpressionUUID->"63b65b4c-32ac-415a-bf0b-0d0f3893a597"],
+Cell[4158, 121, 7411, 234, 269, "Output",ExpressionUUID->"8c389a32-75d1-4db7-9a0e-a1a92262fdf3"]
+}, Open  ]],
+Cell[11584, 358, 421, 11, 31, "Input",ExpressionUUID->"23b20fd2-9616-44d2-a12d-732e69f96fdc"],
+Cell[CellGroupData[{
+Cell[12030, 373, 141, 2, 31, "Input",ExpressionUUID->"b58248bd-63d1-4cf5-93b3-ad6d2ff9276a"],
+Cell[12174, 377, 2218, 69, 149, "Output",ExpressionUUID->"a70866ec-174a-4b3c-97e8-a1ba9f17eb02"]
+}, Open  ]],
+Cell[14407, 449, 348, 10, 31, "Input",ExpressionUUID->"71402520-3f13-43e4-9733-48ed32422eb1"],
+Cell[CellGroupData[{
+Cell[14780, 463, 141, 2, 31, "Input",ExpressionUUID->"c7f914c6-ad18-4092-a5c4-02c75a93b295"],
+Cell[14924, 467, 2498, 81, 137, "Output",ExpressionUUID->"b0b370a6-0773-42d6-9784-a83e41df7e72"]
+}, Open  ]],
+Cell[17437, 551, 346, 10, 31, "Input",ExpressionUUID->"159f4a67-7895-4cd6-ae58-ab5ee2ebaadc"],
+Cell[CellGroupData[{
+Cell[17808, 565, 141, 2, 31, "Input",ExpressionUUID->"76d68405-8f77-4e73-ad74-2904ade311da"],
+Cell[17952, 569, 2498, 81, 137, "Output",ExpressionUUID->"380451c9-6d12-4bb6-b50a-ed7858e542bb"]
+}, Open  ]],
+Cell[20465, 653, 347, 10, 31, "Input",ExpressionUUID->"927e3e84-f36b-4661-ae4f-cd65873f750a"],
+Cell[CellGroupData[{
+Cell[20837, 667, 141, 2, 31, "Input",ExpressionUUID->"fa7c5ecc-25a3-4434-adb5-3ccc1df4b135"],
+Cell[20981, 671, 2218, 69, 149, "Output",ExpressionUUID->"f342d275-4999-4875-8b7f-7c343e8e0be0"]
+}, Open  ]],
+Cell[23214, 743, 154, 3, 31, "Input",ExpressionUUID->"4de1d19e-1bfe-45aa-a68d-162da0574af6"],
+Cell[23371, 748, 175, 3, 31, "Input",ExpressionUUID->"2cd26245-00e5-4e27-ab07-0383fbaa8fe4"],
+Cell[23549, 753, 256, 6, 31, "Input",ExpressionUUID->"6124996e-f3f6-40e0-850c-1c1292de5d2b"],
+Cell[CellGroupData[{
+Cell[23830, 763, 141, 2, 31, "Input",ExpressionUUID->"e440d29a-1995-4aeb-ada7-77871876dcdd"],
+Cell[23974, 767, 4736, 147, 269, "Output",ExpressionUUID->"9981d85b-e8be-4dfe-953d-0b3b4fc6825f"]
+}, Open  ]]
+}
+]
+*)
+

@@ -85,7 +85,8 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
     }
 
 	// 
-	add_debug_coordinate(Transformation(), 30.0f);
+	Transformation tm;
+	add_debug_coordinate(tm, 30.0f);
 
     if (_draw_mode == "Wireframe")
     {

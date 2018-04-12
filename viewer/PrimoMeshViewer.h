@@ -5,6 +5,8 @@
 #include "Transformation.hh"
 #include <vector>
 #include <unordered_map>
+#include <list>
+
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,

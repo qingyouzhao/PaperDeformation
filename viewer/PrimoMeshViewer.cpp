@@ -31,7 +31,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	
 	// do not draw prisms at first
 	drawPrisms_ = false;
-	local_optimize_iterations_ = 1;
+	local_optimize_iterations_ = 10;
 	
 	// select mode is STATIC at first
 	selectMode_ = ESelectMode::STATIC;
@@ -84,7 +84,8 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
         return;
     }
 
-
+	// 
+	add_debug_coordinate(Transformation(), 30.0f);
 
     if (_draw_mode == "Wireframe")
     {
@@ -231,16 +232,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	{
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
-		glBegin(GL_LINES);
-		// draw 3 types of prisms with different color
-		glColor3fv(dynamicFacesColor_);
-		draw_prisms(dynamicFaceHandles_);
-		glColor3fv(staticFacesColor_);
-		draw_prisms(staticFaceHandles_);
-		glColor3fv(optimizedFacesColor_);
-		draw_prisms(optimizedFaceHandles_);
-		//
-		glEnd();
+		draw_debug_lines();
 		glDisable(GL_COLOR_MATERIAL);
 	}
 	// draw dynamic faces rotation axis
@@ -262,6 +254,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glLineWidth(prev_line_width);
 		glDisable(GL_COLOR_MATERIAL);
 	}
+
 }
 
 
@@ -271,12 +264,21 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	switch (key)
 	{
 	case 'a':
+	case 'A': 
 	{
 		// toggle if visualize prisms
 		drawPrisms_ = !drawPrisms_;
 		glutPostRedisplay();
 	}
 		break;
+	case 'd':
+	case 'D':
+	{
+		// toggle if visualize prisms
+		drawDebugInfo_ = !drawDebugInfo_;
+		glutPostRedisplay();
+	}
+	break;
 	case '+':
 	{
 		// add prisms' height
@@ -524,12 +526,6 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 		}
 	}
 }
-
-void PrimoMeshViewer::manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location)
-{
-
-}
-
 
 
 void PrimoMeshViewer::global_optimize_all_faces(int iterations)
@@ -881,3 +877,4 @@ void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3
 		}
 	}
 }
+

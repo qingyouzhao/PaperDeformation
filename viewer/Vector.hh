@@ -38,6 +38,8 @@
 #ifndef VECTOR_HH_
 #define VECTOR_HH_
 #include <cmath>
+#include <OpenMesh/Core/Geometry/Vector11T.hh>
+#include <OpenMesh/Core/Geometry/VectorT_inc.hh>
 template <class T, unsigned int C>
 struct Vector;
 
@@ -73,6 +75,27 @@ struct Vector {
     v[2] = v2;
   }
 
+  Vector(const OpenMesh::VectorT<double, C>& open_mesh_v)
+  {
+	  for (unsigned i = 0; i < C; i++) v[i] = open_mesh_v[i];
+  }
+
+  Vector(const OpenMesh::VectorT<float, C>& open_mesh_v)
+  {
+	  for (unsigned i = 0; i < C; i++) v[i] = open_mesh_v[i];
+  }
+
+  Vector& operator=(const OpenMesh::VectorT<double, C>& open_mesh_v)
+  {
+	  for (unsigned i = 0; i < C; i++) v[i] = open_mesh_v[i];
+	  return *this;
+  }
+  Vector& operator=(const OpenMesh::VectorT<float, C>& open_mesh_v)
+  {
+	  for (unsigned i = 0; i < C; i++) v[i] = open_mesh_v[i];
+	  return *this;
+  }
+
   T& operator[](unsigned int i) { return v[i]; }
 
   const T& operator[](unsigned int i) const { return v[i]; }
@@ -101,6 +124,19 @@ struct Vector {
 
   void fill(T f) {
     for (unsigned i = 0; i < C; i++) v[i] = f;
+  }
+
+  void find_best_axis_vectors(Vector<T, 3>& axis1, Vector<T, 3>& axis2) const
+  {
+	  const T nx = abs(v[0]);
+	  const T ny = abs(v[1]);
+	  const T nz = abs(v[2]);
+
+	  if (ny > nx && ny > nz) axis1 = Vector<T, 3>(0, 0, 1); // up is dominant in this vector, we try projecting up system in the world forward direction(z).
+	  else					axis1 = Vector<T, 3>(0, 1, 0); // up is not dominant, we try to project up to up still
+
+	  axis1 = (axis1 - *this * (axis1 | *this)).normalize();
+	  axis2 = axis1 % *this;
   }
 };
 
@@ -147,6 +183,18 @@ inline Vector<T, C> operator*(T s, const Vector<T, C>& v) {
 }
 
 template <class T>
+Vector<T, 3> operator%(const Vector<T, 3>& a, const Vector<T, 3>& b)
+{
+	return cross_product(a, b);
+}
+
+template <class T, unsigned int C>
+inline T operator|(const Vector<T, C>& a, const Vector<T, C>& b)
+{
+	return dot_product(a, b);
+}
+
+template <class T>
 Vector<T, 3> cross_product(const Vector<T, 3>& a, const Vector<T, 3>& b) {
   Vector<T, 3> r;
   r.v[0] = a.v[1] * b.v[2] - a.v[2] * b.v[1];
@@ -171,5 +219,7 @@ template <class T, unsigned int C>
 T length(const Vector<T, C>& a) {
   return (T)sqrt(length2(a));
 }
+
+
 
 #endif /*VECTOR_HH_*/

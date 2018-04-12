@@ -11,6 +11,74 @@ enum class EPrismExtrudeMode {
 	CUSTOM
 };
 
+
+// A wrapper for GL color functionality
+struct LinearColor
+{
+	GLfloat rgba_[4];
+	LinearColor() { rgba_[0] = 0; }
+	LinearColor(float r, float g, float b, float a = 1.0f) {
+		rgba_[0] = r; rgba_[1] = g; rgba_[2] = b; rgba_[3] = a;
+	}
+
+	float& r() { return rgba_[0]; }
+	float& g() { return rgba_[1]; }
+	float& b() { return rgba_[2]; }
+	float& a() { return rgba_[3]; }
+	GLfloat& operator[](uint i) { return i < 4 ? rgba_[i] : rgba_[0]; }
+	float v() {
+		return (rgba_[0] + rgba_[1] + rgba_[2]) / 3.0f;
+	}
+	LinearColor operator*(double c) const {
+		LinearColor nc;
+		nc[0] = this->rgba_[0] * c;
+		nc[1] = this->rgba_[1] * c;
+		nc[2] = this->rgba_[2] * c;
+		nc[3] = this->rgba_[3] * c;
+		return *this;
+	}
+
+	static const LinearColor RED;
+	static const LinearColor BLUE;
+	static const LinearColor GREEN;
+	static const LinearColor BLACK;
+	static const LinearColor GREY;
+	static const LinearColor WHITE;
+	static const LinearColor YELLOW;
+	static const LinearColor CYAN;
+	static const LinearColor MAGENTA;
+	static const LinearColor ORANGE;
+	static const LinearColor PURPLE;
+	static const LinearColor TURQUOISE;
+	static const LinearColor SILVER;
+	static const LinearColor EMERALD;
+};
+
+
+// #TODOZQY: If I write three more helper, I am gonna move these to another file called utilities class
+struct DebugLine
+{
+	DebugLine(Vector3d& _from, Vector3d& _to, float _width, const LinearColor& _color, int _frames_alive = 1) : from_(_from), to_(_to), width_(_width), color_(_color), frames_alive(_frames_alive) {}
+
+	Vector3d from_;
+	Vector3d to_;
+	float width_;
+	LinearColor color_;
+	float time_alive; // Do we have a frame rate?
+	int frames_alive;
+};
+
+// A simple Arrow data
+struct Arrow
+{
+	Arrow(Vector3d _from, Vector3d _to, const LinearColor& _color, float _size = 5.0f, float _width = 1.0) :from(_from), to(_to), color(_color), arrow_size(_size), width(_width) {}
+	Vector3d from;
+	Vector3d to;
+	float width;
+	LinearColor color;
+	float arrow_size;
+};
+
 /// This struct store the prism data structure and provides basic functionalities for retrieval and claculation
 struct PrismProperty {
 	Vec3f FromVertPrismDir_DEPRECATED;
@@ -23,8 +91,6 @@ struct PrismProperty {
 	Vec3f ToVertPrismUp;
 	Vec3f ToVertPrismDown;
 
-	Vec3f FromVertNormal;
-	Vec3f ToVertNormal;
 
 	// A simple illustration of how the prism is stored
 	/*
@@ -78,53 +144,10 @@ struct PrismProperty {
 		FromVertPrismDown = Transform * (FromVertPrismDown);
 		ToVertPrismUp = Transform * (ToVertPrismUp);
 		ToVertPrismDown = Transform * (ToVertPrismDown);
-		Transform.transformVector(FromVertNormal);
-		Transform.transformVector(ToVertNormal);
 	}
 
 };
 
-// A wrapper for GL color functionality
-struct LinearColor
-{
-	GLfloat rgba_[4];
-	LinearColor(float r, float g, float b, float a = 1.0f) {
-		rgba_[0] = r; rgba_[1] = g; rgba_[2] = b; rgba_[4] = a;
-	}
-
-	float r() { return rgba_[0]; }
-	float g() { return rgba_[1]; }
-	float b() { return rgba_[2]; }
-	float a() { return rgba_[3]; }
-	float v() {
-		return  (rgba_[0] + rgba_[1] + rgba_[2]) / 3.0f;
-	}
-
-	static const LinearColor RED;
-	static const LinearColor BLUE;
-	static const LinearColor GREEN;
-	static const LinearColor BLACK;
-	static const LinearColor GREY;
-	static const LinearColor WHITE;
-	static const LinearColor YELLOW;
-	static const LinearColor CYAN;
-	static const LinearColor MAGENTA;
-	static const LinearColor ORANGE;
-	static const LinearColor PURPLE;
-	static const LinearColor TURQUOISE;
-	static const LinearColor SILVER;
-	static const LinearColor EMERALD;
-};
-
-struct DebugLine
-{
-	DebugLine(Vec3f& _from, Vec3f& _to, float _width, LinearColor& _color): from_(_from), to_(_to), width_(_width), color_(_color){}
-
-	Vec3f from_;
-	Vec3f to_;
-	float width_;
-	LinearColor color_;
-};
 
 class PrimoMeshViewer :public MeshViewer
 {
@@ -153,13 +176,18 @@ protected:
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
 	// Move this vertex to the targeted handles
-	virtual void manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location);
+	// virtual void manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location);
 
 	// Locally optimize for one prism
 	virtual void local_optimize(int iterations);
+	void update_vertices_based_on_prisms();
 
 	// Locally optimize for one prism faces 
 	virtual void local_optimize_face(Mesh::FaceHandle _fh);
+
+
+	// the wrapper for calculating the final rotation
+	Transformation compute_optimal_face_transform(Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star);
 
 	// globally solve for all prism faces
 	virtual void global_optimize_all_faces(int iterations);
@@ -233,13 +261,19 @@ private:
 										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles);
 	void translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, std::vector<OpenMesh::FaceHandle> &face_handles);
 
-
 public:
-	// Debug Utilities
-	void add_debug_arrow(Vec3f& from, Vec3f& to, float arrow_size, LinearColor color);
-	void add_debug_coordinate(Transformation& world_transform, float size);
+	// Debug Utilities, these arrows will be added by local optimize. Every draw flushes the debug lines once. SHould be more optimized 
+	void add_debug_arrow(Vector3d& from, Vector3d& to, LinearColor color, double arrow_size);
+	void add_debug_coordinate(Transformation& world_transform, double size, Transformation base_transform = Transformation());
+	void add_debug_line(Vector3d& from, Vector3d& to, LinearColor color, double width = 1.0f);
+
+	std::list<Transformation> g_debug_transformations_to_draw_local_optimization;
+	std::list<Arrow> g_debug_arrows_to_draw_local_optimizations;
+
 private:
-	std::vector<DebugLine> debug_lines_;
+	std::list<DebugLine> debug_lines_;
 	// Draw the lines and flush them
 	void draw_debug_lines();	
+
+	static void print_quaternion(Eigen::Quaternion<double>& Q);
 };

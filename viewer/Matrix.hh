@@ -65,10 +65,10 @@ struct Matrix {
   /// access column
   const T* operator[](unsigned int i) const { return v[i]; }
 
-  /// access element
+  /// access element (r,c)
   T& operator()(unsigned int i, unsigned int j) { return v[j][i]; }
 
-  /// access element
+  /// access element (r,c)
   const T& operator()(unsigned int i, unsigned int j) const { return v[j][i]; }
 
   /// add matrix

@@ -61,7 +61,9 @@ class Transformation {
   Transformation(float angle, Vector3f axis);
 
   /// constructor: rotation and translation, assume we just get the eigen quaternion directly
-  Transformation(const Eigen::Quaternion<float>& Q, const Vector3f& T);
+  Transformation(const Eigen::Quaternion<double>& Q, const Vector3d& T);
+
+  Transformation(const Vector3d& x_axis, const Vector3d& y_axis, const Vector3d& z_axis , const Vector3d& t);
 
 
   /// constructor: with a rotation matrix and translation vector
@@ -91,6 +93,19 @@ class Transformation {
   Vector3d transformVector(const Vector3d& v) const;
 
   OpenMesh::Vec3f transformVector(const OpenMesh::Vec3f& p) const;
+
+  Vector3d x_axis() const;
+  Vector3d y_axis() const;
+  Vector3d z_axis() const;
+
+  // Forward is z
+  Vector3d get_forward_vector() const;
+  
+  // Up is y
+  Vector3d get_up_vector() const;
+  
+  // Right is x
+  Vector3d get_left_vector() const;
 
 
   /// Transform points

@@ -1,4 +1,4 @@
-
+﻿
 /*
 This source contains the local optimize operations
 */
@@ -12,6 +12,10 @@ This source contains the local optimize operations
 
 void PrimoMeshViewer::local_optimize(int iterations)
 {
+
+	g_debug_arrows_to_draw_local_optimizations.clear();
+	g_debug_transformations_to_draw_local_optimization.clear();
+
 	for (int i = 0; i < iterations; i++)
 	{
 		Mesh::FaceHandle fh;
@@ -24,25 +28,60 @@ void PrimoMeshViewer::local_optimize(int iterations)
 		std::cout << "optimizing face handle idx " << fh.idx() << "optimized face handles idx = " << idx << std::endl;
 		local_optimize_face(fh);
 	}
+	// Now we want to update the face vertex based on rigid prisms instead of the values
+	update_vertices_based_on_prisms();
+}
 
+
+void PrimoMeshViewer::update_vertices_based_on_prisms()
+{
 	for (Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); v_iter++)
 	{
-		// For each face, calculate the final vertex position
-		Mesh::Point OriginalPoint = mesh_.point(*v_iter);
-		Mesh::Point NewPos(0, 0, 0);
-		float FaceCount = 0;
-		for (Mesh::VertexFaceCCWIter vf_ccwiter = mesh_.vf_ccwbegin(*v_iter); vf_ccwiter.is_valid(); vf_ccwiter++)
+		Mesh::Point original_point = mesh_.point(*v_iter);
+		Vector3d new_point(0, 0, 0);
+		float weight = 0;
+
+		for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*v_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
 		{
-			FaceCount++;
-			Transformation& FaceTransformation = mesh_.property(P_FaceTransformationCache, *vf_ccwiter);
-			Mesh::Point P_ik = FaceTransformation.transformPoint(OriginalPoint);
-			std::cout << "Accumulating new vert pos based on face " << vf_ccwiter->idx() <<"'s transformation " << FaceTransformation.to_string() << std::endl;
-			std::cout << "Transformed potential vert " << OriginalPoint << " to " << P_ik << std::endl;
-			NewPos += P_ik;
+			if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
+			{
+				PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
+				new_point += voh_prop.TargetPosFrom();
+				weight += 1.0f;
+				Arrow arrow(
+					Vector3d(original_point),
+					Vector3d(voh_prop.TargetPosFrom()),
+					LinearColor::RED,
+					3.0f
+				);
+				g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+			}
 		}
-		NewPos /= FaceCount;
-		std::cout << "Based on " << FaceCount << " faces," << "Updating point idx = " << v_iter->idx() << " from " << OriginalPoint << " to " << NewPos << std::endl;
-		mesh_.point(*v_iter) = NewPos;
+		for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*v_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
+		{
+			if (mesh_.face_handle(*vih_ccwiter).is_valid())
+			{
+				PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
+				new_point += voh_prop.TargetPosTo();
+				weight += 1.0f;
+				Arrow arrow(
+					Vector3d(original_point),
+					Vector3d(voh_prop.TargetPosTo()),
+					LinearColor::GREEN,
+					3.0f
+				);
+				g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+			}
+		}
+		new_point /= weight;
+		Arrow arrow(
+			Vector3d(original_point),
+			Vector3d(new_point),
+			LinearColor::BLUE,
+			3.0f
+		);
+		mesh_.point(*v_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
+		g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
 	}
 }
 
@@ -57,198 +96,202 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		Vec3f f_ji[4]; // let's store this number as 00,01,10,11
 	};
 
+	// Clear our debug info before every optimization
+
 	std::vector<EdgePrismData> f_ij_data;
-	Eigen::Matrix4f N; // #TODOZQY: Make sure this is zeroed
-	N << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
-	Eigen::Matrix3f S; // #TODOZQY: Make sure this is zeroed
+	Eigen::Matrix3f S; 
 	S << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+	// We need to experiment this
+	Eigen::Matrix3f S_1;
+	S_1 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+	Eigen::Matrix3f S_16;
+	S_16 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+	Eigen::Matrix3f S_4;
+	S_4 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+
+	// In order to generalize local shape matching of Hor87
+	// http://people.csail.mit.edu/bkph/papers/Absolute_Orientation.pdf
+	// we first we first compute the weighted centroids c_i and c_∗ of the two face sets to be aligned
+	// c^i in the paper
 	Vec3f centroid_i(0, 0, 0);
+	// c* in the paper
 	Vec3f centroid_star(0, 0, 0);
+	// sum of neighbour triangle i's
 	float weight_sum = 0;
-	int prims_count = 0;
 	for (Mesh::FaceHalfedgeCCWIter fhe_ccwiter = mesh_.fh_ccwbegin(_fh); fhe_ccwiter.is_valid(); fhe_ccwiter++)
 	{
-		// Grab the data to construct the face 
+		// circulate Neighbours to calculate centroid
 		Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fhe_ccwiter);
 		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
-		
 		if (!he_ji.is_valid() || mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid())
 		{
-			std::cout << "halfedge's opposite doesnot exist, idx = "<< fhe_ccwiter->idx() << std::endl;
+			std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
 			continue;
 		}
-		prims_count++;
 		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
 		PrismProperty P_ij = mesh_.property(P_PrismProperty, he_ij);
 		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
-		// A simple illustration of how the prism is stored
-		/*
-		10---------11 ^       10------------11   ^
-		| f_ij     |  |       |  f_ji       |    |
-		f-he_ij-->to  |       to<--he_ji---from  |
-		00---------01 normal  00------------01   normal
-		*/
-		EdgePrismData Data;
+
+		float weight_ij; // the weigth of the edge prism based on the face area
+		Vec3f centroid_ij; // centroid of prism face on i facing j
+		Vec3f centroid_ji; // centroid of prism face on j facing i
+		Vec3f f_ij[4]; // let's store this number as 00,01,10,11
+		Vec3f f_ji[4]; // let's store this number as 00,01,10,11
+
 		// Calc face weight
-		float edge_len = mesh_.calc_edge_length(*fhe_ccwiter);
-		float area_face_i = calc_face_area(_fh); // TODO: calc this
-		float area_face_j = calc_face_area(fh_j); // TODO: calc this
-		Data.weight_ij = edge_len / (area_face_i + area_face_j);
-		// Calc f_ij
-		Data.f_ij[0] = P_ij.f_uv(0, 0, true);
-		Data.f_ij[1] = P_ij.f_uv(0, 1, true);
-		Data.f_ij[2] = P_ij.f_uv(1, 0, true);
-		Data.f_ij[3] = P_ij.f_uv(1, 1, true);
-		Data.centroid_ij = (Data.f_ij[0] + Data.f_ij[1] + Data.f_ij[2] + Data.f_ij[3]) * 0.25f;
-		// Calc f_ji
-		Data.f_ji[0] = P_ji.f_uv(0, 0, false);
-		Data.f_ji[1] = P_ji.f_uv(0, 1, false);
-		Data.f_ji[2] = P_ji.f_uv(1, 0, false);
-		Data.f_ji[3] = P_ji.f_uv(1, 1, false);
-		Data.centroid_ji= (Data.f_ji[0] + Data.f_ji[1] + Data.f_ji[2] + Data.f_ji[3]) * 0.25f;
-		// I am pretty sure the above can be done with a for loop but not now.
+		float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
+		float area_face_i = calc_face_area(_fh);
+		float area_face_j = calc_face_area(fh_j);
+		weight_ij = edge_len_sqr / (area_face_i + area_face_j);
 
-		// Calculate centroids
-		centroid_i += Data.centroid_ij * Data.weight_ij;
-		centroid_star += Data.centroid_ji * Data.weight_ij;
-		weight_sum += Data.weight_ij;
+		// Evaluate f_ij
+		f_ij[0] = P_ij.f_uv(0, 0, true);
+		f_ij[1] = P_ij.f_uv(0, 1, true);
+		f_ij[2] = P_ij.f_uv(1, 0, true);
+		f_ij[3] = P_ij.f_uv(1, 1, true);
+		centroid_ij = (f_ij[0] + f_ij[1] + f_ij[2] + f_ij[3]) * 0.25f;
+		
+		// Evaluate f_ji
+		f_ji[0] = P_ji.f_uv(0, 0, false);
+		f_ji[1] = P_ji.f_uv(0, 1, false);
+		f_ji[2] = P_ji.f_uv(1, 0, false);
+		f_ji[3] = P_ji.f_uv(1, 1, false);
+		centroid_ji = (f_ji[0] + f_ji[1] + f_ji[2] + f_ji[3]) * 0.25f;
 
-		float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; // TODO : his guy should be global later.
-												  // Calculate S value for edge
-		for (int i = 0; i < 3; i++)
+		// w_ij / 4 * \sum{f_ij_kl}
+		centroid_i += centroid_ij * weight_ij;
+		// w_ij / 4 * \sum(f_ji_kl}
+		centroid_star += centroid_ji * weight_ij;
+		weight_sum += weight_ij;
+	}
+	// Is my centroid not correct? we need to 
+	centroid_i /= weight_sum;
+	centroid_star /= weight_sum;
+	std::cout << "Weighted c_i = " << centroid_i << std::endl;
+	std::cout << "Weighted c_* = " << centroid_star << std::endl;
+
+	// Now Calculate neighbor S where S(x,y) = \sum_{N_i} <(f_ij - c_i)_i, (f_ji - c_i)_j>_2
+	// On Component-Wise inner product https://en.wikipedia.org/wiki/Frobenius_inner_product
+	// 
+	for (Mesh::FaceHalfedgeCCWIter fhe_ccwiter = mesh_.fh_ccwbegin(_fh); fhe_ccwiter.is_valid(); fhe_ccwiter++)
+	{
+		// circulate Neighbours to calculate centroid
+		Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fhe_ccwiter);
+		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
+		if (!he_ji.is_valid() || mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid())
 		{
-			for (int j = 0; j < 3; j++)
+			std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
+			continue;
+		}
+
+		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
+		PrismProperty P_ij = mesh_.property(P_PrismProperty, he_ij);
+		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
+
+
+		float weight_ij; // the weigth of the edge prism based on the face area
+		Vec3f centroid_ij; // centroid of prism face on i facing j
+		Vec3f centroid_ji; // centroid of prism face on j facing i
+		Vec3f f_ij[4]; // let's store this number as 00,01,10,11
+		Vec3f f_ji[4]; // let's store this number as 00,01,10,11
+
+		// Calc face weight, again
+		float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
+		float area_face_i = calc_face_area(_fh);
+		float area_face_j = calc_face_area(fh_j);
+		weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+
+		// Evaluate f_ij
+		f_ij[0] = P_ij.f_uv(0, 0, true);
+		f_ij[1] = P_ij.f_uv(0, 1, true);
+		f_ij[2] = P_ij.f_uv(1, 0, true);
+		f_ij[3] = P_ij.f_uv(1, 1, true);
+		centroid_ij = (f_ij[0] + f_ij[1] + f_ij[2] + f_ij[3]) * 0.25f;
+
+		// Evaluate f_ji
+		f_ji[0] = P_ji.f_uv(0, 0, false);
+		f_ji[1] = P_ji.f_uv(0, 1, false);
+		f_ji[2] = P_ji.f_uv(1, 0, false);
+		f_ji[3] = P_ji.f_uv(1, 1, false);
+		centroid_ji = (f_ji[0] + f_ji[1] + f_ji[2] + f_ji[3]) * 0.25f;
+
+		// Update S_components based on contribution from this face
+		for (int s_i = 0; s_i < 3; s_i++)
+		{
+			for (int s_j = 0; s_j < 3; s_j++)
 			{
-				// Sum over ijkl 
-				float S_ijkl = 0;
+				// If we assume each face has 4 points contributing
+				float S_4_ij = 0;
+				for(int kl = 0; kl < 4; kl++)
+				{
+					S_4_ij += weight_ij * ((f_ij[kl] - centroid_i)[s_i] * (f_ji[kl] - centroid_star)[s_j]);
+				}
+				S_4(s_i, s_j) += S_4_ij;
+
+				// If we assume each face has 1 point contributing, only from the centroid
+				float S_1_ij = weight_ij * (centroid_ij - centroid_i)[s_i] * (centroid_ji - centroid_star)[s_j];
+				S_1(s_i, s_j) += S_1_ij;
+				// if we assume each face has the 16 point pair contribution
+				float S_16_ij = 0;
+				float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
 				for (int ij = 0; ij < 4; ij++)
 				{
 					for (int kl = 0; kl < 4; kl++)
 					{
-						int ijkl_dist = ((~ij) & kl);
-						S_ijkl += (Data.f_ij[ij] - Data.centroid_ij)[i] * (Data.f_ji[kl] - Data.centroid_ji)[j] * root_2s[ijkl_dist];
+						// int ijkl_dist = ((~ij) & kl);
+						int ijkl_dist = (ij) ^ (kl);
+						S_16_ij += (f_ij[ij] - centroid_ij)[s_i] * (f_ji[kl] - centroid_ji)[s_j] * root_2s[ijkl_dist];
 					}
 				}
-				S(i, j) += S_ijkl / 9.f * Data.weight_ij;
-			}
-		}
-	}
-	centroid_i /= weight_sum;
-	centroid_star /= weight_sum;
 
-	// Now we have all the S values, time to construct N
-	/*
-	N =
-	| Sxx + Syy + Szz		Syz - Szy			Szx - Sxz			Sxy - Syx		 |
-	| Syz - Szy				Sxx - Syy - Szz		Sxy + Syx			Szx + Sxz		 |
-	| Szx - Sxz				Sxy + Syx			-Sxx + Syy - Szz	Syz + Szy		 |
-	| Sxy - Syx				Szx + Sxz			Syz + Szy			-Sxx - Syy + Szz |
-	*/
-	const int x = 0;
-	const int y = 1;
-	const int z = 2;
-	N(0, 0) = S(x, x) + S(y, y) + S(z, z);
-	N(0, 1) = S(y, z) - S(z, y);
-	N(0, 2) = S(z, x) - S(x, z);
-	N(0, 3) = S(x, y) - S(y, x);
-
-	N(1, 0) = S(y, z) - S(z, y);
-	N(1, 1) = S(x, x) - S(y, y) - S(z, z);
-	N(1, 2) = S(x, y) + S(y, x);
-	N(1, 3) = S(z, x) + S(x, z);
-
-	N(2, 0) = S(z, x) - S(x, z);
-	N(2, 1) = S(x, y) + S(y, x);
-	N(2, 2) = -S(x, x) + S(y, y) - S(z, z);
-	N(2, 3) = S(y, z) + S(z, y);
-
-	N(3, 0) = S(x, y) - S(y, x);
-	N(3, 1) = S(z, x) + S(x, z);
-	N(3, 2) = S(y, z) + S(z, y);
-	N(3, 3) = -S(x, x) - S(y, y) - S(z, z);
-
-	// Find the largest eigen vector of N and interpret that eigen vector as a rotation quaternion
-	//https://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html
-	Eigen::EigenSolver<Eigen::Matrix4f> es;
-	es.compute(N, true);
-	auto eigenvectors = es.eigenvectors();
-	Eigen::Matrix<std::complex<float>, 4, 1> eigenvalues = es.eigenvalues();
-	std::cout << "We have " << es.eigenvectors().size() << " eigen vectors" << std::endl;
-
-	// Now if we can find that max eigen value -> eigen vector, we get the rotation
-	float max_eigen_val = INT_MIN;
-	for (int i = 0; i < eigenvalues.rows(); i++)
-	{
-		// Values 
-		if (eigenvalues(i, 0).real() > max_eigen_val)
-		{
-			max_eigen_val = eigenvalues(i, 0).real();
-		}
-	}
-	int max_col = 0;
-	Eigen::Quaternion<float> target_quat;
-	for (int col_i = 0; col_i < eigenvectors.cols(); col_i++)
-	{
-		Eigen::Quaternion<float> rot_quat;
-		// #TODOZQY: there must be a better way to fill the quat
-		auto eigenvector = eigenvectors.col(col_i);
-		rot_quat.coeffs()(0, 0) = eigenvector(0).real() * max_eigen_val;
-		rot_quat.coeffs()(1, 0) = eigenvector(1).real() * max_eigen_val;
-		rot_quat.coeffs()(2, 0) = eigenvector(2).real() * max_eigen_val;
-		rot_quat.coeffs()(3, 0) = eigenvector(3).real() * max_eigen_val;
-
-		auto Nv = (N * eigenvector);
-
-		Eigen::Vector4f diff;
-		diff(0) = Nv(0).real() - rot_quat.coeffs()(0, 0);
-		diff(1) = Nv(1).real() - rot_quat.coeffs()(1, 0);
-		diff(2) = Nv(2).real() - rot_quat.coeffs()(2, 0);
-		diff(3) = Nv(3).real() - rot_quat.coeffs()(3, 0);
-
-		if (diff.dot(diff) < 1E-4 && diff.dot(diff) > -1E-4)
-		{
-			// WE got that 
-			std::cout << "hey rot quat is " << eigenvector << std::endl;
-			target_quat.x() = eigenvector(0).real();
-			target_quat.y() = eigenvector(1).real();
-			target_quat.z() = eigenvector(2).real();
-			target_quat.w() = eigenvector(3).real();
+				S_16(s_i, s_j) += S_16_ij;
+			}	
 		}
 	}
 
-	// Calculate R, t and c
-	Eigen::Vector3f T_i = Eigen::Vector3f(centroid_star[0], centroid_star[1], centroid_star[2]) - target_quat._transformVector(Eigen::Vector3f(centroid_i[0], centroid_i[1], centroid_i[2]));
-	Vector3f T_i_v3f = Vector3f(T_i(0), T_i(1), T_i(2));
-	std::cout << "Target translation = " << T_i << std::endl;
+	std::cout << "Computing optimal with 1 centroid: " << std::endl;
+	Transformation TargetTransformation_1 = compute_optimal_face_transform(S_1, centroid_i, centroid_star);
+	std::cout << "Computing optimal with 4 points: " << std::endl;
+	Transformation TargetTransformation_4 = compute_optimal_face_transform(S_4, centroid_i, centroid_star);
+	std::cout << "Computing optimal with 4x4 point matching: " << std::endl;
+	Transformation TargetTransformation_16 = compute_optimal_face_transform(S_16, centroid_i, centroid_star);
+	Transformation TargetTransformation = TargetTransformation_16;
 
-	// Construct a new transformation, this should be hidden in the implementation tho.
-	// glm::tquat<float> R(target_quat.x(), target_quat.y(), target_quat.z(), target_quat.w());
-	// glm::tvec3<float> translation(T_i(0), T_i(1), T_i(2));
-	// glm::tmat4x4<float> NewTransform();
-
-	// Transformation TargetTransformation(Quaternion(target_quat.x(), target_quat.y(), target_quat.z(), target_quat.w()), Vector3f(T_i(0), T_i(1), T_i(2)));
-
-	Transformation TargetTransformation(target_quat, T_i_v3f);
-	std::cout << TargetTransformation.to_string() << std::endl;
+	g_debug_transformations_to_draw_local_optimization.emplace_back(TargetTransformation);
 
 	// Update the prism on each half edge with the new transformation
 	for (Mesh::FaceHalfedgeCCWIter fh_ccwit = mesh_.fh_ccwbegin(_fh); fh_ccwit.is_valid(); fh_ccwit++)
 	{
 		PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_ccwit);
+		// Wrap transform prism with our points
+		Arrow from_up(prop.FromVertPrismUp, prop.FromVertPrismUp, LinearColor::YELLOW);
+		Arrow from_down(prop.FromVertPrismDown, prop.FromVertPrismDown, LinearColor::YELLOW * 0.5);
+		Arrow to_up(prop.ToVertPrismUp, prop.ToVertPrismUp, LinearColor::PURPLE);
+		Arrow to_down(prop.ToVertPrismDown, prop.ToVertPrismDown, LinearColor::PURPLE*0.5);
+
 		prop.TransformPrism(TargetTransformation);
+
+		from_up.to = prop.FromVertPrismUp;
+		from_down.to = prop.FromVertPrismDown;
+		to_up.to = prop.ToVertPrismUp;
+		to_down.to = prop.ToVertPrismDown;
+		g_debug_arrows_to_draw_local_optimizations.emplace_back(from_down);
+		g_debug_arrows_to_draw_local_optimizations.emplace_back(from_up);
+		g_debug_arrows_to_draw_local_optimizations.emplace_back(to_up);
+		g_debug_arrows_to_draw_local_optimizations.emplace_back(to_down);
 	}
 
-	bool bUseHalfEdge = false;
-	// #TODOZQY: There might be something wrong after translation
-	if(bUseHalfEdge)
+	bool update_half_edge_data = false;
+	if(update_half_edge_data)
 	{
 		// Update verts for this face, the verts should be the average value of the neighbouring prism verts.
 		for (Mesh::FaceVertexCCWIter fv_ccwit = mesh_.fv_ccwbegin(_fh); fv_ccwit.is_valid(); fv_ccwit++)
 		{
 
 			Vec3f& pt = mesh_.point(*fv_ccwit);
-			// Eigen::Vector3f NewPos = target_quat._transformVector(Eigen::Vector3f(pt[0], pt[1], pt[2])) + T_i;
-			// mesh_.point(*fv_ccwit) = Vec3f(NewPos[0], NewPos[1], NewPos[2]);
 
 			// Calculate the new vert position based on the weighted average of all the prisms
 			// #TODOZQY: might need a Laplacian weight but for now just use area
@@ -301,12 +344,120 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	}
 	else
 	{
-		// In this case, following the new solution, we only compose the transformation, don't update  faec.
+		// In this case, following the new solution, we only compose the transformation, don't update faces yet.
 		Transformation& cached_transformation = mesh_.property(P_FaceTransformationCache, _fh);
-		std::cout << "Updating cached transformation from " << cached_transformation.to_string()  << " composing with " << TargetTransformation.to_string() << std::endl;
+		std::cout << "Updating face transformation from " << cached_transformation.to_string()  << " composing with " << TargetTransformation.to_string() << std::endl;
 		cached_transformation = TargetTransformation * cached_transformation;
 		std::cout << "Updated transformation on face " << _fh.idx() << " to " << cached_transformation.to_string() << std::endl;
 	}
 	
 
+}
+
+
+Transformation PrimoMeshViewer::compute_optimal_face_transform(Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star)
+{
+
+	// Construct matrix N 
+	/*
+	N =
+	| Sxx + Syy + Szz		Syz - Szy			Szx - Sxz			Sxy - Syx		 |
+	| Syz - Szy				Sxx - Syy - Szz		Sxy + Syx			Szx + Sxz		 |
+	| Szx - Sxz				Sxy + Syx			-Sxx + Syy - Szz	Syz + Szy		 |
+	| Sxy - Syx				Szx + Sxz			Syz + Szy			-Sxx - Syy + Szz |
+	*/
+
+	Eigen::Matrix4d N;
+	N << 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0;
+	const int x = 0;
+	const int y = 1;
+	const int z = 2;
+	N(0, 0) = S(x, x) + S(y, y) + S(z, z);
+	N(1, 0) = S(y, z) - S(z, y);
+	N(2, 0) = S(z, x) - S(x, z);
+	N(3, 0) = S(x, y) - S(y, x);
+
+	N(0, 1) = S(y, z) - S(z, y);
+	N(1, 1) = S(x, x) - S(y, y) - S(z, z);
+	N(2, 1) = S(x, y) + S(y, x);
+	N(3, 1) = S(z, x) + S(x, z);
+
+	N(0, 2) = S(z, x) - S(x, z);
+	N(1, 2) = S(x, y) + S(y, x);
+	N(2, 2) = -S(x, x) + S(y, y) - S(z, z);
+	N(3, 2) = S(y, z) + S(z, y);
+
+	N(0, 3) = S(x, y) - S(y, x);
+	N(1, 3) = S(z, x) + S(x, z);
+	N(2, 3) = S(y, z) + S(z, y);
+	N(3, 3) = -S(x, x) - S(y, y) - S(z, z);
+
+	// Find the largest eigen vector of N and interpret that eigen vector as a rotation quaternion
+	//https://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html
+	Eigen::EigenSolver<Eigen::Matrix4d> es;
+	es.compute(N, true);
+	Eigen::EigenSolver<Eigen::Matrix4d>::EigenvectorsType eigenvectors = es.eigenvectors();
+	Eigen::Matrix<std::complex<double>, 4, 1> eigenvalues = es.eigenvalues();
+	std::cout << "We have " << es.eigenvectors().size() << " eigen vectors" << std::endl;
+
+	// Now if we can find that max eigen value -> eigen vector, we get the rotation
+	float max_eigen_val = INT_MIN;
+	for (int i = 0; i < eigenvalues.rows(); i++)
+	{
+		// Values 
+		if (eigenvalues(i, 0).real() > max_eigen_val)
+		{
+			max_eigen_val = eigenvalues(i, 0).real();
+		}
+	}
+	int max_col = 0;
+	Eigen::Quaternion<double> target_quat;
+	for (int col_i = 0; col_i < eigenvectors.cols(); col_i++)
+	{
+		Eigen::Quaternion<double> rot_quat;
+		// convert the i the eigen vector to a quaternion
+		Eigen::Matrix<std::complex<double> ,4, 1> eigenvector = eigenvectors.col(col_i);
+		// Eigen::EigenSolver<Eigen::Matrix4d>::ComplexScalar eigenvector = eigenvectors.col(col_i);
+		rot_quat.x() = eigenvector(0).real() * max_eigen_val;
+		rot_quat.y() = eigenvector(1).real() * max_eigen_val;
+		rot_quat.z() = eigenvector(2).real() * max_eigen_val;
+		rot_quat.w() = eigenvector(3).real() * max_eigen_val;
+
+		// Multiply matrix N and the eigen vector to get a vector
+		Eigen::Matrix<std::complex<double>, 4, 1> Nv = (N * eigenvector);
+
+		// Check if we have a small enough difference
+		Eigen::Vector4d diff;
+		diff(0) = Nv(0).real() - rot_quat.x();
+		diff(1) = Nv(1).real() - rot_quat.y();
+		diff(2) = Nv(2).real() - rot_quat.z();
+		diff(3) = Nv(3).real() - rot_quat.w();
+
+		if (diff.dot(diff) < 1E-4 && diff.dot(diff) > -1E-4)
+		{
+			// WE got that  new rotation
+			std::cout << "The closes quaternion is \n" << eigenvector << std::endl;
+			target_quat.w() = eigenvector(0).real();
+			target_quat.x() = eigenvector(1).real();
+			target_quat.y() = eigenvector(2).real();
+			target_quat.z() = eigenvector(3).real();
+			break;
+		}
+	}
+
+	// Calculate R, t and c
+	Eigen::Vector3d T_i = Eigen::Vector3d(c_star[0], c_star[1], c_star[2]) - target_quat._transformVector(Eigen::Vector3d(c_i[0], c_i[1], c_i[2]));
+	Vector3d T_i_v3d = Vector3d(T_i(0), T_i(1), T_i(2));
+	std::cout << "Target translation = \n" << T_i << std::endl;
+
+
+	Transformation tm(target_quat, T_i_v3d);
+	std::cout << "Source S matrix = " << std::endl;
+	std::cout << S << std::endl;
+	std::cout << "Optimal rotation Q" << std::endl;
+	print_quaternion(target_quat);
+	std::cout << "Transformation = " << std::endl;
+	std::cout << tm.to_string() << std::endl;
+
+	return tm;
 }

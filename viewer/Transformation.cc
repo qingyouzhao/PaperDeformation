@@ -54,60 +54,89 @@ Transformation::Transformation() { set_identity(); }
 
 //=============================================================================
 Transformation::Transformation(float tx, float ty, float tz) {
-  set_identity();
-  translation_ = Vector3d(tx, ty, tz);
+	set_identity();
+	translation_ = Vector3d(tx, ty, tz);
 }
 
 //=============================================================================
 Transformation::Transformation(float angle, Vector3f axis) {
-  set_identity();
+	set_identity();
 
-  double l = length(axis);
-  if (l > 0) {
-    double l1 = 1.0 / l;
-    double x = axis[0] * l1;
-    double y = axis[1] * l1;
-    double z = axis[2] * l1;
-    double s = sin(angle), c = cos(angle);
-    double xs = x * s, ys = y * s, zs = z * s, c1 = 1.0 - c;
-    double xx = c1 * x * x, yy = c1 * y * y, zz = c1 * z * z;
-    double xy = c1 * x * y, xz = c1 * x * z, yz = c1 * y * z;
-    rotation_[0][0] = xx + c;
-    rotation_[0][1] = xy - zs;
-    rotation_[0][2] = xz + ys;
-    rotation_[1][0] = xy + zs;
-    rotation_[1][1] = yy + c;
-    rotation_[1][2] = yz - xs;
-    rotation_[2][0] = xz - ys;
-    rotation_[2][1] = yz + xs;
-    rotation_[2][2] = zz + c;
-  }
+	double l = length(axis);
+	if (l > 0) {
+		double l1 = 1.0 / l;
+		double x = axis[0] * l1;
+		double y = axis[1] * l1;
+		double z = axis[2] * l1;
+		double s = sin(angle), c = cos(angle);
+		double xs = x * s, ys = y * s, zs = z * s, c1 = 1.0 - c;
+		double xx = c1 * x * x, yy = c1 * y * y, zz = c1 * z * z;
+		double xy = c1 * x * y, xz = c1 * x * z, yz = c1 * y * z;
+		rotation_[0][0] = xx + c;
+		rotation_[0][1] = xy - zs;
+		rotation_[0][2] = xz + ys;
+		rotation_[1][0] = xy + zs;
+		rotation_[1][1] = yy + c;
+		rotation_[1][2] = yz - xs;
+		rotation_[2][0] = xz - ys;
+		rotation_[2][1] = yz + xs;
+		rotation_[2][2] = zz + c;
+	}
 }
 
-Transformation::Transformation(const Eigen::Quaternion<float>& Q, const Vector3f& T)
+Transformation::Transformation(const Eigen::Quaternion<double>& Q, const Vector3d& T)
 {
 	set_identity();
 	//
 #if DEBUG
 	Q.norm();
 #endif
+	if (abs(Q.norm() - 1.0f) > 1E-7)
+	{
+		std::cout << "Quaternion " << " is not normalized" << std::endl;
+	}
+	bool bUseUnrealVersion = false;
+
 	// Set up 3x3 rot from quat
 	const float x2 = Q.x() + Q.x();  const float y2 = Q.y() + Q.y();  const float z2 = Q.z() + Q.z();
 	const float xx = Q.x() * x2;   const float xy = Q.x() * y2;   const float xz = Q.x() * z2;
 	const float yy = Q.y() * y2;   const float yz = Q.y() * z2;   const float zz = Q.y() * z2;
 	const float wx = Q.w() * x2;   const float wy = Q.w() * y2;   const float wz = Q.w() * z2;
-	
-	Matrix3x3d& M = rotation_;
 
-	M[0][0] = 1.0f - (yy + zz);	M[1][0] = xy - wz;				M[2][0] = xz + wy;			
-	M[0][1] = xy + wz;			M[1][1] = 1.0f - (xx + zz);		M[2][1] = yz - wx;			
-	M[0][2] = xz - wy;			M[1][2] = yz + wx;				M[2][2] = 1.0f - (xx + yy);	
+	Matrix3x3d& M = rotation_;
+	// Heck, just rewrite this from scratch to make sure I know what is happening 
+
+
+	M(0, 0) = 1.0f - (yy + zz);	M(0, 1) = xy - wz;				M(0, 2) = xz + wy;
+	M(1, 0) = xy + wz;			M(1, 1) = 1.0f - (xx + zz);		M(1, 2) = yz - wx;
+	M(2, 2) = xz - wy;			M(2, 1) = yz + wx;				M(2, 2) = 1.0f - (xx + yy);
+
 	// set up translation
 
 	translation_[0] = T[0];
 	translation_[1] = T[1];
 	translation_[2] = T[2];
 
+}
+
+Transformation::Transformation(const Vector3d& x_axis, const Vector3d& y_axis, const Vector3d& z_axis, const Vector3d& t)
+{
+	Matrix3x3d& R = rotation_;
+	R(0, 0) = x_axis[0];
+	R(0, 1) = x_axis[1];
+	R(0, 2) = x_axis[2];
+
+	R(1, 0) = y_axis[0];
+	R(1, 1) = y_axis[1];
+	R(1, 2) = y_axis[2];
+
+	R(2, 0) = z_axis[0];
+	R(2, 1) = z_axis[1];
+	R(2, 2) = z_axis[2];
+
+	translation_[0] = t[0];
+	translation_[1] = t[1];
+	translation_[2] = t[2];
 }
 
 //=============================================================================
@@ -157,6 +186,36 @@ Vector3d Transformation::transformVector(const Vector3d& v) const {
   return rotation_ * v;
 }
 
+Vector3d Transformation::x_axis() const
+{
+	return Vector3d(rotation_(0, 0), rotation_(1, 0), rotation_(2, 0));
+}
+
+Vector3d Transformation::y_axis() const
+{
+	return Vector3d(rotation_(0, 1), rotation_(1, 1), rotation_(2, 1));
+}
+
+Vector3d Transformation::z_axis() const
+{
+	return Vector3d(rotation_(0, 2), rotation_(1, 2), rotation_(2, 2));
+}
+
+Vector3d Transformation::get_forward_vector() const
+{
+	return z_axis();
+}
+
+Vector3d Transformation::get_up_vector() const
+{
+	return y_axis();
+}
+
+Vector3d Transformation::get_left_vector() const
+{
+	return x_axis();
+}
+
 //=============================================================================
 
 // Transform points
@@ -182,7 +241,7 @@ std::string Transformation::to_string()
 	std::string s;
 	std::ostringstream oss;
 	oss << "Rotation \n";
-	oss << rotation_(0, 0)<< ' ' << rotation_(0, 1) << ' ' << rotation_(0, 2) << '\n';
+	oss << rotation_(0, 0)<< ' ' << rotation_(0, 1) << ' ' << rotation_(0, 2) <<  '\n';
 	oss << rotation_(1, 0) << ' ' << rotation_(1, 1) << ' ' << rotation_(1, 2) << '\n';
 	oss << rotation_(2, 0) << ' ' << rotation_(2, 1) << ' ' << rotation_(2, 2) << '\n';
 	oss << "Translation \n";

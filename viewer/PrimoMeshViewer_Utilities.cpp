@@ -43,6 +43,16 @@ float PrimoMeshViewer::calc_face_area(Mesh::FaceHandle _fh) const
 
 void PrimoMeshViewer::draw_debug_lines()
 {
+	for (Transformation& t : g_debug_transformations_to_draw_local_optimization)
+	{
+		add_debug_coordinate(t, 100);
+	}
+
+	for (Arrow& a : g_debug_arrows_to_draw_local_optimizations)
+	{
+		add_debug_arrow(a.from, a.to, a.color, a.arrow_size);
+	}
+
 	for (DebugLine& line : debug_lines_)
 	{
 		glLineWidth(line.width_);
@@ -52,16 +62,71 @@ void PrimoMeshViewer::draw_debug_lines()
 		glVertex3f(line.to_[0], line.to_[1], line.to_[2]);
 		glEnd();
 	}
+	// flush the debug line buffer
 	debug_lines_.clear();
 }
 
 
-void PrimoMeshViewer::add_debug_arrow(Vec3f& from, Vec3f& to, float arrow_size, LinearColor color)
+void PrimoMeshViewer::add_debug_arrow(Vector3d& from, Vector3d& to, LinearColor color, double arrow_size)
 {
-	DebugLine line(from, to, arrow_size, color);
+	DebugLine line(from, to, 1.0f, color);
+	debug_lines_.emplace_back(line);
+	Vector3d dir = (to - from).normalize();
+	Vector3d up(0, 1, 0);
+	Vector3d left = dir % up;
+	if (length(left) != 1.0f)
+	{
+		dir.find_best_axis_vectors(up, left);
+	}
+
+	Vector3d origin(0, 0, 0);
+	// Make a transform
+	Transformation tm(left,up,dir,origin);
+	
+	float arrow_sqrt = sqrt(arrow_size);
+
+	DebugLine arrow1(to, to + tm.transformVector(Vector3d(-arrow_sqrt , 0, -arrow_sqrt)), 1.0f, color);
+	debug_lines_.emplace_back(arrow1);
+	DebugLine arrow2(to, to + tm.transformVector(Vector3d(arrow_sqrt, 0, -arrow_sqrt)), 1.0f, color );
+	debug_lines_.emplace_back(arrow2);
+
+
 }
 
-void PrimoMeshViewer::add_debug_coordinate(Transformation& world_transform, float size)
+void PrimoMeshViewer::add_debug_coordinate(Transformation& world_transform, double size, Transformation base_transform)
 {
+	add_debug_arrow(world_transform.translation_, world_transform.translation_ + world_transform.x_axis() * size, LinearColor::RED, 0.1f * size);
+	add_debug_arrow(world_transform.translation_, world_transform.translation_ + world_transform.y_axis() * size, LinearColor::GREEN, 0.1f * size);
+	add_debug_arrow(world_transform.translation_, world_transform.translation_ + world_transform.z_axis() * size, LinearColor::BLUE, 0.1f * size);
+}
+
+
+void PrimoMeshViewer::add_debug_line(Vector3d& from, Vector3d& to, LinearColor color, double width /*= 1.0f*/)
+{
+	DebugLine line(from, to, width, color);
+	debug_lines_.emplace_back(line);
+}
+
+
+void PrimoMeshViewer::print_quaternion(Eigen::Quaternion<double>& Q)
+{
+	float half_theta = acos(Q.w());
+	float sin_half_theta = sin(half_theta);
+	float axis_x = Q.x() / sin_half_theta;
+	float axis_y = Q.y() / sin_half_theta;
+	float axis_z = Q.z() / sin_half_theta;
+
+	std::cout << "== Begin Quaternion Log == " << std::endl;
+	std::cout << "w = " << Q.w() << std::endl;
+	std::cout << "x = " << Q.x() << std::endl;
+	std::cout << "y = " << Q.y() << std::endl;
+	std::cout << "z = " << Q.z() << std::endl;
+	std::cout << "theta = " << half_theta * 2 << std::endl;
+	std::cout << "around axis = " << std::endl;
+	std::cout << axis_x << std::endl;
+	std::cout << axis_y << std::endl;
+	std::cout << axis_z << std::endl;
+	std::cout << "== End Quaternion Log == " << std::endl;
+
 
 }

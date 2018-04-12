@@ -67,7 +67,7 @@ void PrimoMeshViewer::draw_debug_lines()
 }
 
 
-void PrimoMeshViewer::add_debug_arrow(Vector3d& from, Vector3d& to, LinearColor color, double arrow_size)
+void PrimoMeshViewer::add_debug_arrow(const Vector3d& from,const Vector3d& to, LinearColor color, double arrow_size)
 {
 	DebugLine line(from, to, 1.0f, color);
 	debug_lines_.emplace_back(line);

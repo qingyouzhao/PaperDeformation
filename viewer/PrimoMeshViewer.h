@@ -60,7 +60,7 @@ struct LinearColor
 // #TODOZQY: If I write three more helper, I am gonna move these to another file called utilities class
 struct DebugLine
 {
-	DebugLine(Vector3d& _from, Vector3d& _to, float _width, const LinearColor& _color, int _frames_alive = 1) : from_(_from), to_(_to), width_(_width), color_(_color), frames_alive(_frames_alive) {}
+	DebugLine(const Vector3d& _from, const Vector3d& _to, float _width, const LinearColor& _color, int _frames_alive = 1) : from_(_from), to_(_to), width_(_width), color_(_color), frames_alive(_frames_alive) {}
 
 	Vector3d from_;
 	Vector3d to_;
@@ -265,7 +265,7 @@ private:
 
 public:
 	// Debug Utilities, these arrows will be added by local optimize. Every draw flushes the debug lines once. SHould be more optimized 
-	void add_debug_arrow(Vector3d& from, Vector3d& to, LinearColor color, double arrow_size);
+	void add_debug_arrow(const Vector3d& from, const Vector3d& to, LinearColor color, double arrow_size);
 	void add_debug_coordinate(Transformation& world_transform, double size, Transformation base_transform = Transformation());
 	void add_debug_line(Vector3d& from, Vector3d& to, LinearColor color, double width = 1.0f);
 

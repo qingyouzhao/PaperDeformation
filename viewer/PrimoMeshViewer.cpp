@@ -38,8 +38,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	printf("Select Mode: Static\n");
 	
 	// optimize mode is LOCAL at first
-	optimizeMode_ = EOptimizeMode::LOCAL;
-	printf("Optimize Mode: Local\n");
+	optimizeMode_ = EOptimizeMode::GLOBAL;
+	printf("Optimize Mode: Global\n");
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -348,7 +348,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case 'o':
 	{
-		// switch optimization method (default: local)
+		// switch optimization method (default: global)
 		bool opIsLocal = (optimizeMode_ == EOptimizeMode::LOCAL);
 		optimizeMode_ = (opIsLocal ? EOptimizeMode::GLOBAL : EOptimizeMode::LOCAL);
 		printf("Optimize Mode: %s\n", opIsLocal ? "Global" : "Local");

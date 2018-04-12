@@ -3,6 +3,36 @@
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;
 typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
+struct PijKey{
+    int p[2];
+    PijKey(const int &a, const int &b){
+        p[0] = a;
+        p[1] = b;
+    }
+    int& operator[](unsigned int i) { return p[i]; }
+    const int& operator[](unsigned int i) const { return p[i]; }
+    bool operator==(const PijKey &other) const
+    {
+        return (p[0] == other.p[0]
+            && p[1] == other.p[1]
+            );
+    }
+};
+namespace std {
+
+  template <>
+  struct hash<PijKey>{
+    // boost::hash_combine for pair int's hash
+    std::size_t operator()(const PijKey& p) const{
+        size_t seed = 0;
+        hash<int> h;
+        seed ^= h(p[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2); 
+        seed ^= h(p[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+  };
+
+}
 static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, 
                         const int f_i_id, bool is_filling_i, SpMat &D_T){
     //helper function to fill in D_ab and D_cd, refer to ZJW's note

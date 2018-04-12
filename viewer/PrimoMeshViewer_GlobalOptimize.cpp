@@ -79,7 +79,116 @@ static void fill_in_D_T(const OpenMesh::Vec3f &p_ij,
     // D_T.insert(j_startId + 4, 2) = -1;
     // D_T.insert(j_startId + 5, 2) = -1;
 }
-// helper funtion to build linear system
+
+// helper class to memoization for pij and pji
+class Pij_ji{
+public:
+    explicit Pij_ji(const PrismProperty * const P_i, const PrismProperty * const P_j):
+    f_ij{       {P_i->FromVertPrismDown, P_i->FromVertPrismUp},
+                {P_i->ToVertPrismDown, P_i->ToVertPrismUp}
+    },
+    f_ji{       {P_j->ToVertPrismDown, P_j->ToVertPrismUp},
+                {P_j->FromVertPrismDown, P_j->FromVertPrismUp}
+    }, one{
+        {{1, 1, 1}, {1, 1, 1}},
+        {{1, 1, 1}, {1, 1, 1}}
+    }
+    {}
+    float operator[](const PijKey &key){ 
+        // assert it is a valid key
+        // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
+        //     0  1  2        3  4  5      -1  -1  -1
+        assert(key[0] >= -1 && key[0] <= 5 && key[1] >= -1 && key[1] <= 5);
+        // firstly check if the key is already calculated
+        auto iter = p.find(key);
+        if(iter != p.end()){
+            // this pair has already been calculated, return directly
+            return iter->second;
+        }else{
+            // the (key,value) is not in the map
+            // 1. calculate it 
+            float value = calc_value(key[0], key[1]);
+            // 2. save it to the map
+            p[key] = value;
+            if(key[1] != key[0]){
+                p[{key[1], key[0]}] = value;
+            }
+            // return it
+            return value;
+        }
+
+    }
+    // private data
+private:
+    std::unordered_map<PijKey, float> p;
+    const OpenMesh::Vec3f f_ij[2][2];
+    const OpenMesh::Vec3f f_ji[2][2];
+    // dummy one vectors for easy implementation
+    const OpenMesh::Vec3f one[2][2];
+    //
+    float calc_value(int first, int second) const{
+        // firstly sort two integer small, big
+        if(first > second){
+            std::swap(first, second);
+        }
+        // cannot have two "one"
+        assert(second >= 0);
+        // special case when first is -1
+        // 10 non-repetitive combination for the diecretion of integration over [0, 1]^[0, 1] 
+        static const int uv_integrate_id[10][4] = {
+            {0, 0, 0, 0},
+            {0, 0, 0, 1},
+            {0, 0, 1, 0},
+            {0, 0, 1, 1},
+            {0, 1, 0, 1},
+            {0, 1, 1, 0},
+            {0, 1, 1, 1},
+            {1, 0, 1, 0},
+            {1, 0, 1, 1},
+            {1, 1, 1, 1}
+        };
+        
+        static const float one_ninth = 1.0f / 9.0f;
+        static const float weight[10] = {
+                one_ninth,
+                one_ninth,
+                one_ninth,
+                0.5f * one_ninth,
+                one_ninth,
+                0.5f * one_ninth,
+                one_ninth,
+                one_ninth,
+                one_ninth,
+                one_ninth
+        };
+        // iterate each combination
+        const OpenMesh::Vec3f (*first_array)[2];
+        const OpenMesh::Vec3f (*second_array)[2];
+        if(first < 0){
+            first_array = one;
+            first = 0;
+        }else if(first < 3){
+            first_array = f_ij;
+        }else{
+            first_array = f_ji;
+            first -= 3;
+        }
+        
+        if(second < 3){
+            second_array = f_ij;
+        }else{
+            second_array = f_ji;
+            second -= 3;
+        }
+        float value = 0.0;//result
+        for(int cid = 0; cid < 10; ++cid){
+            float a = first_array[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ][first];
+            float b = second_array[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ][second];
+        }
+        return value;
+    }
+    
+};
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
                             const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_set<int> &face_id_set, 
                             SpMat &B_add_BT, 
@@ -132,95 +241,76 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             const int f_j_id = fh_j.idx();
             const PrismProperty * const P_i = &(mesh.property(P_PrismProperty, he_i));
             const PrismProperty * const P_j = &(mesh.property(P_PrismProperty, he_j));
-            const OpenMesh::Vec3f f_ij[2][2] = { 
-                {P_i->FromVertPrismDown, P_i->FromVertPrismUp},
-                {P_i->ToVertPrismDown, P_i->ToVertPrismUp}
-            };
-            const OpenMesh::Vec3f f_ji[2][2] = { 
-                {P_j->ToVertPrismDown, P_j->ToVertPrismUp},
-                {P_j->FromVertPrismDown, P_j->FromVertPrismUp}
-            };
             const float w_ij = P_i->weight_ij;
             // assert for debug, opposite half edges should have same edge weight
             assert(fabs(w_ij - P_j->weight_ij) < FLT_EPSILON);
 
-            // 10 non-repetitive combination for the diecretion of integration over [0, 1]^[0, 1] 
-            static const int uv_integrate_id[10][4] = {
-                {0, 0, 0, 0},
-                {0, 0, 0, 1},
-                {0, 0, 1, 0},
-                {0, 0, 1, 1},
-                {0, 1, 0, 1},
-                {0, 1, 1, 0},
-                {0, 1, 1, 1},
-                {1, 0, 1, 0},
-                {1, 0, 1, 1},
-                {1, 1, 1, 1}
-            };
-            // final weight
-            // #TODO[ZJW]: Here I suppose that the 1/9 constant does not influence the result,
-            // need double check.
-            const float lambdas[10] = {
-                w_ij,
-                w_ij,
-                w_ij,
-                0.5f * w_ij,
-                w_ij,
-                0.5f * w_ij,
-                w_ij,
-                w_ij,
-                w_ij,
-                w_ij
-            };
-            // iterate each combination
-            for(int cid = 0; cid < 10; ++cid){
-                // follow the convention of ZJW's note
-                // #TODO[ZJW]: Double Check and add note link
-                const OpenMesh::Vec3f &a = f_ij[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
-                const OpenMesh::Vec3f &b = f_ji[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
-                const OpenMesh::Vec3f &c = f_ij[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
-                const OpenMesh::Vec3f &d = f_ji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
-                const float lambda = lambdas[cid];
-
-                // Compute SparseMatrix D_ab, D_cd in ZJW's note
+            // get all p^ij p^ji that are used to fill in matrices
+            Pij_ji pij_ji(P_i, P_j);
+            
+            // boundary contidion: opposite face is not optimizable,
+            // which has a simpler method to fill in matrices more efficiently
+            // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
+            //     0  1  2        3  4  5      -1  -1  -1
+            if(face_id_set.find(f_j_id) == face_id_set.end()){
+                // boundary case
                 
-                SpMat D_ab_T(n6, 3);
-                SpMat D_cd_T(n6, 3);
-                // Boundary condition: one of the face(prisms)'s velocity(w, v) should be zero 
-                D_ab_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
-                D_cd_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
-
-                // fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
-                // fill_in_D_T(c, d, f_i_id, f_j_id, D_cd_T);
-                fill_in_D_T(a, f_i_id, true, D_ab_T);
-                fill_in_D_T(c, f_i_id, true, D_cd_T);
-                if(face_id_set.find(f_j_id) != face_id_set.end()){
-                    // opposite is optimizable face, fill it in
-                    fill_in_D_T(b, f_j_id, false, D_ab_T);
-                    fill_in_D_T(d, f_j_id, false, D_cd_T);
-                }
-                //////////////////////////////////////////////////////////////////////////////
-                std::cout<< "D_ab_T:\n" << D_ab_T << std::endl;
-                std::cout<< "D_cd_T:\n" << D_cd_T << std::endl;
-                //////////////////////////////////////////////////////////////////////////////
-                SpMat D_ab = D_ab_T.transpose();
-                SpMat D_cd = D_cd_T.transpose();
-                // add contribution to -A^T ("b" in "Ax = b")
-                OpenMesh::Vec3f lambda_b_minus_a_OpenMesh = lambda * (b - a);
-                OpenMesh::Vec3f lambda_d_minus_c_OpenMesh = lambda * (d - c);
-                Eigen::Vector3f lambda_b_minus_a_Eigen;
-                Eigen::Vector3f lambda_d_minus_c_Eigen;
-                lambda_b_minus_a_Eigen(0) = lambda_b_minus_a_OpenMesh[0];
-                lambda_b_minus_a_Eigen(1) = lambda_b_minus_a_OpenMesh[1];
-                lambda_b_minus_a_Eigen(2) = lambda_b_minus_a_OpenMesh[2];
+            }else{
+                // general case
                 
-                lambda_d_minus_c_Eigen(0) = lambda_d_minus_c_OpenMesh[0];
-                lambda_d_minus_c_Eigen(1) = lambda_d_minus_c_OpenMesh[1];
-                lambda_d_minus_c_Eigen(2) = lambda_d_minus_c_OpenMesh[2];
-                negA_T += D_cd_T * lambda_b_minus_a_Eigen + D_ab_T * lambda_d_minus_c_Eigen;
-                // add contribution to B + B^T ("A" in "Ax = b")
-                B_add_BT += D_ab_T * D_cd + D_cd_T * D_ab;
             }
+            
+            
+
+            // // iterate each combination
+            // for(int cid = 0; cid < 10; ++cid){
+            //     // follow the convention of ZJW's note
+            //     // #TODO[ZJW]: Double Check and add note link
+            //     const OpenMesh::Vec3f &a = f_ij[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
+            //     const OpenMesh::Vec3f &b = f_ji[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
+            //     const OpenMesh::Vec3f &c = f_ij[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
+            //     const OpenMesh::Vec3f &d = f_ji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
+            //     const float lambda = lambdas[cid];
+
+            //     // Compute SparseMatrix D_ab, D_cd in ZJW's note
+                
+            //     SpMat D_ab_T(n6, 3);
+            //     SpMat D_cd_T(n6, 3);
+            //     // Boundary condition: one of the face(prisms)'s velocity(w, v) should be zero 
+            //     D_ab_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
+            //     D_cd_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
+
+            //     // fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
+            //     // fill_in_D_T(c, d, f_i_id, f_j_id, D_cd_T);
+            //     fill_in_D_T(a, f_i_id, true, D_ab_T);
+            //     fill_in_D_T(c, f_i_id, true, D_cd_T);
+            //     if(face_id_set.find(f_j_id) != face_id_set.end()){
+            //         // opposite is optimizable face, fill it in
+            //         fill_in_D_T(b, f_j_id, false, D_ab_T);
+            //         fill_in_D_T(d, f_j_id, false, D_cd_T);
+            //     }
+            //     //////////////////////////////////////////////////////////////////////////////
+            //     std::cout<< "D_ab_T:\n" << D_ab_T << std::endl;
+            //     std::cout<< "D_cd_T:\n" << D_cd_T << std::endl;
+            //     //////////////////////////////////////////////////////////////////////////////
+            //     SpMat D_ab = D_ab_T.transpose();
+            //     SpMat D_cd = D_cd_T.transpose();
+            //     // add contribution to -A^T ("b" in "Ax = b")
+            //     OpenMesh::Vec3f lambda_b_minus_a_OpenMesh = lambda * (b - a);
+            //     OpenMesh::Vec3f lambda_d_minus_c_OpenMesh = lambda * (d - c);
+            //     Eigen::Vector3f lambda_b_minus_a_Eigen;
+            //     Eigen::Vector3f lambda_d_minus_c_Eigen;
+            //     lambda_b_minus_a_Eigen(0) = lambda_b_minus_a_OpenMesh[0];
+            //     lambda_b_minus_a_Eigen(1) = lambda_b_minus_a_OpenMesh[1];
+            //     lambda_b_minus_a_Eigen(2) = lambda_b_minus_a_OpenMesh[2];
+                
+            //     lambda_d_minus_c_Eigen(0) = lambda_d_minus_c_OpenMesh[0];
+            //     lambda_d_minus_c_Eigen(1) = lambda_d_minus_c_OpenMesh[1];
+            //     lambda_d_minus_c_Eigen(2) = lambda_d_minus_c_OpenMesh[2];
+            //     negA_T += D_cd_T * lambda_b_minus_a_Eigen + D_ab_T * lambda_d_minus_c_Eigen;
+            //     // add contribution to B + B^T ("A" in "Ax = b")
+            //     B_add_BT += D_ab_T * D_cd + D_cd_T * D_ab;
+            // }
         }
     }
     

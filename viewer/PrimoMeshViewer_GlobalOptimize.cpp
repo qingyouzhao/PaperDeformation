@@ -55,6 +55,10 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                             SpMat &B_add_BT, 
                             Eigen::VectorXf &negA_T){
     std::unordered_set<int> he_id_set;
+    //////////////////////////////////////////////////////////////////////////////
+    std::cout<< "B_and_BT:\n" <<  B_add_BT<<std::endl;
+    std::cout<< "-A^T:\n" << negA_T << std::endl;
+    //////////////////////////////////////////////////////////////////////////////
     assert(face_handles.size() == face_id_set.size());
     for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
@@ -165,7 +169,10 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                     fill_in_D_T(b, f_j_id, false, D_ab_T);
                     fill_in_D_T(d, f_j_id, false, D_cd_T);
                 }
-
+                //////////////////////////////////////////////////////////////////////////////
+                std::cout<< "D_ab_T:\n" << D_ab_T << std::endl;
+                std::cout<< "D_cd_T:\n" << D_cd_T << std::endl;
+                //////////////////////////////////////////////////////////////////////////////
                 SpMat D_ab = D_ab_T.transpose();
                 SpMat D_cd = D_cd_T.transpose();
                 // add contribution to -A^T ("b" in "Ax = b")
@@ -207,8 +214,10 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     
     //  
     build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_set, B_add_BT, negA_T);
+    //////////////////////////////////////////////////////////////////////////////
     std::cout<< "B_and_BT:\n" <<  B_add_BT<<std::endl;
     std::cout<< "-A^T:\n" << negA_T << std::endl;
+    //////////////////////////////////////////////////////////////////////////////
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen 
     Eigen::SparseLU<SpMat> solver;  // performs a Cholesky factorization of A

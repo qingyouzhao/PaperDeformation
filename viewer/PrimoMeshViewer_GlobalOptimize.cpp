@@ -1,4 +1,5 @@
 #include "PrimoMeshViewer.h"
+#include "Timer.hh"
 #include <Eigen/Sparse>
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;
@@ -199,6 +200,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "B:\n" <<  B <<std::endl;
     //std::cout<< "-A^T:\n" << negA_T << std::endl;
+    double plus_equal_duration = 0.0;
     //////////////////////////////////////////////////////////////////////////////
     for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
@@ -253,7 +255,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
             //     0  1  2        3  4  5      -1  -1  -1
             SpMat current_B(n6, n6);
-            SpMat current_negA_T(n6, 1);
+            //SpMat current_negA_T(n6, 1);
             Eigen::Vector3f N, M;
             N << p(-1, 0) - p(-1, 3), p(-1, 1) - p(-1, 4), p(-1, 2) - p(-1, 5);
             M << -p(2,4)+p(1,5), p(2,3)-p(0,5), -p(1,3)+p(0,4);
@@ -286,13 +288,12 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                     }
                 }
                 // init current_negA_T
-                current_negA_T.reserve(Eigen::VectorXi::Constant(1, 6));
-                current_negA_T.insert(start_rc    , 0) =  M(0); 
-                current_negA_T.insert(start_rc + 1, 0) =  M(1); 
-                current_negA_T.insert(start_rc + 2, 0) =  M(2); 
-                current_negA_T.insert(start_rc + 3, 0) = -N(0); 
-                current_negA_T.insert(start_rc + 4, 0) = -N(1); 
-                current_negA_T.insert(start_rc + 5, 0) = -N(2); 
+                negA_T(start_rc    ) += M(0); 
+                negA_T(start_rc + 1) += M(1); 
+                negA_T(start_rc + 2) += M(2); 
+                negA_T(start_rc + 3) -= N(0); 
+                negA_T(start_rc + 4) -= N(1); 
+                negA_T(start_rc + 5) -= N(2);
             }else{
                 // general case
                 Eigen::Matrix<float, 12, 12> DTD;
@@ -345,29 +346,31 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                     }
                 }
                 // init current_negA_T
-                current_negA_T.reserve(Eigen::VectorXi::Constant(1, 12));
-                current_negA_T.insert(start_I    , 0) =  M(0); 
-                current_negA_T.insert(start_I + 1, 0) =  M(1); 
-                current_negA_T.insert(start_I + 2, 0) =  M(2); 
-                current_negA_T.insert(start_I + 3, 0) = -N(0); 
-                current_negA_T.insert(start_I + 4, 0) = -N(1); 
-                current_negA_T.insert(start_I + 5, 0) = -N(2);
+                negA_T(start_I    ) += M(0); 
+                negA_T(start_I + 1) += M(1); 
+                negA_T(start_I + 2) += M(2); 
+                negA_T(start_I + 3) -= N(0); 
+                negA_T(start_I + 4) -= N(1); 
+                negA_T(start_I + 5) -= N(2);
 
-                current_negA_T.insert(start_J    , 0) = -M(0); 
-                current_negA_T.insert(start_J + 1, 0) = -M(1); 
-                current_negA_T.insert(start_J + 2, 0) = -M(2); 
-                current_negA_T.insert(start_J + 3, 0) =  N(0); 
-                current_negA_T.insert(start_J + 4, 0) =  N(1); 
-                current_negA_T.insert(start_J + 5, 0) =  N(2); 
+                negA_T(start_J    ) -= M(0); 
+                negA_T(start_J + 1) -= M(1); 
+                negA_T(start_J + 2) -= M(2); 
+                negA_T(start_J + 3) += N(0); 
+                negA_T(start_J + 4) += N(1); 
+                negA_T(start_J + 5) += N(2);  
 
             }
             //////////////////////////////////////////////////////////////////////////////
             //std::cout<< "B:\n" <<  B <<std::endl;
             //std::cout<< "-A^T:\n" << negA_T << std::endl;
+            Timer plus_equal_timer;
             //////////////////////////////////////////////////////////////////////////////
+            
             B += current_B * w_ij;
-            negA_T += current_negA_T;
+            //negA_T += current_negA_T;
             //////////////////////////////////////////////////////////////////////////////
+            plus_equal_duration += plus_equal_timer.elapsed();
             //std::cout<< "B:\n" <<  B <<std::endl;
             //std::cout<< "-A^T:\n" << negA_T << std::endl;
             //////////////////////////////////////////////////////////////////////////////
@@ -424,6 +427,9 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             // }
         }
     }
+    //////////////////////////////////////////////////////////////////////////////
+    std::cout<<"B+= takes "<< Timer::timeString(plus_equal_duration, false) << std::endl;
+    //////////////////////////////////////////////////////////////////////////////
     
 }
 void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
@@ -448,13 +454,15 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
             assert(face_idx_2_i.at(face_handles[i].idx()) == i);
         }
     #endif
+    Timer build_problem_timmer;
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
     Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
     // B("A" in "Ax = b")
     SpMat B(n6, n6);
+    //B.reserve(Eigen::VectorXi::Constant(n6, 40));
+    //
     
-    //  
     build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "B:\n" <<  B<<std::endl;
@@ -462,7 +470,9 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     //////////////////////////////////////////////////////////////////////////////
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen
-    printf("FINISH BUILD\n");
+    
+    std::string build_problem_elapseString = build_problem_timmer.elapsedString();
+    printf("FINISH BUILD, take %s\n", build_problem_elapseString.c_str());
     Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization of B
     printf("FINISH DECOMPOSE\n");
 
@@ -474,7 +484,7 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     printf("FINISH SOLVE\n");
 
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<< "x:\n"<< x << std::endl;
+    //std::cout<< "x:\n"<< x << std::endl;
     //////////////////////////////////////////////////////////////////////////////
 
     // #TODO[ZJW]: update vertices position based on faces(prisms) around each vertex

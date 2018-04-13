@@ -34,52 +34,6 @@ namespace std {
   };
 
 }
-// static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, 
-//                         const int f_i_id, bool is_filling_i, SpMat &D_T){
-//     //helper function to fill in D_ab and D_cd, refer to ZJW's note
-//     const int i_startId = f_i_id * 6;
-//     const OpenMesh::Vec3f p = is_filling_i ? p_ij : -p_ij;
-//     const int one = is_filling_i ? 1 : -1;
-//     // const int j_startId = f_j_id * 6;
-//     // fill in first column
-//     D_T.insert(i_startId + 1, 0) =  p[2];
-//     D_T.insert(i_startId + 2, 0) = -p[1];
-//     D_T.insert(i_startId + 3, 0) =  one;
-//     D_T.insert(i_startId + 4, 0) =  one;
-//     D_T.insert(i_startId + 5, 0) =  one;
-
-//     // D_T.insert(j_startId + 1, 0) = -p_ji[2];
-//     // D_T.insert(j_startId + 2, 0) =  p_ji[1];
-//     // D_T.insert(j_startId + 3, 0) = -1;
-//     // D_T.insert(j_startId + 4, 0) = -1;
-//     // D_T.insert(j_startId + 5, 0) = -1;
-
-//     // fill in second column
-//     D_T.insert(i_startId    , 1) = -p[2];
-//     D_T.insert(i_startId + 2, 1) =  p[0];
-//     D_T.insert(i_startId + 3, 1) =  one;
-//     D_T.insert(i_startId + 4, 1) =  one;
-//     D_T.insert(i_startId + 5, 1) =  one;
-
-//     // D_T.insert(j_startId    , 1) =  p_ji[2];
-//     // D_T.insert(j_startId + 2, 1) = -p_ji[0];
-//     // D_T.insert(j_startId + 3, 1) = -1;
-//     // D_T.insert(j_startId + 4, 1) = -1;
-//     // D_T.insert(j_startId + 5, 1) = -1;
-
-//     // fill in third column
-//     D_T.insert(i_startId    , 2) =  p[1];
-//     D_T.insert(i_startId + 1, 2) = -p[0];
-//     D_T.insert(i_startId + 3, 2) =  one;
-//     D_T.insert(i_startId + 4, 2) =  one;
-//     D_T.insert(i_startId + 5, 2) =  one;
-
-//     // D_T.insert(j_startId    , 2) = -p_ji[1];
-//     // D_T.insert(j_startId + 1, 2) =  p_ji[0];
-//     // D_T.insert(j_startId + 3, 2) = -1;
-//     // D_T.insert(j_startId + 4, 2) = -1;
-//     // D_T.insert(j_startId + 5, 2) = -1;
-// }
 
 // helper class to memoization for pij and pji
 class Pij_ji{
@@ -192,10 +146,37 @@ private:
     }
     
 };
+class BFill{
+public:
+    explicit BFill(int n):B_n(n){}
+    float& operator()(const int r, const int c){ 
+        // assert it is a valid key
+        // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
+        //     0  1  2        3  4  5      -1  -1  -1
+        assert(r >= 0 && r < B_n && c >= 0 && c < B_n);
+        // firstly check if the key is already calculated
+        PijKey key{r, c};
+        auto iter = p.find(key);
+        if(iter != p.end()){
+            // this pair has already been calculated, return directly
+            return iter->second;
+        }else{
+            auto iter_bool = p.emplace(key, 0.0f);
+            assert(iter_bool.second == true);
+            return iter_bool.first->second;
+        }
+
+    }
+public:
+    std::unordered_map<PijKey, float> p;
+    const int B_n;
+
+};
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
                             const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_map<int,int> &face_idx_2_i, 
                             SpMat &B, 
                             Eigen::VectorXf &negA_T){
+    BFill bFill(n6);
     std::unordered_set<int> he_id_set;
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "B:\n" <<  B <<std::endl;
@@ -254,7 +235,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             // which has a simpler method to fill in matrices more efficiently
             // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
             //     0  1  2        3  4  5      -1  -1  -1
-            SpMat current_B(n6, n6);
+            //SpMat current_B(n6, n6);
             //SpMat current_negA_T(n6, 1);
             Eigen::Vector3f N, M;
             N << p(-1, 0) - p(-1, 3), p(-1, 1) - p(-1, 4), p(-1, 2) - p(-1, 5);
@@ -279,12 +260,12 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 // std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
                 //////////////////////////////////////////////////////////////////////////////
                 // push DTD into current_B
-                current_B.reserve(Eigen::VectorXi::Constant(n6, 6));
+                // current_B.reserve(Eigen::VectorXi::Constant(n6, 6));
                 const int start_rc = i * 6;
                 const int end_rc   = start_rc + 6;
                 for(int r = start_rc, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
                     for(int c = start_rc, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                        bFill(r, c) += DTD(dtd_i, dtd_j);
                     }
                 }
                 // init current_negA_T
@@ -318,7 +299,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 //std::cout<< "DTD:\n" <<  DTD <<std::endl;
                 //////////////////////////////////////////////////////////////////////////////
                 // push DTD into current_B
-                current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
+                // current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
                 const int start_I = i * 6;
                 //const int   end_I = start_I + 6;
                 const int start_J = face_idx_2_i.at(f_j_id) * 6;
@@ -326,23 +307,23 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
 
                 for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
                     for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                        bFill(r, c) += DTD(dtd_i, dtd_j);
                     }
                 }
 
                 for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
                     for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
-                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                        bFill(r, c) += DTD(dtd_i, dtd_j);
                     }
                 }
                 for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
                     for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                        bFill(r, c) += DTD(dtd_i, dtd_j);
                     }
                 }
                 for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
                     for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
-                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                        bFill(r, c) += DTD(dtd_i, dtd_j);
                     }
                 }
                 // init current_negA_T
@@ -364,71 +345,23 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             //////////////////////////////////////////////////////////////////////////////
             //std::cout<< "B:\n" <<  B <<std::endl;
             //std::cout<< "-A^T:\n" << negA_T << std::endl;
-            Timer plus_equal_timer;
+            //Timer plus_equal_timer;
             //////////////////////////////////////////////////////////////////////////////
             
-            B += current_B * w_ij;
+            //B += current_B * w_ij;
             //negA_T += current_negA_T;
             //////////////////////////////////////////////////////////////////////////////
-            plus_equal_duration += plus_equal_timer.elapsed();
+            //plus_equal_duration += plus_equal_timer.elapsed();
             //std::cout<< "B:\n" <<  B <<std::endl;
             //std::cout<< "-A^T:\n" << negA_T << std::endl;
             //////////////////////////////////////////////////////////////////////////////
-            
-
-            // // iterate each combination
-            // for(int cid = 0; cid < 10; ++cid){
-            //     // follow the convention of ZJW's note
-            //     // #TODO[ZJW]: Double Check and add note link
-            //     const OpenMesh::Vec3f &a = f_ij[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
-            //     const OpenMesh::Vec3f &b = f_ji[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
-            //     const OpenMesh::Vec3f &c = f_ij[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
-            //     const OpenMesh::Vec3f &d = f_ji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
-            //     const float lambda = lambdas[cid];
-
-            //     // Compute SparseMatrix D_ab, D_cd in ZJW's note
-                
-            //     SpMat D_ab_T(n6, 3);
-            //     SpMat D_cd_T(n6, 3);
-            //     // Boundary condition: one of the face(prisms)'s velocity(w, v) should be zero 
-            //     D_ab_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
-            //     D_cd_T.reserve(Eigen::VectorXi::Constant(3, std::min(10, n6)));
-
-            //     // fill_in_D_T(a, b, f_i_id, f_j_id, D_ab_T);
-            //     // fill_in_D_T(c, d, f_i_id, f_j_id, D_cd_T);
-            //     fill_in_D_T(a, f_i_id, true, D_ab_T);
-            //     fill_in_D_T(c, f_i_id, true, D_cd_T);
-            //     if(face_id_set.find(f_j_id) != face_id_set.end()){
-            //         // opposite is optimizable face, fill it in
-            //         fill_in_D_T(b, f_j_id, false, D_ab_T);
-            //         fill_in_D_T(d, f_j_id, false, D_cd_T);
-            //     }
-            //     //////////////////////////////////////////////////////////////////////////////
-            //     std::cout<< "D_ab_T:\n" << D_ab_T << std::endl;
-            //     std::cout<< "D_cd_T:\n" << D_cd_T << std::endl;
-            //     //////////////////////////////////////////////////////////////////////////////
-            //     SpMat D_ab = D_ab_T.transpose();
-            //     SpMat D_cd = D_cd_T.transpose();
-            //     // add contribution to -A^T ("b" in "Ax = b")
-            //     OpenMesh::Vec3f lambda_b_minus_a_OpenMesh = lambda * (b - a);
-            //     OpenMesh::Vec3f lambda_d_minus_c_OpenMesh = lambda * (d - c);
-            //     Eigen::Vector3f lambda_b_minus_a_Eigen;
-            //     Eigen::Vector3f lambda_d_minus_c_Eigen;
-            //     lambda_b_minus_a_Eigen(0) = lambda_b_minus_a_OpenMesh[0];
-            //     lambda_b_minus_a_Eigen(1) = lambda_b_minus_a_OpenMesh[1];
-            //     lambda_b_minus_a_Eigen(2) = lambda_b_minus_a_OpenMesh[2];
-                
-            //     lambda_d_minus_c_Eigen(0) = lambda_d_minus_c_OpenMesh[0];
-            //     lambda_d_minus_c_Eigen(1) = lambda_d_minus_c_OpenMesh[1];
-            //     lambda_d_minus_c_Eigen(2) = lambda_d_minus_c_OpenMesh[2];
-            //     negA_T += D_cd_T * lambda_b_minus_a_Eigen + D_ab_T * lambda_d_minus_c_Eigen;
-            //     // add contribution to B + B^T ("A" in "Ax = b")
-            //     B_add_BT += D_ab_T * D_cd + D_cd_T * D_ab;
-            // }
         }
     }
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<<"B+= takes "<< Timer::timeString(plus_equal_duration, false) << std::endl;
+    for(const auto &element : bFill.p){
+        B.insert(element.first[0],element.first[1]) = element.second;
+    }
+    //std::cout<<"B+= takes "<< Timer::timeString(plus_equal_duration, false) << std::endl;
     //////////////////////////////////////////////////////////////////////////////
     
 }
@@ -460,7 +393,7 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
     // B("A" in "Ax = b")
     SpMat B(n6, n6);
-    //B.reserve(Eigen::VectorXi::Constant(n6, 40));
+    B.reserve(Eigen::VectorXi::Constant(n6, 40));
     //
     
     build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);

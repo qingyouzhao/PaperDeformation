@@ -75,8 +75,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		
 		// init the set of idx of opmizedFaces only for global optimization
-		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
-			optimizedFaceIdx_.insert(fh.idx());
+		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
+			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
 		}
 		return true;
 	}
@@ -454,7 +454,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 						local_optimize(100);
 					}
 					else{
-						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_);
+						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_);
 					}
 					break;
 				}
@@ -709,8 +709,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
-			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
-			optimizedFaceIdx_.erase(hit_faceId);
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_, &optimizedFaceIdx_2_i_);
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -721,8 +720,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
-			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
-			optimizedFaceIdx_.erase(hit_faceId);
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_, &optimizedFaceIdx_2_i_);
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -730,13 +728,14 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 		if(hit_faceType == ESelectMode::STATIC){
 			delete_faceHandle(hit_faceId, staticFaceHandles_);
 			needUpdateStatic = true;
+			optimizedFaceIdx_2_i_[hit_faceId] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			optimizedFaceIdx_.insert(hit_faceId);
+			
 		}else if(hit_faceType == ESelectMode::DYNAMIC){
 			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
 			needUpdateDynamic = true;
+			optimizedFaceIdx_2_i_[hit_faceId] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
-			optimizedFaceIdx_.insert(hit_faceId);
 		}
 	}
 	else{
@@ -766,9 +765,21 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 
 	glutPostRedisplay();
 }
-void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles){
+void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+											std::unordered_map<int, int> *face_idx_2_i){
 	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
 		if(it->idx() == faceId){
+			if(face_idx_2_i){
+				// before remove, minus 1 all faces after it
+				for(auto jt = it + 1; jt != face_handles.end(); ++jt){
+					auto map_it = face_idx_2_i->find(jt->idx());
+					assert(map_it != face_idx_2_i->end());
+					--map_it->second;
+					//(*face_idx_2_i)[jt->idx()] -= 1;
+				}
+				face_idx_2_i->erase(faceId);
+			}
+
 			// remove this fh
 			face_handles.erase(it);
 			return;

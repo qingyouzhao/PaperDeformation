@@ -5,7 +5,6 @@
 #include "Transformation.hh"
 #include <vector>
 #include <unordered_map>
-#include <unordered_set>
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
@@ -123,7 +122,7 @@ protected:
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_
 	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_set<int> &face_idx_set);
+										const std::unordered_map<int,int> &face_idx_2_i);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 
@@ -154,7 +153,7 @@ private:
 	// maintain a set of optimized faces' idx only for global optimization
 	
 	// #TODO[ZJW][QYZ]: redundant now, if have time, try to only mantain handles/idxs
-	std::unordered_set<int> optimizedFaceIdx_;
+	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
 	std::vector<unsigned int> optimizedVertexIndices_;
 	// static faces(prisms) as hard constraints
 	std::vector<OpenMesh::FaceHandle> staticFaceHandles_;
@@ -179,7 +178,8 @@ private:
 	
 	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
 	// O(n), need optimize if this is raycast bottleneck
-	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles);
+	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+							std::unordered_map<int, int> *face_idx_2_i = nullptr);
 	// each face could only have one type of STATIC/DYNAMI/NONE
 	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
 	// draw prisms for all faces in array(vector)

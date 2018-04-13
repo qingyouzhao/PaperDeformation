@@ -192,20 +192,18 @@ private:
     
 };
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
-                            const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_set<int> &face_id_set, 
+                            const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_map<int,int> &face_idx_2_i, 
                             SpMat &B, 
                             Eigen::VectorXf &negA_T){
     std::unordered_set<int> he_id_set;
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<< "B:\n" <<  B <<std::endl;
-    std::cout<< "-A^T:\n" << negA_T << std::endl;
+    //std::cout<< "B:\n" <<  B <<std::endl;
+    //std::cout<< "-A^T:\n" << negA_T << std::endl;
     //////////////////////////////////////////////////////////////////////////////
-    assert(face_handles.size() == face_id_set.size());
     for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
         const OpenMesh::FaceHandle &fh_i = face_handles[i];
         const int f_i_id = fh_i.idx();
-        assert(face_id_set.find(f_i_id) != face_id_set.end());
         for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
             // Grab the opposite half edge and face
             const Mesh::HalfedgeHandle he_i = *fhe_it;
@@ -261,7 +259,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             M << -p(2,4)+p(1,5), p(2,3)-p(0,5), -p(1,3)+p(0,4);
             M *= w_ij;
             N *= w_ij;
-            if(face_id_set.find(f_j_id) == face_id_set.end()){
+            if(face_idx_2_i.find(f_j_id) == face_idx_2_i.end()){
                 // boundary case
                 Eigen::Matrix<float, 6, 6> DTD; 
                 DTD<< 
@@ -276,11 +274,11 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 DTD = DTD.selfadjointView<Eigen::Upper>();
                 
                 //////////////////////////////////////////////////////////////////////////////
-                std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
+                // std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
                 //////////////////////////////////////////////////////////////////////////////
                 // push DTD into current_B
                 current_B.reserve(Eigen::VectorXi::Constant(n6, 6));
-                const int start_rc = f_i_id * 6;
+                const int start_rc = i * 6;
                 const int end_rc   = start_rc + 6;
                 for(int r = start_rc, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
                     for(int c = start_rc, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
@@ -316,13 +314,13 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 DTD = DTD.selfadjointView<Eigen::Upper>();
                 
                 //////////////////////////////////////////////////////////////////////////////
-                std::cout<< "DTD:\n" <<  DTD <<std::endl;
+                //std::cout<< "DTD:\n" <<  DTD <<std::endl;
                 //////////////////////////////////////////////////////////////////////////////
                 // push DTD into current_B
                 current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
-                const int start_I = f_i_id * 6;
+                const int start_I = i * 6;
                 //const int   end_I = start_I + 6;
-                const int start_J = f_j_id * 6;
+                const int start_J = face_idx_2_i.at(f_j_id) * 6;
                 //const int   end_J = start_J + 6;
 
                 for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
@@ -364,14 +362,14 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
 
             }
             //////////////////////////////////////////////////////////////////////////////
-            std::cout<< "B:\n" <<  B <<std::endl;
-            std::cout<< "-A^T:\n" << negA_T << std::endl;
+            //std::cout<< "B:\n" <<  B <<std::endl;
+            //std::cout<< "-A^T:\n" << negA_T << std::endl;
             //////////////////////////////////////////////////////////////////////////////
             B += current_B * w_ij;
             negA_T += current_negA_T;
             //////////////////////////////////////////////////////////////////////////////
-            std::cout<< "B:\n" <<  B <<std::endl;
-            std::cout<< "-A^T:\n" << negA_T << std::endl;
+            //std::cout<< "B:\n" <<  B <<std::endl;
+            //std::cout<< "-A^T:\n" << negA_T << std::endl;
             //////////////////////////////////////////////////////////////////////////////
             
 
@@ -429,7 +427,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     
 }
 void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_set<int> &face_idx_set)
+										const std::unordered_map<int,int> &face_idx_2_i)
 {
     /* #TODO[ZJW][QYZ]: Here we are using Eigen to solve the SPD(symmetric positive definite) linear system.
        if it is the speed bottleneck, try SuiteSparse(even cuda - GPU implementation) with more pain :)
@@ -439,6 +437,17 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
        [PLH02]:http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F1D81AF3257335BC6E902048DF161317?doi=10.1.1.6.5569&rep=rep1&type=pdf
         B C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
     */
+    // debug for that face_handles and face_idx_2_i data matches
+    
+    #ifndef NDEBUG
+        std::cout << "face_handles size:" << face_handles.size() << std::endl;
+        std::cout << "face_idx_2_i size:" << face_idx_2_i.size() << std::endl;
+        assert(face_handles.size() == face_idx_2_i.size());
+		for(int i = 0; i < face_handles.size(); ++i){
+            // int idx = face_handles[i].idx();
+            assert(face_idx_2_i.at(face_handles[i].idx()) == i);
+        }
+    #endif
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
     Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
@@ -446,20 +455,24 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     SpMat B(n6, n6);
     
     //  
-    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_set, B, negA_T);
+    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<< "B:\n" <<  B<<std::endl;
-    std::cout<< "-A^T:\n" << negA_T << std::endl; 
+    //std::cout<< "B:\n" <<  B<<std::endl;
+    //std::cout<< "-A^T:\n" << negA_T << std::endl; 
     //////////////////////////////////////////////////////////////////////////////
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen
+    printf("FINISH BUILD\n");
     Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization of B
+    printf("FINISH DECOMPOSE\n");
+
     //solver.compute(B);
     // decompose should be success
     assert(solver.info() == Eigen::Success);
-
+    
     Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
-        
+    printf("FINISH SOLVE\n");
+
     //////////////////////////////////////////////////////////////////////////////
     std::cout<< "x:\n"<< x << std::endl;
     //////////////////////////////////////////////////////////////////////////////

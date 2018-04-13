@@ -53,7 +53,7 @@ public:
         // assert it is a valid key
         // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
         //     0  1  2        3  4  5      -1  -1  -1
-        assert(first >= -1 && first <= 5 && second >= -1 && second <= 5);
+        assert(first >= -1 && first <= 5 && second >= -1 && second <= 5 && first <= second);
         // firstly check if the key is already calculated
         PijKey key{first, second};
         auto iter = p.find(key);
@@ -65,10 +65,7 @@ public:
             // 1. calculate it 
             float value = calc_value(key[0], key[1]);
             // 2. save it to the map
-            p[key] = value;
-            if(key[1] != key[0]){
-                p[{key[1], key[0]}] = value;
-            }
+            p.emplace(key, value);
             // return it
             return value;
         }
@@ -84,9 +81,6 @@ private:
     //
     float calc_value(int first, int second) const{
         // firstly sort two integer small, big
-        if(first > second){
-            std::swap(first, second);
-        }
         // cannot have two "one"
         assert(second >= 0);
         // special case when first is -1
@@ -387,7 +381,7 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
             assert(face_idx_2_i.at(face_handles[i].idx()) == i);
         }
     #endif
-    Timer build_problem_timmer;
+    Timer total_timer;
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
     Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
@@ -404,17 +398,17 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     // solve the linear system 
     // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen
     
-    std::string build_problem_elapseString = build_problem_timmer.elapsedString();
-    printf("FINISH BUILD, take %s\n", build_problem_elapseString.c_str());
-    Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization of B
-    printf("FINISH DECOMPOSE\n");
+    //printf("FINISH BUILD, take %s\n", build_problem_elapseString.c_str());
+    Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
+    //printf("FINISH DECOMPOSE\n");
 
     //solver.compute(B);
     // decompose should be success
     assert(solver.info() == Eigen::Success);
     
     Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
-    printf("FINISH SOLVE\n");
+    //printf("FINISH SOLVE\n");
+    std::cout<<"takes: "<<total_timer.elapsedString()<<std::endl;
 
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "x:\n"<< x << std::endl;

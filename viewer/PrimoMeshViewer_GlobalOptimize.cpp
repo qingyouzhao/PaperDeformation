@@ -33,52 +33,52 @@ namespace std {
   };
 
 }
-static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, 
-                        const int f_i_id, bool is_filling_i, SpMat &D_T){
-    //helper function to fill in D_ab and D_cd, refer to ZJW's note
-    const int i_startId = f_i_id * 6;
-    const OpenMesh::Vec3f p = is_filling_i ? p_ij : -p_ij;
-    const int one = is_filling_i ? 1 : -1;
-    // const int j_startId = f_j_id * 6;
-    // fill in first column
-    D_T.insert(i_startId + 1, 0) =  p[2];
-    D_T.insert(i_startId + 2, 0) = -p[1];
-    D_T.insert(i_startId + 3, 0) =  one;
-    D_T.insert(i_startId + 4, 0) =  one;
-    D_T.insert(i_startId + 5, 0) =  one;
+// static void fill_in_D_T(const OpenMesh::Vec3f &p_ij, 
+//                         const int f_i_id, bool is_filling_i, SpMat &D_T){
+//     //helper function to fill in D_ab and D_cd, refer to ZJW's note
+//     const int i_startId = f_i_id * 6;
+//     const OpenMesh::Vec3f p = is_filling_i ? p_ij : -p_ij;
+//     const int one = is_filling_i ? 1 : -1;
+//     // const int j_startId = f_j_id * 6;
+//     // fill in first column
+//     D_T.insert(i_startId + 1, 0) =  p[2];
+//     D_T.insert(i_startId + 2, 0) = -p[1];
+//     D_T.insert(i_startId + 3, 0) =  one;
+//     D_T.insert(i_startId + 4, 0) =  one;
+//     D_T.insert(i_startId + 5, 0) =  one;
 
-    // D_T.insert(j_startId + 1, 0) = -p_ji[2];
-    // D_T.insert(j_startId + 2, 0) =  p_ji[1];
-    // D_T.insert(j_startId + 3, 0) = -1;
-    // D_T.insert(j_startId + 4, 0) = -1;
-    // D_T.insert(j_startId + 5, 0) = -1;
+//     // D_T.insert(j_startId + 1, 0) = -p_ji[2];
+//     // D_T.insert(j_startId + 2, 0) =  p_ji[1];
+//     // D_T.insert(j_startId + 3, 0) = -1;
+//     // D_T.insert(j_startId + 4, 0) = -1;
+//     // D_T.insert(j_startId + 5, 0) = -1;
 
-    // fill in second column
-    D_T.insert(i_startId    , 1) = -p[2];
-    D_T.insert(i_startId + 2, 1) =  p[0];
-    D_T.insert(i_startId + 3, 1) =  one;
-    D_T.insert(i_startId + 4, 1) =  one;
-    D_T.insert(i_startId + 5, 1) =  one;
+//     // fill in second column
+//     D_T.insert(i_startId    , 1) = -p[2];
+//     D_T.insert(i_startId + 2, 1) =  p[0];
+//     D_T.insert(i_startId + 3, 1) =  one;
+//     D_T.insert(i_startId + 4, 1) =  one;
+//     D_T.insert(i_startId + 5, 1) =  one;
 
-    // D_T.insert(j_startId    , 1) =  p_ji[2];
-    // D_T.insert(j_startId + 2, 1) = -p_ji[0];
-    // D_T.insert(j_startId + 3, 1) = -1;
-    // D_T.insert(j_startId + 4, 1) = -1;
-    // D_T.insert(j_startId + 5, 1) = -1;
+//     // D_T.insert(j_startId    , 1) =  p_ji[2];
+//     // D_T.insert(j_startId + 2, 1) = -p_ji[0];
+//     // D_T.insert(j_startId + 3, 1) = -1;
+//     // D_T.insert(j_startId + 4, 1) = -1;
+//     // D_T.insert(j_startId + 5, 1) = -1;
 
-    // fill in third column
-    D_T.insert(i_startId    , 2) =  p[1];
-    D_T.insert(i_startId + 1, 2) = -p[0];
-    D_T.insert(i_startId + 3, 2) =  one;
-    D_T.insert(i_startId + 4, 2) =  one;
-    D_T.insert(i_startId + 5, 2) =  one;
+//     // fill in third column
+//     D_T.insert(i_startId    , 2) =  p[1];
+//     D_T.insert(i_startId + 1, 2) = -p[0];
+//     D_T.insert(i_startId + 3, 2) =  one;
+//     D_T.insert(i_startId + 4, 2) =  one;
+//     D_T.insert(i_startId + 5, 2) =  one;
 
-    // D_T.insert(j_startId    , 2) = -p_ji[1];
-    // D_T.insert(j_startId + 1, 2) =  p_ji[0];
-    // D_T.insert(j_startId + 3, 2) = -1;
-    // D_T.insert(j_startId + 4, 2) = -1;
-    // D_T.insert(j_startId + 5, 2) = -1;
-}
+//     // D_T.insert(j_startId    , 2) = -p_ji[1];
+//     // D_T.insert(j_startId + 1, 2) =  p_ji[0];
+//     // D_T.insert(j_startId + 3, 2) = -1;
+//     // D_T.insert(j_startId + 4, 2) = -1;
+//     // D_T.insert(j_startId + 5, 2) = -1;
+// }
 
 // helper class to memoization for pij and pji
 class Pij_ji{
@@ -94,12 +94,13 @@ public:
         {{1, 1, 1}, {1, 1, 1}}
     }
     {}
-    float operator[](const PijKey &key){ 
+    float operator()(const int first, const int second){ 
         // assert it is a valid key
         // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
         //     0  1  2        3  4  5      -1  -1  -1
-        assert(key[0] >= -1 && key[0] <= 5 && key[1] >= -1 && key[1] <= 5);
+        assert(first >= -1 && first <= 5 && second >= -1 && second <= 5);
         // firstly check if the key is already calculated
+        PijKey key{first, second};
         auto iter = p.find(key);
         if(iter != p.end()){
             // this pair has already been calculated, return directly
@@ -184,7 +185,7 @@ private:
         for(int cid = 0; cid < 10; ++cid){
             float a = first_array[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ][first];
             float b = second_array[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ][second];
-            value += a * b;
+            value += a * b * weight[cid];
         }
         return value;
     }
@@ -192,11 +193,11 @@ private:
 };
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
                             const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_set<int> &face_id_set, 
-                            SpMat &B_add_BT, 
+                            SpMat &B, 
                             Eigen::VectorXf &negA_T){
     std::unordered_set<int> he_id_set;
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<< "B_and_BT:\n" <<  B_add_BT<<std::endl;
+    std::cout<< "B:\n" <<  B <<std::endl;
     std::cout<< "-A^T:\n" << negA_T << std::endl;
     //////////////////////////////////////////////////////////////////////////////
     assert(face_handles.size() == face_id_set.size());
@@ -247,20 +248,131 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             assert(fabs(w_ij - P_j->weight_ij) < FLT_EPSILON);
 
             // get all p^ij p^ji that are used to fill in matrices
-            Pij_ji pij_ji(P_i, P_j);
+            Pij_ji p(P_i, P_j);
             
             // boundary contidion: opposite face is not optimizable,
             // which has a simpler method to fill in matrices more efficiently
             // pij(x, y, z)   pji(x, y, z)  one(1,  1,  1)
             //     0  1  2        3  4  5      -1  -1  -1
+            SpMat current_B(n6, n6);
+            SpMat current_negA_T(n6, 1);
+            Eigen::Vector3f N, M;
+            N << p(-1, 0) - p(-1, 3), p(-1, 1) - p(-1, 4), p(-1, 2) - p(-1, 5);
+            M << -p(2,4)+p(1,5), p(2,3)-p(0,5), -p(1,3)+p(0,4);
+            M *= w_ij;
+            N *= w_ij;
             if(face_id_set.find(f_j_id) == face_id_set.end()){
                 // boundary case
+                Eigen::Matrix<float, 6, 6> DTD; 
+                DTD<< 
+                p(1,1)+p(2,2),           -p(0,1),        -p(0,2),                 0,         -p(-1,2),          p(-1,1),
+                            0,     p(0,0)+p(2,2),        -p(1,2),           p(-1,2),                0,         -p(-1,0),
+                            0,                 0,  p(0,0)+p(1,1),          -p(-1,1),          p(-1,0),                0,
+                            0,                 0,              0,                 1,                0,                0,
+                            0,                 0,              0,                 0,                1,                0,
+                            0,                 0,              0,                 0,                0,                1;
+               
+                // copy the upper part to become a symmetric matrix
+                DTD = DTD.selfadjointView<Eigen::Upper>();
                 
+                //////////////////////////////////////////////////////////////////////////////
+                std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
+                //////////////////////////////////////////////////////////////////////////////
+                // push DTD into current_B
+                current_B.reserve(Eigen::VectorXi::Constant(n6, 6));
+                const int start_rc = f_i_id * 6;
+                const int end_rc   = start_rc + 6;
+                for(int r = start_rc, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
+                    for(int c = start_rc, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
+                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                    }
+                }
+                // init current_negA_T
+                current_negA_T.reserve(Eigen::VectorXi::Constant(1, 6));
+                current_negA_T.insert(start_rc    , 0) =  M(0); 
+                current_negA_T.insert(start_rc + 1, 0) =  M(1); 
+                current_negA_T.insert(start_rc + 2, 0) =  M(2); 
+                current_negA_T.insert(start_rc + 3, 0) = -N(0); 
+                current_negA_T.insert(start_rc + 4, 0) = -N(1); 
+                current_negA_T.insert(start_rc + 5, 0) = -N(2); 
             }else{
                 // general case
+                Eigen::Matrix<float, 12, 12> DTD;
+                DTD<<
+                p(1,1)+p(2,2),           -p(0,1),        -p(0,2),                 0,         -p(-1,2),          p(-1,1),   -p(1,4)-p(2,5),          p(1,3),             p(2,3),                0,          p(-1,2),         -p(-1,1),
+                            0,     p(0,0)+p(2,2),        -p(1,2),           p(-1,2),                0,         -p(-1,0),           p(0,4),  -p(0,3)-p(2,5),             p(2,4),         -p(-1,2),                0,          p(-1,0),
+                            0,                 0,  p(0,0)+p(1,1),          -p(-1,1),          p(-1,0),                0,           p(0,5),          p(1,5),     -p(0,3)-p(1,4),          p(-1,1),         -p(-1,0),                0,
+                            0,                 0,              0,                 1,                0,                0,                0,        -p(-1,5),            p(-1,4),               -1,                0,                0,    
+                            0,                 0,              0,                 0,                1,                0,          p(-1,5),               0,           -p(-1,3),                0,               -1,                0,
+                            0,                 0,              0,                 0,                0,                1,         -p(-1,4),         p(-1,3),                  0,                0,                0,               -1,
+                            0,                 0,              0,                 0,                0,                0,    p(4,4)+p(5,5),         -p(3,4),            -p(3,5),                0,         -p(-1,5),          p(-1,4),
+                            0,                 0,              0,                 0,                0,                0,                0,   p(3,3)+p(5,5),            -p(4,5),          p(-1,5),                0,         -p(-1,3),
+                            0,                 0,              0,                 0,                0,                0,                0,               0,      p(3,3)+p(4,4),         -p(-1,4),          p(-1,3),                0,
+                            0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                1,                0,                0,                                        
+                            0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                1,                0,            
+                            0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                0,                1;
+
+                // copy the upper part to become a symmetric matrix
+                DTD = DTD.selfadjointView<Eigen::Upper>();
                 
+                //////////////////////////////////////////////////////////////////////////////
+                std::cout<< "DTD:\n" <<  DTD <<std::endl;
+                //////////////////////////////////////////////////////////////////////////////
+                // push DTD into current_B
+                current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
+                const int start_I = f_i_id * 6;
+                //const int   end_I = start_I + 6;
+                const int start_J = f_j_id * 6;
+                //const int   end_J = start_J + 6;
+
+                for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
+                    for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
+                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                    }
+                }
+
+                for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
+                    for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
+                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                    }
+                }
+                for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
+                    for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
+                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                    }
+                }
+                for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
+                    for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
+                        current_B.insert(r, c) = DTD(dtd_i, dtd_j);
+                    }
+                }
+                // init current_negA_T
+                current_negA_T.reserve(Eigen::VectorXi::Constant(1, 12));
+                current_negA_T.insert(start_I    , 0) =  M(0); 
+                current_negA_T.insert(start_I + 1, 0) =  M(1); 
+                current_negA_T.insert(start_I + 2, 0) =  M(2); 
+                current_negA_T.insert(start_I + 3, 0) = -N(0); 
+                current_negA_T.insert(start_I + 4, 0) = -N(1); 
+                current_negA_T.insert(start_I + 5, 0) = -N(2);
+
+                current_negA_T.insert(start_J    , 0) = -M(0); 
+                current_negA_T.insert(start_J + 1, 0) = -M(1); 
+                current_negA_T.insert(start_J + 2, 0) = -M(2); 
+                current_negA_T.insert(start_J + 3, 0) =  N(0); 
+                current_negA_T.insert(start_J + 4, 0) =  N(1); 
+                current_negA_T.insert(start_J + 5, 0) =  N(2); 
+
             }
-            
+            //////////////////////////////////////////////////////////////////////////////
+            std::cout<< "B:\n" <<  B <<std::endl;
+            std::cout<< "-A^T:\n" << negA_T << std::endl;
+            //////////////////////////////////////////////////////////////////////////////
+            B += current_B * w_ij;
+            negA_T += current_negA_T;
+            //////////////////////////////////////////////////////////////////////////////
+            std::cout<< "B:\n" <<  B <<std::endl;
+            std::cout<< "-A^T:\n" << negA_T << std::endl;
+            //////////////////////////////////////////////////////////////////////////////
             
 
             // // iterate each combination
@@ -325,29 +437,33 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     */
     /* build the linear system. Here we follow the convention in 
        [PLH02]:http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F1D81AF3257335BC6E902048DF161317?doi=10.1.1.6.5569&rep=rep1&type=pdf
-       (B + B^T) C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
+        B C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
     */
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
     Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
-    // B + B^T ("A" in "Ax = b")
-    SpMat B_add_BT(n6, n6);
+    // B("A" in "Ax = b")
+    SpMat B(n6, n6);
     
     //  
-    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_set, B_add_BT, negA_T);
+    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_set, B, negA_T);
     //////////////////////////////////////////////////////////////////////////////
-    std::cout<< "B_and_BT:\n" <<  B_add_BT<<std::endl;
-    std::cout<< "-A^T:\n" << negA_T << std::endl;
+    std::cout<< "B:\n" <<  B<<std::endl;
+    std::cout<< "-A^T:\n" << negA_T << std::endl; 
     //////////////////////////////////////////////////////////////////////////////
     // solve the linear system 
-    // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen 
-    Eigen::SparseLU<SpMat> solver;  // performs a Cholesky factorization of A
-    solver.compute(B_add_BT);
+    // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen
+    Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization of B
+    //solver.compute(B);
     // decompose should be success
     assert(solver.info() == Eigen::Success);
 
     Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
-    std::cout<< x << std::endl;
+        
+    //////////////////////////////////////////////////////////////////////////////
+    std::cout<< "x:\n"<< x << std::endl;
+    //////////////////////////////////////////////////////////////////////////////
+
     // #TODO[ZJW]: update vertices position based on faces(prisms) around each vertex
    
     // update OpenMesh's normals

@@ -39,8 +39,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	printf("Select Mode: Static\n");
 	
 	// optimize mode is LOCAL at first
-	optimizeMode_ = EOptimizeMode::GLOBAL;
-	printf("Optimize Mode: Global\n");
+	optimizeMode_ = EOptimizeMode::LOCAL;
+	printf("Optimize Mode: LOCAL\n");
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()

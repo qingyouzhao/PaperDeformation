@@ -190,7 +190,7 @@ protected:
 
 
 	// the wrapper for calculating the final rotation
-	Transformation compute_optimal_face_transform(Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star);
+	Transformation compute_optimal_face_transform(const Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star) const;
 
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_

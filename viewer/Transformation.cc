@@ -88,28 +88,35 @@ Transformation::Transformation(const Eigen::Quaternion<double>& Q, const Vector3
 {
 	set_identity();
 	//
-#if DEBUG
-	Q.norm();
-#endif
-	if (abs(Q.norm() - 1.0f) > 1E-7)
-	{
-		std::cout << "Quaternion " << " is not normalized" << std::endl;
-	}
-	bool bUseUnrealVersion = false;
 
-	// Set up 3x3 rot from quat
-	const float x2 = Q.x() + Q.x();  const float y2 = Q.y() + Q.y();  const float z2 = Q.z() + Q.z();
-	const float xx = Q.x() * x2;   const float xy = Q.x() * y2;   const float xz = Q.x() * z2;
-	const float yy = Q.y() * y2;   const float yz = Q.y() * z2;   const float zz = Q.y() * z2;
-	const float wx = Q.w() * x2;   const float wy = Q.w() * y2;   const float wz = Q.w() * z2;
+	assert(fabs(Q.norm() - 1.0f) < 1E-7);
+	//{
+		//std::cout << "Quaternion " << " is not normalized" << std::endl;
+	//}
+	// bool bUseUnrealVersion = false;
 
+	// // Set up 3x3 rot from quat
+	// const float x2 = Q.x() + Q.x();  const float y2 = Q.y() + Q.y();  const float z2 = Q.z() + Q.z();
+	// const float xx = Q.x() * x2;   const float xy = Q.x() * y2;   const float xz = Q.x() * z2;
+	// const float yy = Q.y() * y2;   const float yz = Q.y() * z2;   const float zz = Q.y() * z2;
+	// const float wx = Q.w() * x2;   const float wy = Q.w() * y2;   const float wz = Q.w() * z2;
+
+	Eigen::Matrix3d eigenR;
+	eigenR = Q;
 	Matrix3x3d& M = rotation_;
+	for(int r = 0;r < 3;++r){
+		for(int c = 0;c <3;++c){
+			M(r, c) = eigenR(r, c);
+		}
+	}
 	// Heck, just rewrite this from scratch to make sure I know what is happening 
 
 
-	M(0, 0) = 1.0f - (yy + zz);	M(0, 1) = xy - wz;				M(0, 2) = xz + wy;
-	M(1, 0) = xy + wz;			M(1, 1) = 1.0f - (xx + zz);		M(1, 2) = yz - wx;
-	M(2, 2) = xz - wy;			M(2, 1) = yz + wx;				M(2, 2) = 1.0f - (xx + yy);
+	// M(0, 0) = 1.0f - (yy + zz);	M(0, 1) = xy - wz;				M(0, 2) = xz + wy;
+	// M(1, 0) = xy + wz;			M(1, 1) = 1.0f - (xx + zz);		M(1, 2) = yz - wx;
+	// M(2, 2) = xz - wy;			M(2, 1) = yz + wx;				M(2, 2) = 1.0f - (xx + yy);
+
+	
 
 	// set up translation
 

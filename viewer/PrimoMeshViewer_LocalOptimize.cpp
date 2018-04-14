@@ -99,7 +99,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 {
 	// https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 	struct EdgePrismData {
-		float weight_ij; // the weigth of the edge prism based on the face area
+		//float weight_ij; // the weigth of the edge prism based on the face area
 		Vec3f centroid_ij; // centroid of prism face on i facing j
 		Vec3f centroid_ji; // centroid of prism face on j facing i
 		Vec3f f_ij[4]; // let's store this number as 00,01,10,11
@@ -145,17 +145,19 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		PrismProperty P_ij = mesh_.property(P_PrismProperty, he_ij);
 		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
 
-		float weight_ij; // the weigth of the edge prism based on the face area
+		float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
+		assert(P_ij.weight_ij == P_ji.weight_ij);
+
 		Vec3f centroid_ij; // centroid of prism face on i facing j
 		Vec3f centroid_ji; // centroid of prism face on j facing i
 		Vec3f f_ij[4]; // let's store this number as 00,01,10,11
 		Vec3f f_ji[4]; // let's store this number as 00,01,10,11
 
 		// Calc face weight
-		float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
-		float area_face_i = calc_face_area(_fh);
-		float area_face_j = calc_face_area(fh_j);
-		weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+		//float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
+		//float area_face_i = calc_face_area(_fh);
+		//float area_face_j = calc_face_area(fh_j);
+		//weight_ij = edge_len_sqr / (area_face_i + area_face_j);
 
 		// Evaluate f_ij
 		f_ij[0] = P_ij.f_uv(0, 0, true);
@@ -202,17 +204,18 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
 
 
-		float weight_ij; // the weigth of the edge prism based on the face area
+		float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
+		assert(P_ij.weight_ij == P_ji.weight_ij);
 		Vec3f centroid_ij; // centroid of prism face on i facing j
 		Vec3f centroid_ji; // centroid of prism face on j facing i
 		Vec3f f_ij[4]; // let's store this number as 00,01,10,11
 		Vec3f f_ji[4]; // let's store this number as 00,01,10,11
 
 		// Calc face weight, again
-		float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
-		float area_face_i = calc_face_area(_fh);
-		float area_face_j = calc_face_area(fh_j);
-		weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+		//float edge_len_sqr = mesh_.calc_edge_sqr_length(*fhe_ccwiter);
+		//float area_face_i = calc_face_area(_fh);
+		//float area_face_j = calc_face_area(fh_j);
+		//weight_ij = edge_len_sqr / (area_face_i + area_face_j);
 
 		// Evaluate f_ij
 		f_ij[0] = P_ij.f_uv(0, 0, true);
@@ -261,7 +264,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 			}	
 		}
 	}
-
+	Eigen::Quaternion<double> target_quat;
 	std::cout << "Computing optimal with 1 centroid: " << std::endl;
 	Transformation TargetTransformation_1 = compute_optimal_face_transform(S_1, centroid_i, centroid_star);
 	std::cout << "Computing optimal with 4 points: " << std::endl;
@@ -271,7 +274,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	Transformation TargetTransformation = TargetTransformation_16;
 
 	g_debug_transformations_to_draw_local_optimization.emplace_back(TargetTransformation);
-
+	
 	// Update the prism on each half edge with the new transformation
 	for (Mesh::FaceHalfedgeCCWIter fh_ccwit = mesh_.fh_ccwbegin(_fh); fh_ccwit.is_valid(); fh_ccwit++)
 	{
@@ -365,7 +368,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 }
 
 
-Transformation PrimoMeshViewer::compute_optimal_face_transform(Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star)
+Transformation PrimoMeshViewer::compute_optimal_face_transform(const Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star) const
 {
 
 	// Construct matrix N 
@@ -400,7 +403,7 @@ Transformation PrimoMeshViewer::compute_optimal_face_transform(Eigen::Matrix3f& 
 	N(0, 3) = S(x, y) - S(y, x);
 	N(1, 3) = S(z, x) + S(x, z);
 	N(2, 3) = S(y, z) + S(z, y);
-	N(3, 3) = -S(x, x) - S(y, y) - S(z, z);
+	N(3, 3) = -S(x, x) - S(y, y) + S(z, z);
 
 	// Find the largest eigen vector of N and interpret that eigen vector as a rotation quaternion
 	//https://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html
@@ -412,49 +415,55 @@ Transformation PrimoMeshViewer::compute_optimal_face_transform(Eigen::Matrix3f& 
 
 	// Now if we can find that max eigen value -> eigen vector, we get the rotation
 	float max_eigen_val = INT_MIN;
+	float max_col = -1;
 	for (int i = 0; i < eigenvalues.rows(); i++)
 	{
 		// Values 
 		if (eigenvalues(i, 0).real() > max_eigen_val)
 		{
-			max_eigen_val = eigenvalues(i, 0).real();
+			max_eigen_val = eigenvalues(max_col = i, 0).real();
 		}
 	}
-	int max_col = 0;
+	assert(max_col >= 0 && max_col < 4);
 	Eigen::Quaternion<double> target_quat;
-	for (int col_i = 0; col_i < eigenvectors.cols(); col_i++)
-	{
-		Eigen::Quaternion<double> rot_quat;
-		// convert the i the eigen vector to a quaternion
-		Eigen::Matrix<std::complex<double> ,4, 1> eigenvector = eigenvectors.col(col_i);
-		// Eigen::EigenSolver<Eigen::Matrix4d>::ComplexScalar eigenvector = eigenvectors.col(col_i);
-		rot_quat.x() = eigenvector(0).real() * max_eigen_val;
-		rot_quat.y() = eigenvector(1).real() * max_eigen_val;
-		rot_quat.z() = eigenvector(2).real() * max_eigen_val;
-		rot_quat.w() = eigenvector(3).real() * max_eigen_val;
+	target_quat.w() = eigenvectors.col(max_col)(0).real();
+	target_quat.x() = eigenvectors.col(max_col)(1).real();
+	target_quat.y() = eigenvectors.col(max_col)(2).real();
+	target_quat.z() = eigenvectors.col(max_col)(3).real();
+	// for (int col_i = 0; col_i < eigenvectors.cols(); col_i++)
+	// {
+	// 	Eigen::Quaternion<double> rot_quat;
+	// 	// convert the i the eigen vector to a quaternion
+	// 	Eigen::Matrix<std::complex<double> ,4, 1> eigenvector = eigenvectors.col(col_i);
+	// 	// Eigen::EigenSolver<Eigen::Matrix4d>::ComplexScalar eigenvector = eigenvectors.col(col_i);
+	// 	rot_quat.x() = eigenvector(0).real() * max_eigen_val;
+	// 	rot_quat.y() = eigenvector(1).real() * max_eigen_val;
+	// 	rot_quat.z() = eigenvector(2).real() * max_eigen_val;
+	// 	rot_quat.w() = eigenvector(3).real() * max_eigen_val;
 
-		// Multiply matrix N and the eigen vector to get a vector
-		Eigen::Matrix<std::complex<double>, 4, 1> Nv = (N * eigenvector);
+	// 	// Multiply matrix N and the eigen vector to get a vector
+	// 	Eigen::Matrix<std::complex<double>, 4, 1> Nv = (N * eigenvector);
 
-		// Check if we have a small enough difference
-		Eigen::Vector4d diff;
-		diff(0) = Nv(0).real() - rot_quat.x();
-		diff(1) = Nv(1).real() - rot_quat.y();
-		diff(2) = Nv(2).real() - rot_quat.z();
-		diff(3) = Nv(3).real() - rot_quat.w();
+	// 	// Check if we have a small enough difference
+	// 	Eigen::Vector4d diff;
+	// 	diff(0) = Nv(0).real() - rot_quat.x();
+	// 	diff(1) = Nv(1).real() - rot_quat.y();
+	// 	diff(2) = Nv(2).real() - rot_quat.z();
+	// 	diff(3) = Nv(3).real() - rot_quat.w();
 
-		if (diff.dot(diff) < 1E-4 && diff.dot(diff) > -1E-4)
-		{
-			// WE got that  new rotation
-			std::cout << "The closes quaternion is \n" << eigenvector << std::endl;
-			target_quat.w() = eigenvector(0).real();
-			target_quat.x() = eigenvector(1).real();
-			target_quat.y() = eigenvector(2).real();
-			target_quat.z() = eigenvector(3).real();
-			break;
-		}
-	}
+	// 	if (diff.dot(diff) < 1E-4 && diff.dot(diff) > -1E-4)
+	// 	{
+	// 		// WE got that  new rotation
+	// 		std::cout << "The closes quaternion is \n" << eigenvector << std::endl;
+	// 		target_quat.w() = eigenvector(0).real();
+	// 		target_quat.x() = eigenvector(1).real();
+	// 		target_quat.y() = eigenvector(2).real();
+	// 		target_quat.z() = eigenvector(3).real();
+	// 		break;
+	// 	}
+	// }
 
+	//target_quat.normalize();
 	// Calculate R, t and c
 	Eigen::Vector3d T_i = Eigen::Vector3d(c_star[0], c_star[1], c_star[2]) - target_quat._transformVector(Eigen::Vector3d(c_i[0], c_i[1], c_i[2]));
 	Vector3d T_i_v3d = Vector3d(T_i(0), T_i(1), T_i(2));

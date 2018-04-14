@@ -182,7 +182,7 @@ protected:
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
 	// Locally optimize for one prism
-	virtual void local_optimize(int iterations);
+	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, int max_iterations);
 	void update_vertices_based_on_prisms();
 
 	// Locally optimize for one prism faces 
@@ -210,7 +210,7 @@ protected:
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
-	OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
+	//OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
 	// press p to visualize prisms
 	bool drawPrisms_;
 	// press x to visualize other stuff
@@ -287,4 +287,15 @@ private:
 	void draw_debug_lines();	
 
 	static void print_quaternion(Eigen::Quaternion<double>& Q);
+private:
+	// Utilities to calculate prism energy and decide if converge
+	inline static bool converge_E(float Ek, float Ekm1) {
+  		static const float sigma = 0.005f;
+  		return (std::fabs(Ek - Ekm1) < sigma * Ek) ||
+                 (Ek < std::numeric_limits<double>::epsilon())
+             ? true
+             : false;
+	}
+	//defined in PrimoMeshViewer_Utilities.cpp
+	float E(const std::vector<OpenMesh::FaceHandle> &face_handles)const;
 };

@@ -175,7 +175,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "B:\n" <<  B <<std::endl;
     //std::cout<< "-A^T:\n" << negA_T << std::endl;
-    double plus_equal_duration = 0.0;
+    // double plus_equal_duration = 0.0;
     //////////////////////////////////////////////////////////////////////////////
     for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces

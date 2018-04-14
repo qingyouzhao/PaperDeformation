@@ -10,17 +10,20 @@ This source contains the local optimize operations
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
-void PrimoMeshViewer::local_optimize(int iterations)
+void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, int max_iterations)
 {
 	// do nothing if no optimizable faces or invalid iteration
-	if(optimizedFaceHandles_.size() <= 0 || iterations <= 0) return;
+	if(optimizedFaceHandles_.size() <= 0 || max_iterations <= 0) return;
 #ifndef NDEBUG
 	g_debug_arrows_to_draw_local_optimizations.clear();
 	g_debug_transformations_to_draw_local_optimization.clear();
 #endif
 
-	for (int i = 0; i < iterations; i++)
+	float E_km1 = 0.0f;
+	float E_k = 0.0f;
+	for (int i = 0; i < max_iterations; i++)
 	{
+
 		Mesh::FaceHandle fh;
 		// #TODOZQY: take from optimizedFaceHandles_ to get the right face to optimize
 		
@@ -30,9 +33,17 @@ void PrimoMeshViewer::local_optimize(int iterations)
 		fh = optimizedFaceHandles_[idx];
 		//std::cout << "optimizing face handle idx " << fh.idx() << "optimized face handles idx = " << idx << std::endl;
 		local_optimize_face(fh);
+		E_k = E(face_handles);
+		if(converge_E(E_k, E_km1)){
+			break;
+		}
+		std::cout << "[Local Optimization]: iteration "<<i<<", E = "<<E_k<<std::endl;
+		E_km1 = E_k;
 	}
 	// Now we want to update the face vertex based on rigid prisms instead of the values
 	update_vertices_based_on_prisms();
+	// update normals of OpenMesh
+	mesh_.update_normals();
 }
 
 

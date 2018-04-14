@@ -13,7 +13,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	mesh_.request_vertex_colors();
 
 	mesh_.add_property(P_PrismProperty);
-	mesh_.add_property(P_FaceTransformationCache);
+	//mesh_.add_property(P_FaceTransformationCache);
 
 	// set color of 3 kind of faces(prisms) here 
 	// default: dynamic(orange), 
@@ -79,6 +79,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
 			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
 		}
+		float initE = E(optimizedFaceHandles_);
+		assert(fabs(initE) < FLT_EPSILON);
 		return true;
 	}
 	return false;
@@ -471,7 +473,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					if(optimizeMode_ == EOptimizeMode::LOCAL){
-						local_optimize(100);
+						local_optimize(optimizedFaceHandles_,10000);
 					}
 					else{
 						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_);
@@ -499,7 +501,7 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 	{
 		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
 		// Initialize a default face transformation
-		mesh_.property(P_FaceTransformationCache, fh) = Transformation();
+		//mesh_.property(P_FaceTransformationCache, fh) = Transformation();
 		float area_face_i = calc_face_area(fh);
 		for (; fh_cwit.is_valid(); fh_cwit++)
 		{

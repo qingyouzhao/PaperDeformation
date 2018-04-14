@@ -4,6 +4,7 @@
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
+#include <unordered_set>
 
 const LinearColor LinearColor::RED(1.f,0.f,0.f);
 const LinearColor LinearColor::BLUE(0.f,0.f,1.0f);
@@ -129,4 +130,109 @@ void PrimoMeshViewer::print_quaternion(Eigen::Quaternion<double>& Q)
 	std::cout << "== End Quaternion Log == " << std::endl;
 
 
+}
+float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
+	//TODO[ZJW]: this function could be multi-threaded, check if it is necessary
+	float E = 0.0f;
+    std::unordered_set<int> he_id_set;
+    //////////////////////////////////////////////////////////////////////////////
+    //std::cout<< "B:\n" <<  B <<std::endl;
+    //std::cout<< "-A^T:\n" << negA_T << std::endl;
+    // double plus_equal_duration = 0.0;
+    //////////////////////////////////////////////////////////////////////////////
+    for(int i = 0; i < face_handles.size(); ++i){
+        // iterate all faces
+        const OpenMesh::FaceHandle &fh_i = face_handles[i];
+        const int f_i_id = fh_i.idx();
+        for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh_.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
+            // Grab the opposite half edge and face
+            const Mesh::HalfedgeHandle he_i = *fhe_it;
+            Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
+		    Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_it);
+            // if he_i is a boundary halfedge, there is no opposite prism face,
+            // which means that it has no contribution to the total energy E = Sum(w_ij * E_ij)
+            // we could skip this half edge he_i now
+            if (!he_j.is_valid() || mesh_.is_boundary(he_i) || !fh_j.is_valid()){
+                #ifndef NDEBUG
+			    std::cout << "halfedge's opposite doesnot exist, idx = "<< he_i.idx() << std::endl;
+                #endif
+			    continue;
+		    }
+
+            // for same pair half edge Eij = Eji, we only want to calculate it once
+            // (he_i, he_j) == (he_j, he_i)
+            const int he_i_id = he_i.idx();
+            const int he_j_id = he_j.idx();
+            
+            const bool he_i_in_set = (he_id_set.find(he_i_id) != he_id_set.end());
+            if(he_i_in_set){
+                #ifndef NDEBUG
+                const bool he_j_in_set = (he_id_set.find(he_j_id) != he_id_set.end());
+                // assert for debug, he pair should be both in set or neither in set 
+                assert(he_i_in_set && he_j_in_set);
+                #endif
+                continue;
+            }
+            // this pair is visited now, put them into set
+            he_id_set.insert(he_i_id);
+            he_id_set.insert(he_j_id);
+
+            // get the f^ij_[0/1][0/1] in the PriMo equation
+            const int f_j_id = fh_j.idx();
+            const PrismProperty * const P_i = &(mesh_.property(P_PrismProperty, he_i));
+            const PrismProperty * const P_j = &(mesh_.property(P_PrismProperty, he_j));
+            const float w_ij = P_i->weight_ij;
+            // assert for debug, opposite half edges should have same edge weight
+
+			// get (fij - fji)[2][2]
+            assert(fabs(w_ij - P_j->weight_ij) < FLT_EPSILON);
+			const OpenMesh::Vec3f *f_ij[2][2] = {
+				{&(P_i->FromVertPrismDown), &(P_i->FromVertPrismUp)},
+				{&(P_i->ToVertPrismDown), &(P_i->ToVertPrismUp)}
+			};
+    		const OpenMesh::Vec3f *f_ji[2][2] = {      
+				{&(P_j->ToVertPrismDown), &(P_j->ToVertPrismUp)},
+                {&(P_j->FromVertPrismDown), &(P_j->FromVertPrismUp)}
+    		};
+			const OpenMesh::Vec3f fij_m_fji[2][2] = {
+				{*f_ij[0][0] - *f_ji[0][0], *f_ij[0][1] - *f_ji[0][1]},
+				{*f_ij[1][0] - *f_ji[1][0], *f_ij[1][1] - *f_ji[1][1]}
+			};
+			// repeat again, but YOLO.
+			static const int uv_integrate_id[10][4] = {
+            	{0, 0, 0, 0},
+            	{0, 0, 0, 1},
+            	{0, 0, 1, 0},
+            	{0, 0, 1, 1},
+            	{0, 1, 0, 1},
+            	{0, 1, 1, 0},
+            	{0, 1, 1, 1},
+            	{1, 0, 1, 0},
+            	{1, 0, 1, 1},
+            	{1, 1, 1, 1}
+        	};
+			static const float one_ninth = 1.0f / 9.0f;
+        	static const float weight[10] = {
+                one_ninth,
+                one_ninth,
+                one_ninth,
+                0.5f * one_ninth,
+                one_ninth,
+                0.5f * one_ninth,
+                one_ninth,
+                one_ninth,
+                one_ninth,
+                one_ninth
+        	};
+			float Eij = 0.0f;
+			for(int cid = 0; cid < 10; ++cid){
+            	const OpenMesh::Vec3f &a = fij_m_fji[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ];
+            	const OpenMesh::Vec3f &b = fij_m_fji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
+            	Eij += OpenMesh::dot(a, b) * weight[cid];
+        	}
+			E += Eij * w_ij;
+
+		}
+	}
+	return E;
 }

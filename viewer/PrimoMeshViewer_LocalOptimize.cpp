@@ -9,7 +9,7 @@ This source contains the local optimize operations
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
-
+#include <unordered_set>
 void PrimoMeshViewer::local_optimize(int iterations)
 {
 
@@ -35,53 +35,62 @@ void PrimoMeshViewer::local_optimize(int iterations)
 
 void PrimoMeshViewer::update_vertices_based_on_prisms()
 {
-	for (Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); v_iter++)
-	{
-		Mesh::Point original_point = mesh_.point(*v_iter);
-		Vector3d new_point(0, 0, 0);
-		float weight = 0;
+	std::unordered_set<int> visited_vertices_idx;
+	for(const OpenMesh::FaceHandle &fh: optimizedFaceHandles_){
+		for (Mesh::FaceVertexIter fv_iter = mesh_.fv_begin(fh); fv_iter.is_valid(); ++fv_iter)
+		{
+			// check if this vertice is visited
+			if(visited_vertices_idx.find(fv_iter->idx()) != visited_vertices_idx.end()){
+				continue;
+			}
+			visited_vertices_idx.emplace(fv_iter->idx());
+			
+			Mesh::Point original_point = mesh_.point(*fv_iter);
+			Vector3d new_point(0, 0, 0);
+			float weight = 0;
 
-		for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*v_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
-		{
-			if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
+			for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*fv_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
 			{
-				PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
-				new_point += voh_prop.TargetPosFrom();
-				weight += 1.0f;
-				Arrow arrow(
-					Vector3d(original_point),
-					Vector3d(voh_prop.TargetPosFrom()),
-					LinearColor::RED,
-					3.0f
-				);
-				g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+				if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
+				{
+					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
+					new_point += voh_prop.TargetPosFrom();
+					weight += 1.0f;
+					Arrow arrow(
+						Vector3d(original_point),
+						Vector3d(voh_prop.TargetPosFrom()),
+						LinearColor::RED,
+						3.0f
+					);
+					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+				}
 			}
-		}
-		for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*v_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
-		{
-			if (mesh_.face_handle(*vih_ccwiter).is_valid())
+			for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*fv_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
 			{
-				PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
-				new_point += voh_prop.TargetPosTo();
-				weight += 1.0f;
-				Arrow arrow(
-					Vector3d(original_point),
-					Vector3d(voh_prop.TargetPosTo()),
-					LinearColor::GREEN,
-					3.0f
-				);
-				g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+				if (mesh_.face_handle(*vih_ccwiter).is_valid())
+				{
+					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
+					new_point += voh_prop.TargetPosTo();
+					weight += 1.0f;
+					Arrow arrow(
+						Vector3d(original_point),
+						Vector3d(voh_prop.TargetPosTo()),
+						LinearColor::GREEN,
+						3.0f
+					);
+					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+				}
 			}
+			new_point /= weight;
+			Arrow arrow(
+				Vector3d(original_point),
+				Vector3d(new_point),
+				LinearColor::BLUE,
+				3.0f
+			);
+			mesh_.point(*fv_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
+			g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
 		}
-		new_point /= weight;
-		Arrow arrow(
-			Vector3d(original_point),
-			Vector3d(new_point),
-			LinearColor::BLUE,
-			3.0f
-		);
-		mesh_.point(*v_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
-		g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
 	}
 }
 

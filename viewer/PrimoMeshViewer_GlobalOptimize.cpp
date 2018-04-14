@@ -371,7 +371,8 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
         B C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
     */
     // debug for that face_handles and face_idx_2_i data matches
-    
+    // do nothing is no optimizable face
+    if(face_handles.size() <= 0) return;
     #ifndef NDEBUG
         std::cout << "face_handles size:" << face_handles.size() << std::endl;
         std::cout << "face_idx_2_i size:" << face_idx_2_i.size() << std::endl;

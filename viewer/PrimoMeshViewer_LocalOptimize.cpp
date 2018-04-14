@@ -12,7 +12,8 @@ This source contains the local optimize operations
 #include <unordered_set>
 void PrimoMeshViewer::local_optimize(int iterations)
 {
-
+	// do nothing if no optimizable faces or invalid iteration
+	if(optimizedFaceHandles_.size() <= 0 || iterations <= 0) return;
 	g_debug_arrows_to_draw_local_optimizations.clear();
 	g_debug_transformations_to_draw_local_optimization.clear();
 

@@ -37,7 +37,10 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	selectMode_ = ESelectMode::STATIC;
 	viewMode_ = EViewMode::VIEW;
 	printf("Select Mode: Static\n");
-
+	
+	// optimize mode is LOCAL at first
+	optimizeMode_ = EOptimizeMode::GLOBAL;
+	printf("Optimize Mode: Global\n");
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -71,6 +74,11 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		}
 		// and then, prisms are set up 
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		
+		// init the set of idx of opmizedFaces only for global optimization
+		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
+			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
+		}
 		return true;
 	}
 	return false;
@@ -284,8 +292,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	{
 		// add prisms' height
 		prismHeight_ += averageVertexDisance_ * 0.1f;
-		// immediately update all prisms
-		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
+		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -299,7 +307,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
 			prismHeight_ -= averageVertexDisance_ * 0.1f;
 		// immediately update all prisms
-		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
+		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		printf("prismHeight: %f\n", prismHeight_);
 
 		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
@@ -355,6 +364,14 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// Also, pressing shift + middle mouse and moving mouse will translate all DYNAMIC faces
 		selectMode_ = ESelectMode::NONE;
 		printf("Select Mode: None\n"); 
+	}
+		break;
+	case 'o':
+	{
+		// switch optimization method (default: global)
+		bool opIsLocal = (optimizeMode_ == EOptimizeMode::LOCAL);
+		optimizeMode_ = (opIsLocal ? EOptimizeMode::GLOBAL : EOptimizeMode::LOCAL);
+		printf("Optimize Mode: %s\n", opIsLocal ? "Global" : "Local");
 	}
 		break;
 	default:
@@ -453,7 +470,12 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
-					local_optimize(local_optimize_iterations_);
+					if(optimizeMode_ == EOptimizeMode::LOCAL){
+						local_optimize(100);
+					}
+					else{
+						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_);
+					}
 					break;
 				}
 				default:
@@ -478,6 +500,7 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
 		// Initialize a default face transformation
 		mesh_.property(P_FaceTransformationCache, fh) = Transformation();
+		float area_face_i = calc_face_area(fh);
 		for (; fh_cwit.is_valid(); fh_cwit++)
 		{
 			switch (PrismExtrudeMode)
@@ -496,6 +519,19 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
 				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
 				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len_sqr = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					area_face_j = calc_face_area(fh_j);
+				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;
@@ -513,6 +549,20 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
 				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
 				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len_sqr = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					area_face_j = calc_face_area(fh_j);
+				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+
 				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
 			}
 				break;
@@ -527,13 +577,6 @@ void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handl
 		}
 	}
 }
-
-
-void PrimoMeshViewer::global_optimize_all_faces(int iterations)
-{
-
-}
-
 
 float PrimoMeshViewer::get_average_vertex_distance(const Mesh &_mesh) const
 {
@@ -688,7 +731,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
-			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_, &optimizedFaceIdx_2_i_);
 			needUpdateStatic = true;
 			staticFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -699,7 +742,7 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}else if(hit_faceType == ESelectMode::OPTIMIZED){
-			delete_faceHandle(hit_faceId, optimizedFaceHandles_);
+			delete_faceHandle(hit_faceId, optimizedFaceHandles_, &optimizedFaceIdx_2_i_);
 			needUpdateDynamic = true;
 			dynamicFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
@@ -707,10 +750,13 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 		if(hit_faceType == ESelectMode::STATIC){
 			delete_faceHandle(hit_faceId, staticFaceHandles_);
 			needUpdateStatic = true;
+			optimizedFaceIdx_2_i_[hit_faceId] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
+			
 		}else if(hit_faceType == ESelectMode::DYNAMIC){
 			delete_faceHandle(hit_faceId, dynamicFaceHandles_);
 			needUpdateDynamic = true;
+			optimizedFaceIdx_2_i_[hit_faceId] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.push_back(mesh_.face_handle(hit_faceId));
 		}
 	}
@@ -741,9 +787,21 @@ void PrimoMeshViewer::raycast_faces(int mouse_x, int mouse_y){
 
 	glutPostRedisplay();
 }
-void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles){
+void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+											std::unordered_map<int, int> *face_idx_2_i){
 	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
 		if(it->idx() == faceId){
+			if(face_idx_2_i){
+				// before remove, minus 1 all faces after it
+				for(auto jt = it + 1; jt != face_handles.end(); ++jt){
+					auto map_it = face_idx_2_i->find(jt->idx());
+					assert(map_it != face_idx_2_i->end());
+					--map_it->second;
+					//(*face_idx_2_i)[jt->idx()] -= 1;
+				}
+				face_idx_2_i->erase(faceId);
+			}
+
 			// remove this fh
 			face_handles.erase(it);
 			return;

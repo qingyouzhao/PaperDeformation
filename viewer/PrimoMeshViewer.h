@@ -94,6 +94,10 @@ struct PrismProperty {
 	Vec3f ToVertPrismDown;
 
 
+	// This weight is set up in setup_prisms() in the beginning,
+	// and it is NEVER changed when deformation happens
+	float weight_ij;
+
 	// A simple illustration of how the prism is stored
 	/*
 	10---------11 ^       10------------11   ^
@@ -177,9 +181,6 @@ protected:
 	virtual void setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, 
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
-	// Move this vertex to the targeted handles
-	// virtual void manipulate(Mesh::VertexHandle vh_, Mesh::Point target_location);
-
 	// Locally optimize for one prism
 	virtual void local_optimize(int iterations);
 	void update_vertices_based_on_prisms();
@@ -192,7 +193,9 @@ protected:
 	Transformation compute_optimal_face_transform(Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star);
 
 	// globally solve for all prism faces
-	virtual void global_optimize_all_faces(int iterations);
+	// mostly face_handles should be optimizedFaceHandles_
+	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										const std::unordered_map<int,int> &face_idx_2_i);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 
@@ -203,6 +206,7 @@ protected:
 
 	enum class EViewMode{VIEW, MOVE} viewMode_;
 	enum class ESelectMode{STATIC, DYNAMIC, OPTIMIZED, NONE} selectMode_;
+	enum class EOptimizeMode{LOCAL = 0, GLOBAL = 1} optimizeMode_ ;
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
@@ -222,6 +226,10 @@ private:
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	// maintain a set of optimized faces' idx only for global optimization
+	
+	// #TODO[ZJW][QYZ]: redundant now, if have time, try to only mantain handles/idxs
+	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
 	std::vector<unsigned int> optimizedVertexIndices_;
 	// static faces(prisms) as hard constraints
 	std::vector<OpenMesh::FaceHandle> staticFaceHandles_;
@@ -246,7 +254,8 @@ private:
 	
 	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
 	// O(n), need optimize if this is raycast bottleneck
-	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles);
+	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+							std::unordered_map<int, int> *face_idx_2_i = nullptr);
 	// each face could only have one type of STATIC/DYNAMI/NONE
 	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
 	// draw prisms for all faces in array(vector)

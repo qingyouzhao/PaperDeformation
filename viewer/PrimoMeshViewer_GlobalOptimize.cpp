@@ -1,5 +1,6 @@
 #include "PrimoMeshViewer.h"
 #include "Timer.hh"
+#include "parallel.hh"
 #include <Eigen/Sparse>
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;
@@ -160,6 +161,11 @@ public:
             return iter_bool.first->second;
         }
 
+    }
+    void operator+=(const BFill &other){
+        for(const auto &element : other.p){
+            this->operator()(element.first[0],element.first[1]) += element.second;
+        }
     }
 public:
     std::unordered_map<PijKey, float> p;
@@ -336,19 +342,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 negA_T(start_J + 5) += N(2);  
 
             }
-            //////////////////////////////////////////////////////////////////////////////
-            //std::cout<< "B:\n" <<  B <<std::endl;
-            //std::cout<< "-A^T:\n" << negA_T << std::endl;
-            //Timer plus_equal_timer;
-            //////////////////////////////////////////////////////////////////////////////
-            
-            //B += current_B * w_ij;
-            //negA_T += current_negA_T;
-            //////////////////////////////////////////////////////////////////////////////
-            //plus_equal_duration += plus_equal_timer.elapsed();
-            //std::cout<< "B:\n" <<  B <<std::endl;
-            //std::cout<< "-A^T:\n" << negA_T << std::endl;
-            //////////////////////////////////////////////////////////////////////////////
+
         }
     }
     //////////////////////////////////////////////////////////////////////////////
@@ -359,8 +353,30 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     //////////////////////////////////////////////////////////////////////////////
     
 }
+void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles){
+    // 
+    for(int i = 0; i < face_handles.size();++i){
+        float weight_sum = 0;
+        const OpenMesh::FaceHandle &fh_i = face_handles[i];
+        const int i6 = i * 6;
+        const OpenMesh::Vec3f wi(C(i6), C(i6 + 1), C(i6 + 2));
+        const OpenMesh::Vec3f vi(C(i6 + 3), C(i6 + 4), C(i6 + 5));
+        for(Mesh::ConstFaceHalfedgeIter fh_iter = mesh_.cfh_begin(fh_i); fh_iter.is_valid(); ++fh_iter){
+            PrismProperty &dst = mesh_.property(P_PrismProperty,*fh_iter);
+            const PrismProperty &src = mesh_.property(P_PrismProperty,*fh_iter);
+            dst = src;
+            dst.FromVertPrismDown += OpenMesh::cross(wi, dst.FromVertPrismDown) + vi;
+            dst.FromVertPrismUp += OpenMesh::cross(wi, dst.FromVertPrismUp) + vi;
+            dst.ToVertPrismDown += OpenMesh::cross(wi, dst.ToVertPrismDown) + vi;
+            dst.ToVertPrismUp += OpenMesh::cross(wi, dst.ToVertPrismUp) + vi;
+        }
+    }
+    //for(const OpenMesh::FaceHandle &fh:face_handles){
+        //local_optimize_face(fh, P_globalPrism_intermediate, true);
+    //}
+}
 void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_map<int,int> &face_idx_2_i)
+										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations)
 {
     /* #TODO[ZJW][QYZ]: Here we are using Eigen to solve the SPD(symmetric positive definite) linear system.
        if it is the speed bottleneck, try SuiteSparse(even cuda - GPU implementation) with more pain :)
@@ -382,41 +398,32 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
             assert(face_idx_2_i.at(face_handles[i].idx()) == i);
         }
     #endif
-    Timer total_timer;
+    // Timer total_timer;
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
-    Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
-    // B("A" in "Ax = b")
-    SpMat B(n6, n6);
-    B.reserve(Eigen::VectorXi::Constant(n6, 40));
-    //
-    
-    build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
-    //////////////////////////////////////////////////////////////////////////////
-    //std::cout<< "B:\n" <<  B<<std::endl;
-    //std::cout<< "-A^T:\n" << negA_T << std::endl; 
-    //////////////////////////////////////////////////////////////////////////////
-    // solve the linear system 
-    // #TODO[ZJW]: need look at the other Cholesky factorization in Eigen
-    
-    //printf("FINISH BUILD, take %s\n", build_problem_elapseString.c_str());
-    Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
-    //printf("FINISH DECOMPOSE\n");
+    float E_origin = E(face_handles);
+    std::cout<<"E_origin: "<<E_origin<<std::endl;
+    for(int i = 0; i < max_iterations; ++i){
+        // find optimal velocities
+        Timer solve_linear_system_timer;
+        Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
+        SpMat B(n6, n6);
+        B.reserve(Eigen::VectorXi::Constant(n6, 40));
+        build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
+        Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
+        assert(solver.info() == Eigen::Success);
+        Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
 
-    //solver.compute(B);
-    // decompose should be success
-    assert(solver.info() == Eigen::Success);
-    
-    Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
-    //printf("FINISH SOLVE\n");
-    std::cout<<"takes: "<<total_timer.elapsedString()<<std::endl;
+        std::cout<<"find optimal velocities takes: "<<solve_linear_system_timer.elapsedString()<<std::endl;
+        //std::cout<< x << std::endl;
+        // update new prisms to new position and saved in another prismProperty
+        // project velocities using anthoer local minimum
+        project_v_and_update_prisms(x,face_handles);
+        std::cout<<"E_after: "<<E(face_handles)<<std::endl;
 
-    //////////////////////////////////////////////////////////////////////////////
-    //std::cout<< "x:\n"<< x << std::endl;
-    //////////////////////////////////////////////////////////////////////////////
-
-    // #TODO[ZJW]: update vertices position based on faces(prisms) around each vertex
-   
+    }
+    // update vertices position based on faces(prisms) around each vertex
+    update_vertices_based_on_prisms();
     // update OpenMesh's normals
     mesh_.update_normals(); 
 }

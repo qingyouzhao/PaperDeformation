@@ -1,4 +1,5 @@
 #include "PrimoMeshViewer.h"
+#include "parallel.hh"
 #include <iostream>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -131,16 +132,88 @@ void PrimoMeshViewer::print_quaternion(Eigen::Quaternion<double>& Q)
 
 
 }
+void PrimoMeshViewer::update_vertices_based_on_prisms()
+{
+	std::unordered_set<int> visited_vertices_idx;
+	for(const OpenMesh::FaceHandle &fh: optimizedFaceHandles_){
+		for (Mesh::FaceVertexIter fv_iter = mesh_.fv_begin(fh); fv_iter.is_valid(); ++fv_iter)
+		{
+			// check if this vertice is visited
+			if(visited_vertices_idx.find(fv_iter->idx()) != visited_vertices_idx.end()){
+				continue;
+			}
+			visited_vertices_idx.emplace(fv_iter->idx());
+			
+			Mesh::Point original_point = mesh_.point(*fv_iter);
+			Vector3d new_point(0, 0, 0);
+			float weight = 0;
+
+			for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*fv_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
+			{
+				if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
+				{
+					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
+					new_point += voh_prop.TargetPosFrom();
+					weight += 1.0f;
+
+					#ifndef NDEBUG
+					Arrow arrow(
+						Vector3d(original_point),
+						Vector3d(voh_prop.TargetPosFrom()),
+						LinearColor::RED,
+						3.0f
+					);
+					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+					#endif
+				}
+			}
+			for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*fv_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
+			{
+				if (mesh_.face_handle(*vih_ccwiter).is_valid())
+				{
+					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
+					new_point += voh_prop.TargetPosTo();
+					weight += 1.0f;
+
+					#ifndef NDEBUG
+					Arrow arrow(
+						Vector3d(original_point),
+						Vector3d(voh_prop.TargetPosTo()),
+						LinearColor::GREEN,
+						3.0f
+					);
+					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+					#endif
+				}
+			}
+			new_point /= weight;
+
+			mesh_.point(*fv_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
+
+			#ifndef NDEBUG
+			Arrow arrow(
+				Vector3d(original_point),
+				Vector3d(new_point),
+				LinearColor::BLUE,
+				3.0f
+			);
+			g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+			#endif
+		}
+	}
+}
 float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
-	//TODO[ZJW]: this function could be multi-threaded, check if it is necessary
+	//#TODO[ZJW]: could parallel
+	//AtomicFloat E(0.0f);
 	float E = 0.0f;
-    std::unordered_set<int> he_id_set;
+    // std::unordered_set<int> he_id_set;
     //////////////////////////////////////////////////////////////////////////////
     //std::cout<< "B:\n" <<  B <<std::endl;
     //std::cout<< "-A^T:\n" << negA_T << std::endl;
     // double plus_equal_duration = 0.0;
     //////////////////////////////////////////////////////////////////////////////
-    for(int i = 0; i < face_handles.size(); ++i){
+    //ParallelFor(0, (int)face_handles.size(), [&](int i){
+	for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
         const OpenMesh::FaceHandle &fh_i = face_handles[i];
         const int f_i_id = fh_i.idx();
@@ -164,19 +237,6 @@ float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) 
             const int he_i_id = he_i.idx();
             const int he_j_id = he_j.idx();
             
-            const bool he_i_in_set = (he_id_set.find(he_i_id) != he_id_set.end());
-            if(he_i_in_set){
-                #ifndef NDEBUG
-                const bool he_j_in_set = (he_id_set.find(he_j_id) != he_id_set.end());
-                // assert for debug, he pair should be both in set or neither in set 
-                assert(he_i_in_set && he_j_in_set);
-                #endif
-                continue;
-            }
-            // this pair is visited now, put them into set
-            he_id_set.insert(he_i_id);
-            he_id_set.insert(he_j_id);
-
             // get the f^ij_[0/1][0/1] in the PriMo equation
             const int f_j_id = fh_j.idx();
             const PrismProperty * const P_i = &(mesh_.property(P_PrismProperty, he_i));
@@ -230,9 +290,10 @@ float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) 
             	const OpenMesh::Vec3f &b = fij_m_fji[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ];
             	Eij += OpenMesh::dot(a, b) * weight[cid];
         	}
+			//E.Add(Eij * w_ij);
 			E += Eij * w_ij;
 
 		}
 	}
-	return E;
+	return E * 0.5f;
 }

@@ -13,6 +13,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	mesh_.request_vertex_colors();
 
 	mesh_.add_property(P_PrismProperty);
+	mesh_.add_property(P_globalPrism_intermediate);
 	//mesh_.add_property(P_FaceTransformationCache);
 
 	// set color of 3 kind of faces(prisms) here 
@@ -41,6 +42,10 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	// optimize mode is LOCAL at first
 	optimizeMode_ = EOptimizeMode::LOCAL;
 	printf("Optimize Mode: LOCAL\n");
+
+	// do not draw debug info at first
+	drawDebugInfo_ = false;
+	printf("Draw Debug Info: false\n");
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -288,6 +293,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// toggle if visualize prisms
 		drawDebugInfo_ = !drawDebugInfo_;
 		glutPostRedisplay();
+		printf("Draw Debug Info: %s\n",drawDebugInfo_ ? "true" : "false");
 	}
 	break;
 	case '+':
@@ -369,6 +375,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	}
 		break;
 	case 'o':
+	case 'O':
 	{
 		// switch optimization method (default: global)
 		bool opIsLocal = (optimizeMode_ == EOptimizeMode::LOCAL);
@@ -473,10 +480,10 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					if(optimizeMode_ == EOptimizeMode::LOCAL){
-						local_optimize(optimizedFaceHandles_,10000);
+						local_optimize(optimizedFaceHandles_,1000000);
 					}
 					else{
-						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_);
+						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 1);
 					}
 					break;
 				}

@@ -83,10 +83,10 @@ struct Arrow
 
 /// This struct store the prism data structure and provides basic functionalities for retrieval and claculation
 struct PrismProperty {
-	Vec3f FromVertPrismDir_DEPRECATED;
-	float FromVertPrismSize_DEPRECATED;
-	Vec3f ToVertPrimsDir_DEPRECATED;
-	float ToVertPrismSize_DEPRECATED;
+	// Vec3f FromVertPrismDir_DEPRECATED;
+	// float FromVertPrismSize_DEPRECATED;
+	// Vec3f ToVertPrimsDir_DEPRECATED;
+	// float ToVertPrismSize_DEPRECATED;
 
 	Vec3f FromVertPrismUp;
 	Vec3f FromVertPrismDown;
@@ -115,23 +115,21 @@ struct PrismProperty {
 	00---------10 normal  00------------10   normal
 	*/
 
-	Vec3f f_uv(int u, int v, bool is_i_j)
+	inline const Vec3f& f_uv(int u, int v, bool is_i_j) const
 	{
-		Vec3f result;
 		// We only care uv edges
 		assert(u == 0 || u == 1);
 		assert(v == 0 || v == 1);
 		if (is_i_j)
 		{
-			result = (v == 1) ? ( u == 0 ? FromVertPrismUp : ToVertPrismUp)
+			return (v == 1) ? ( u == 0 ? FromVertPrismUp : ToVertPrismUp)
 							  : ( u == 0 ? FromVertPrismDown : ToVertPrismDown);
 		}
 		else
 		{
-			result = (v == 1) ? (u == 0 ? ToVertPrismUp: FromVertPrismUp)
+			return (v == 1) ? (u == 0 ? ToVertPrismUp: FromVertPrismUp)
 							  : (u == 0 ? ToVertPrismDown: FromVertPrismDown);
 		}
-		return result;
 	}
 
 	Vec3f TargetPosFrom()
@@ -182,20 +180,21 @@ protected:
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	
 	// Locally optimize for one prism
-	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, int max_iterations);
+	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations);
 	void update_vertices_based_on_prisms();
 
 	// Locally optimize for one prism faces 
-	virtual void local_optimize_face(Mesh::FaceHandle _fh);
+	virtual void local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::HPropHandleT<PrismProperty> &, bool is_ij = false);
 
 
 	// the wrapper for calculating the final rotation
-	Transformation compute_optimal_face_transform(const Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star) const;
+	Transformation compute_optimal_face_transform(const Eigen::Matrix3f& S, const Vector3d &c_i, const Vector3d &c_star) const;
 
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_
 	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_map<int,int> &face_idx_2_i);
+										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations);
+	void project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 
@@ -210,6 +209,8 @@ protected:
 private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
+	OpenMesh::HPropHandleT<PrismProperty>  P_globalPrism_intermediate;
+
 	//OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
 	// press p to visualize prisms
 	bool drawPrisms_;

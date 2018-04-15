@@ -10,7 +10,7 @@ This source contains the local optimize operations
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
-void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, int max_iterations)
+void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations)
 {
 	// do nothing if no optimizable faces or invalid iteration
 	if(optimizedFaceHandles_.size() <= 0 || max_iterations <= 0) return;
@@ -19,8 +19,9 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 	g_debug_transformations_to_draw_local_optimization.clear();
 #endif
 
-	float E_km1 = 0.0f;
-	float E_k = 0.0f;
+	const float E_origin = E(face_handles);
+	const float E_threashold = E_origin * 0.1;
+	float E_k;
 	for (int i = 0; i < max_iterations; i++)
 	{
 
@@ -32,13 +33,14 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 
 		fh = optimizedFaceHandles_[idx];
 		//std::cout << "optimizing face handle idx " << fh.idx() << "optimized face handles idx = " << idx << std::endl;
-		local_optimize_face(fh);
+		local_optimize_face(fh, P_PrismProperty, false);
 		E_k = E(face_handles);
-		if(converge_E(E_k, E_km1)){
-			break;
+		if(E_k <= E_threashold){
+		 	printf("[Local Optimization]: converge, finish local optimization\n");
+		 	break;
 		}
 		std::cout << "[Local Optimization]: iteration "<<i<<", E = "<<E_k<<std::endl;
-		E_km1 = E_k;
+		
 	}
 	// Now we want to update the face vertex based on rigid prisms instead of the values
 	update_vertices_based_on_prisms();
@@ -47,74 +49,9 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 }
 
 
-void PrimoMeshViewer::update_vertices_based_on_prisms()
-{
-	std::unordered_set<int> visited_vertices_idx;
-	for(const OpenMesh::FaceHandle &fh: optimizedFaceHandles_){
-		for (Mesh::FaceVertexIter fv_iter = mesh_.fv_begin(fh); fv_iter.is_valid(); ++fv_iter)
-		{
-			// check if this vertice is visited
-			if(visited_vertices_idx.find(fv_iter->idx()) != visited_vertices_idx.end()){
-				continue;
-			}
-			visited_vertices_idx.emplace(fv_iter->idx());
-			
-			Mesh::Point original_point = mesh_.point(*fv_iter);
-			Vector3d new_point(0, 0, 0);
-			float weight = 0;
 
-			for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*fv_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
-			{
-				if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
-				{
-					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
-					new_point += voh_prop.TargetPosFrom();
-					weight += 1.0f;
-					Arrow arrow(
-						Vector3d(original_point),
-						Vector3d(voh_prop.TargetPosFrom()),
-						LinearColor::RED,
-						3.0f
-					);
-					#ifndef NDEBUG
-					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-					#endif
-				}
-			}
-			for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*fv_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
-			{
-				if (mesh_.face_handle(*vih_ccwiter).is_valid())
-				{
-					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
-					new_point += voh_prop.TargetPosTo();
-					weight += 1.0f;
-					Arrow arrow(
-						Vector3d(original_point),
-						Vector3d(voh_prop.TargetPosTo()),
-						LinearColor::GREEN,
-						3.0f
-					);
-					#ifndef NDEBUG
-					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-					#endif
-				}
-			}
-			new_point /= weight;
-			Arrow arrow(
-				Vector3d(original_point),
-				Vector3d(new_point),
-				LinearColor::BLUE,
-				3.0f
-			);
-			mesh_.point(*fv_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
-			#ifndef NDEBUG
-			g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-			#endif
-		}
-	}
-}
 
-void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
+void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::HPropHandleT<PrismProperty> &Pji_property, bool is_ij)
 {
 	// https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 	// struct EdgePrismData {
@@ -128,15 +65,15 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	// Clear our debug info before every optimization
 
 	//std::vector<EdgePrismData> f_ij_data;
-	Eigen::Matrix3f S; 
-	S << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+	//Eigen::Matrix3f S; 
+	//S << 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
 	// We need to experiment this
 	//Eigen::Matrix3f S_1;
 	//S_1 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
-	Eigen::Matrix3f S_16;
-	S_16 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
+	Eigen::Matrix3f S_16 = Eigen::Matrix3f::Zero();
+	//S_16 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
 
 	//Eigen::Matrix3f S_4;
 	//S_4 << 0, 0, 0, 0, 0, 0, 0, 0, 0;
@@ -152,19 +89,20 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	float weight_sum = 0;
 	for (Mesh::FaceHalfedgeCCWIter fhe_ccwiter = mesh_.fh_ccwbegin(_fh); fhe_ccwiter.is_valid(); fhe_ccwiter++)
 	{
+		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
+		const PrismProperty &P_ij = mesh_.property(P_PrismProperty, he_ij);
 		// circulate Neighbours to calculate centroid
-		Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fhe_ccwiter);
-		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
-		if (!he_ji.is_valid() || mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid())
+		Mesh::HalfedgeHandle he_ji = (is_ij ? he_ij: mesh_.opposite_halfedge_handle(*fhe_ccwiter));
+		// Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
+		if (!he_ji.is_valid())
 		{
 			//std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
 			continue;
 		}
-		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
-		PrismProperty P_ij = mesh_.property(P_PrismProperty, he_ij);
-		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
 
-		float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
+		const PrismProperty &P_ji = mesh_.property(Pji_property, he_ji);
+
+		const float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
 		assert(P_ij.weight_ij == P_ji.weight_ij);
 
 		Vec3f centroid_ij; // centroid of prism face on i facing j
@@ -186,10 +124,10 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		centroid_ij = (f_ij[0] + f_ij[1] + f_ij[2] + f_ij[3]) * 0.25f;
 		
 		// Evaluate f_ji
-		f_ji[0] = P_ji.f_uv(0, 0, false);
-		f_ji[1] = P_ji.f_uv(0, 1, false);
-		f_ji[2] = P_ji.f_uv(1, 0, false);
-		f_ji[3] = P_ji.f_uv(1, 1, false);
+		f_ji[0] = P_ji.f_uv(0, 0, is_ij);
+		f_ji[1] = P_ji.f_uv(0, 1, is_ij);
+		f_ji[2] = P_ji.f_uv(1, 0, is_ij);
+		f_ji[3] = P_ji.f_uv(1, 1, is_ij);
 		centroid_ji = (f_ji[0] + f_ji[1] + f_ji[2] + f_ji[3]) * 0.25f;
 
 		// w_ij / 4 * \sum{f_ij_kl}
@@ -209,21 +147,20 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	// 
 	for (Mesh::FaceHalfedgeCCWIter fhe_ccwiter = mesh_.fh_ccwbegin(_fh); fhe_ccwiter.is_valid(); fhe_ccwiter++)
 	{
+		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
+		const PrismProperty &P_ij = mesh_.property(P_PrismProperty, he_ij);
 		// circulate Neighbours to calculate centroid
-		Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fhe_ccwiter);
-		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
-		if (!he_ji.is_valid() || mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid())
+		Mesh::HalfedgeHandle he_ji = (is_ij ? he_ij: mesh_.opposite_halfedge_handle(*fhe_ccwiter));
+		// Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
+		if (!he_ji.is_valid())
 		{
 			//std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
 			continue;
 		}
 
-		Mesh::HalfedgeHandle he_ij = *fhe_ccwiter;
-		PrismProperty P_ij = mesh_.property(P_PrismProperty, he_ij);
-		PrismProperty P_ji = mesh_.property(P_PrismProperty, he_ji);
+		const PrismProperty &P_ji = mesh_.property(Pji_property, he_ji);
 
-
-		float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
+		const float weight_ij = P_ij.weight_ij; // the weigth of the edge prism based on the face area
 		assert(P_ij.weight_ij == P_ji.weight_ij);
 		Vec3f centroid_ij; // centroid of prism face on i facing j
 		Vec3f centroid_ji; // centroid of prism face on j facing i
@@ -244,10 +181,10 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 		centroid_ij = (f_ij[0] + f_ij[1] + f_ij[2] + f_ij[3]) * 0.25f;
 
 		// Evaluate f_ji
-		f_ji[0] = P_ji.f_uv(0, 0, false);
-		f_ji[1] = P_ji.f_uv(0, 1, false);
-		f_ji[2] = P_ji.f_uv(1, 0, false);
-		f_ji[3] = P_ji.f_uv(1, 1, false);
+		f_ji[0] = P_ji.f_uv(0, 0, is_ij);
+		f_ji[1] = P_ji.f_uv(0, 1, is_ij);
+		f_ji[2] = P_ji.f_uv(1, 0, is_ij);
+		f_ji[3] = P_ji.f_uv(1, 1, is_ij);
 		centroid_ji = (f_ji[0] + f_ji[1] + f_ji[2] + f_ji[3]) * 0.25f;
 
 		// Update S_components based on contribution from this face
@@ -268,14 +205,14 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 				// S_1(s_i, s_j) += S_1_ij;
 				// if we assume each face has the 16 point pair contribution
 				float S_16_ij = 0;
-				float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
+				static const float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
 				for (int ij = 0; ij < 4; ij++)
 				{
 					for (int kl = 0; kl < 4; kl++)
 					{
 						// int ijkl_dist = ((~ij) & kl);
 						int ijkl_dist = (ij) ^ (kl);
-						S_16_ij += (f_ij[ij] - centroid_ij)[s_i] * (f_ji[kl] - centroid_ji)[s_j] * root_2s[ijkl_dist];
+						S_16_ij += (f_ij[ij] - centroid_i)[s_i] * (f_ji[kl] - centroid_star)[s_j] * root_2s[ijkl_dist];
 					}
 				}
 
@@ -289,8 +226,8 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 	// std::cout << "Computing optimal with 4 points: " << std::endl;
 	// Transformation TargetTransformation_4 = compute_optimal_face_transform(S_4, centroid_i, centroid_star);
 	// std::cout << "Computing optimal with 4x4 point matching: " << std::endl;
-	Transformation TargetTransformation_16 = compute_optimal_face_transform(S_16, centroid_i, centroid_star);
-	Transformation TargetTransformation = TargetTransformation_16;
+	Transformation TargetTransformation = compute_optimal_face_transform(S_16, centroid_i, centroid_star);
+	//Transformation TargetTransformation = TargetTransformation_16;
 
 	#ifndef NDEBUG
 	g_debug_transformations_to_draw_local_optimization.emplace_back(TargetTransformation);
@@ -393,7 +330,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh)
 }
 
 
-Transformation PrimoMeshViewer::compute_optimal_face_transform(const Eigen::Matrix3f& S, Vector3d c_i, Vector3d c_star) const
+Transformation PrimoMeshViewer::compute_optimal_face_transform(const Eigen::Matrix3f &S, const Vector3d &c_i, const Vector3d &c_star) const
 {
 
 	// Construct matrix N 

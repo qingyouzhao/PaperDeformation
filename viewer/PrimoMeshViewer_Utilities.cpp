@@ -298,9 +298,23 @@ float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) 
 	}
 	return E;
 }
-void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
+void PrimoMeshViewer::update_prisms_height_uniform(const std::vector<OpenMesh::FaceHandle> &face_handles, const float dh){
+	for (const Mesh::FaceHandle &fh : face_handles){
+		Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh);
+		for (; fh_it.is_valid(); ++fh_it){
+			PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_it);
+			const OpenMesh::Vec3f dFrom = (prop.FromVertPrismUp - prop.FromVertPrismDown).normalized() * dh;
+			const OpenMesh::Vec3f dTo = (prop.ToVertPrismUp - prop.ToVertPrismDown) * dh;
+			prop.FromVertPrismUp += dFrom;
+			prop.FromVertPrismDown -= dFrom;
+			prop.ToVertPrismUp += dTo;
+			prop.ToVertPrismDown -= dTo;
+		}
+	}
+}
+void PrimoMeshViewer::setup_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
 {
-	for (Mesh::FaceHandle &fh : face_handles)
+	for (const Mesh::FaceHandle &fh : face_handles)
 	{
 		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
 		// Initialize a default face transformation

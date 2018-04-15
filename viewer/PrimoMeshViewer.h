@@ -175,12 +175,12 @@ protected:
 
 	// Setup prisms for the meshes
 	// default to face normals, this makes the prism very flat
-	virtual void setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, 
+	virtual void setup_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
-	
+	virtual void update_prisms_height_uniform(const std::vector<OpenMesh::FaceHandle> &face_handles, const float dh);
 	// Locally optimize for one prism
 	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations);
-	void update_vertices_based_on_prisms();
+	virtual void update_vertices_based_on_prisms();
 
 	// Locally optimize for one prism faces 
 	virtual void local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::HPropHandleT<PrismProperty> &, bool is_ij = false);

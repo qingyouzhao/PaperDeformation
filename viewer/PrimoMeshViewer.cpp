@@ -300,26 +300,39 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	{
 		// add prisms' height
 		prismHeight_ += averageVertexDisance_ * 0.1f;
-		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
-		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		// immediately update all prisms, should not use setup_prisms.
+		update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * 0.1f);
 		printf("prismHeight: %f\n", prismHeight_);
 
-		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
-		// based on the new prism height.
+		// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
+
+		if(optimizeMode_ == EOptimizeMode::LOCAL){
+			local_optimize(optimizedFaceHandles_,100000);
+		}
+		else{
+			global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
+		}
 		glutPostRedisplay();
 	}
 		break;
 	case '-':
 	{
 		// minus prisms' height(keep prisms' height > 0)
-		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON)
+		if(prismHeight_ - averageVertexDisance_ * 0.1f > FLT_EPSILON){
 			prismHeight_ -= averageVertexDisance_ * 0.1f;
-		// immediately update all prisms
-		// #TODO[ZJW][QYZ]: immediately update all prisms, should not use setup_prisms.
-		// setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+			// immediately update all prisms, should not use setup_prisms.
+			update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * -0.1f);
+			// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
+			if(optimizeMode_ == EOptimizeMode::LOCAL){
+				local_optimize(optimizedFaceHandles_,100000);
+			}
+			else{
+				global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
+			}
+		}
 		printf("prismHeight: %f\n", prismHeight_);
 
-		// #TODO[ZJW][QYZ]: following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
+		
 		// based on the new prism height.
 		glutPostRedisplay();
 	}

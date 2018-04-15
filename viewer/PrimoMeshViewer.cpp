@@ -480,10 +480,10 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 
 					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
 					if(optimizeMode_ == EOptimizeMode::LOCAL){
-						local_optimize(optimizedFaceHandles_,1000000);
+						local_optimize(optimizedFaceHandles_,100000);
 					}
 					else{
-						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 1);
+						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
 					}
 					break;
 				}

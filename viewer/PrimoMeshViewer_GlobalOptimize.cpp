@@ -40,14 +40,14 @@ namespace std {
 class Pij_ji{
 public:
     explicit Pij_ji(const PrismProperty * const P_i, const PrismProperty * const P_j):
-    f_ij{       {P_i->FromVertPrismDown, P_i->FromVertPrismUp},
-                {P_i->ToVertPrismDown, P_i->ToVertPrismUp}
+    f_ij{       P_i->f_uv(0, 0, true) ,P_i->f_uv(0, 1, true),
+                P_i->f_uv(1, 0, true), P_i->f_uv(1, 1, true)
     },
-    f_ji{       {P_j->ToVertPrismDown, P_j->ToVertPrismUp},
-                {P_j->FromVertPrismDown, P_j->FromVertPrismUp}
+    f_ji{       P_j->f_uv(0, 0, false), P_j->f_uv(0, 1, false),
+                P_j->f_uv(1, 0, false), P_j->f_uv(1, 1, false)
     }, one{
-        {{1, 1, 1}, {1, 1, 1}},
-        {{1, 1, 1}, {1, 1, 1}}
+        {1, 1, 1}, {1, 1, 1},
+        {1, 1, 1}, {1, 1, 1}
     }
     {}
     float operator()(const int first, const int second){ 
@@ -64,7 +64,7 @@ public:
         }else{
             // the (key,value) is not in the map
             // 1. calculate it 
-            float value = calc_value(key[0], key[1]);
+            float value = calc_value(first, second);
             // 2. save it to the map
             p.emplace(key, value);
             // return it
@@ -75,46 +75,19 @@ public:
     // private data
 private:
     std::unordered_map<PijKey, float> p;
-    const OpenMesh::Vec3f f_ij[2][2];
-    const OpenMesh::Vec3f f_ji[2][2];
+    const OpenMesh::Vec3f f_ij[4];
+    const OpenMesh::Vec3f f_ji[4];
     // dummy one vectors for easy implementation
-    const OpenMesh::Vec3f one[2][2];
+    const OpenMesh::Vec3f one[4];
     //
     float calc_value(int first, int second) const{
         // firstly sort two integer small, big
         // cannot have two "one"
         assert(second >= 0);
         // special case when first is -1
-        // 10 non-repetitive combination for the diecretion of integration over [0, 1]^[0, 1] 
-        static const int uv_integrate_id[10][4] = {
-            {0, 0, 0, 0},
-            {0, 0, 0, 1},
-            {0, 0, 1, 0},
-            {0, 0, 1, 1},
-            {0, 1, 0, 1},
-            {0, 1, 1, 0},
-            {0, 1, 1, 1},
-            {1, 0, 1, 0},
-            {1, 0, 1, 1},
-            {1, 1, 1, 1}
-        };
-        
-        static const float one_ninth = 1.0f / 9.0f;
-        static const float weight[10] = {
-                one_ninth,
-                one_ninth,
-                one_ninth,
-                0.5f * one_ninth,
-                one_ninth,
-                0.5f * one_ninth,
-                one_ninth,
-                one_ninth,
-                one_ninth,
-                one_ninth
-        };
         // iterate each combination
-        const OpenMesh::Vec3f (*first_array)[2];
-        const OpenMesh::Vec3f (*second_array)[2];
+        const OpenMesh::Vec3f* first_array;
+        const OpenMesh::Vec3f* second_array;
         if(first < 0){
             first_array = one;
             first = 0;
@@ -132,11 +105,25 @@ private:
             second -= 3;
         }
         float value = 0.0;//result
-        for(int cid = 0; cid < 10; ++cid){
-            float a = first_array[ uv_integrate_id[cid][0] ][ uv_integrate_id[cid][1] ][first];
-            float b = second_array[ uv_integrate_id[cid][2] ][ uv_integrate_id[cid][3] ][second];
-            value += a * b * weight[cid];
-        }
+        static const float one_ninth = 1.0f/9.0f;
+        static const float root_2s[4] = { one_ninth*1, one_ninth * 0.5, one_ninth * 0.5, one_ninth * 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
+		for (int ij = 0; ij < 4; ij++)
+		{
+			for (int kl = 0; kl < 4; kl++)
+			{
+						// int ijkl_dist = ((~ij) & kl);
+				int ijkl_dist = (ij) ^ (kl);
+				value += (first_array[ij])[first] * (second_array[kl])[second] * root_2s[ijkl_dist];
+			}
+		}
+
+        #ifndef NDEBUG
+        // if(first_array == one){
+        //     float test = (second_array[0][second] + second_array[1][second] + second_array[2][second] + second_array[3][second]) * 0.25f;
+        //     assert(std::fabs(test * 9-value) < FLT_EPSILON);
+
+        // }
+        #endif
         return value;
     }
     
@@ -252,10 +239,12 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                             0,                 0,              0,                 1,                0,                0,
                             0,                 0,              0,                 0,                1,                0,
                             0,                 0,              0,                 0,                0,                1;
-               
+                DTD *= w_ij;
                 // copy the upper part to become a symmetric matrix
+                //std::cout<<"DTD before\n"<<DTD<<std::endl;
                 DTD = DTD.selfadjointView<Eigen::Upper>();
-                
+                //std::cout<<"DTD after\n"<<DTD<<std::endl;
+
                 //////////////////////////////////////////////////////////////////////////////
                 // std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
                 //////////////////////////////////////////////////////////////////////////////
@@ -291,6 +280,8 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                             0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                1,                0,                0,                                        
                             0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                1,                0,            
                             0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                0,                1;
+
+                DTD *= w_ij;
 
                 // copy the upper part to become a symmetric matrix
                 DTD = DTD.selfadjointView<Eigen::Upper>();
@@ -349,11 +340,12 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     for(const auto &element : bFill.p){
         B.insert(element.first[0],element.first[1]) = element.second;
     }
-    //std::cout<<"B+= takes "<< Timer::timeString(plus_equal_duration, false) << std::endl;
+    // std::cout<<"B\n"<<B<<std::endl;
+    // std::cout<<"negAT\n"<<negA_T<<std::endl;
     //////////////////////////////////////////////////////////////////////////////
     
 }
-void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles){
+void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles, float lambda){
     // 
     for(int i = 0; i < face_handles.size();++i){
         float weight_sum = 0;
@@ -362,18 +354,18 @@ void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, cons
         const OpenMesh::Vec3f wi(C(i6), C(i6 + 1), C(i6 + 2));
         const OpenMesh::Vec3f vi(C(i6 + 3), C(i6 + 4), C(i6 + 5));
         for(Mesh::ConstFaceHalfedgeIter fh_iter = mesh_.cfh_begin(fh_i); fh_iter.is_valid(); ++fh_iter){
-            PrismProperty &dst = mesh_.property(P_PrismProperty,*fh_iter);
+            PrismProperty &dst = mesh_.property(P_globalPrism_intermediate,*fh_iter);
             const PrismProperty &src = mesh_.property(P_PrismProperty,*fh_iter);
             dst = src;
-            dst.FromVertPrismDown += OpenMesh::cross(wi, dst.FromVertPrismDown) + vi;
-            dst.FromVertPrismUp += OpenMesh::cross(wi, dst.FromVertPrismUp) + vi;
-            dst.ToVertPrismDown += OpenMesh::cross(wi, dst.ToVertPrismDown) + vi;
-            dst.ToVertPrismUp += OpenMesh::cross(wi, dst.ToVertPrismUp) + vi;
+            dst.FromVertPrismDown += lambda * (OpenMesh::cross(wi, dst.FromVertPrismDown) + vi);
+            dst.FromVertPrismUp += lambda * (OpenMesh::cross(wi, dst.FromVertPrismUp) + vi);
+            dst.ToVertPrismDown += lambda * (OpenMesh::cross(wi, dst.ToVertPrismDown) + vi);
+            dst.ToVertPrismUp += lambda * (OpenMesh::cross(wi, dst.ToVertPrismUp) + vi);
         }
     }
-    //for(const OpenMesh::FaceHandle &fh:face_handles){
-        //local_optimize_face(fh, P_globalPrism_intermediate, true);
-    //}
+    for(const OpenMesh::FaceHandle &fh:face_handles){
+        local_optimize_face(fh, P_globalPrism_intermediate, true);
+    }
 }
 void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations)
@@ -401,9 +393,10 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     // Timer total_timer;
     int n6 = (int)face_handles.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
-    float E_origin = E(face_handles);
-    std::cout<<"E_origin: "<<E_origin<<std::endl;
-    for(int i = 0; i < max_iterations; ++i){
+    float E_k = 0.0f, E_km1 = E(face_handles);
+    // std::cout<<"E_origin: "<<E_origin<<std::endl;
+    float lambda = 1.0f;
+    for(int i = 0; i < max_iterations; ++i, lambda *= 0.5f){
         // find optimal velocities
         Timer solve_linear_system_timer;
         Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
@@ -418,12 +411,17 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
         //std::cout<< x << std::endl;
         // update new prisms to new position and saved in another prismProperty
         // project velocities using anthoer local minimum
-        project_v_and_update_prisms(x,face_handles);
-        std::cout<<"E_after: "<<E(face_handles)<<std::endl;
+        project_v_and_update_prisms(x,face_handles,lambda);
+        E_k = E(face_handles);
+        std::cout<<"E"<< i <<": "<<E(face_handles)<<std::endl;
+        if(converge_E(E_k, E_km1)){
+            std::cout<<"[Global Optimization]:converge\n";
+            break;
+        }
 
     }
     // update vertices position based on faces(prisms) around each vertex
-    update_vertices_based_on_prisms();
+    update_vertices_based_on_prisms(); 
     // update OpenMesh's normals
     mesh_.update_normals(); 
 }

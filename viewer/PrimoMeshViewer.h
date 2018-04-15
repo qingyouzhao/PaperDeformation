@@ -194,7 +194,7 @@ protected:
 	// mostly face_handles should be optimizedFaceHandles_
 	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations);
-	void project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles);
+	void project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles, float lambda);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
 

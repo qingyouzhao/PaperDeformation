@@ -23,7 +23,6 @@ const LinearColor LinearColor::EMERALD(0.2f,0.8f,0.4f);
 
 float PrimoMeshViewer::calc_face_area(Mesh::FaceHandle _fh) const
 {
-	// TODO: Implement 
 	if (!_fh.is_valid())
 	{
 		std::cout << "Calc face area received invalid face handle, returning 1" << std::endl;
@@ -202,16 +201,8 @@ void PrimoMeshViewer::update_vertices_based_on_prisms()
 	}
 }
 float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
-	//#TODO[ZJW]: could parallel
-	//AtomicFloat E(0.0f);
 	float E = 0.0f;
     std::unordered_set<int> he_id_set;
-    //////////////////////////////////////////////////////////////////////////////
-    //std::cout<< "B:\n" <<  B <<std::endl;
-    //std::cout<< "-A^T:\n" << negA_T << std::endl;
-    // double plus_equal_duration = 0.0;
-    //////////////////////////////////////////////////////////////////////////////
-    //ParallelFor(0, (int)face_handles.size(), [&](int i){
 	for(int i = 0; i < face_handles.size(); ++i){
         // iterate all faces
         const OpenMesh::FaceHandle &fh_i = face_handles[i];

@@ -27,8 +27,6 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 	{
 
 		Mesh::FaceHandle fh;
-		// #TODOZQY: take from optimizedFaceHandles_ to get the right face to optimize
-		
 		int num_faces = optimizedFaceHandles_.size();;
 		int idx = rand() % num_faces;
 

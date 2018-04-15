@@ -478,7 +478,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 				case ESelectMode::NONE:{
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
-					// #TODO[ZJW][QYZ]: minimize all optimizedFaces
+					// minimize all optimizedFaces
 					if(optimizeMode_ == EOptimizeMode::LOCAL){
 						local_optimize(optimizedFaceHandles_,100000);
 					}
@@ -706,8 +706,8 @@ void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Ve
 			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it) - rotation_centroid) + rotation_centroid;
  		}
 		// transform all vertices of this face
-		// #TODO[ZJW][QYZ]: only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
-		// are not transformed. CHECK IT OUT if it is correct.
+		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		// are not transformed. 
 		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
 			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
 			prop.FromVertPrismUp -= rotation_centroid;

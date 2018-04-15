@@ -1,5 +1,4 @@
 #include "PrimoMeshViewer.h"
-#include "parallel.hh"
 #include <iostream>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -307,4 +306,204 @@ float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) 
 		}
 	}
 	return E;
+}
+void PrimoMeshViewer::setup_prisms(std::vector<OpenMesh::FaceHandle> &face_handles, EPrismExtrudeMode PrismExtrudeMode /*= EPrismExtrudeMode::FACE_NORMAL*/)
+{
+	for (Mesh::FaceHandle &fh : face_handles)
+	{
+		Mesh::FaceHalfedgeCWIter fh_cwit = mesh_.fh_cwbegin(fh);
+		// Initialize a default face transformation
+		//mesh_.property(P_FaceTransformationCache, fh) = Transformation();
+		float area_face_i = calc_face_area(fh);
+		for (; fh_cwit.is_valid(); fh_cwit++)
+		{
+			switch (PrismExtrudeMode)
+			{
+			case EPrismExtrudeMode::VERT_NORMAL:
+			{
+				PrismProperty prop;
+				Mesh::VertexHandle v0 = mesh_.from_vertex_handle(*fh_cwit);
+				Mesh::VertexHandle v1 = mesh_.to_vertex_handle(*fh_cwit);
+
+				Mesh::Normal n0 = mesh_.normal(v0);
+				Mesh::Normal n1 = mesh_.normal(v1);
+				Mesh::Point  p0 = mesh_.point(v0);
+				Mesh::Point p1 = mesh_.point(v1);
+				prop.FromVertPrismUp = p0 + n0 * prismHeight_;
+				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
+				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
+				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len_sqr = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					area_face_j = calc_face_area(fh_j);
+				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
+			}
+				break;
+			case EPrismExtrudeMode::FACE_NORMAL:
+			{
+				PrismProperty prop;
+				Mesh::Normal n0 = mesh_.normal(fh);
+				Mesh::Normal n1 = mesh_.normal(fh);
+				Mesh::VertexHandle v0 = mesh_.from_vertex_handle(*fh_cwit);
+				Mesh::VertexHandle v1 = mesh_.to_vertex_handle(*fh_cwit);
+				Mesh::Point  p0 = mesh_.point(v0);
+				Mesh::Point p1 = mesh_.point(v1);
+
+				prop.FromVertPrismUp = p0 + n0 * prismHeight_;
+				prop.FromVertPrismDown = p0 - n0 * prismHeight_;
+				prop.ToVertPrismUp = p1 + n1 * prismHeight_;
+				prop.ToVertPrismDown = p1 - n1 * prismHeight_;
+
+				// calculate weight_ij
+				// Grab the data to construct the face 
+				Mesh::HalfedgeHandle he_ji = mesh_.opposite_halfedge_handle(*fh_cwit);
+				Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fh_cwit);
+				float area_face_j = 0.0f;
+				float edge_len_sqr = (p0 - p1).sqrnorm();
+				if (he_ji.is_valid() && !mesh_.is_boundary(*fh_cwit) && fh_j.is_valid())
+				{
+					//opposite halfedge and face exist.
+					area_face_j = calc_face_area(fh_j);
+				}
+				prop.weight_ij = edge_len_sqr / (area_face_i + area_face_j);
+
+				mesh_.property(P_PrismProperty, *fh_cwit) = prop;
+			}
+				break;
+			case EPrismExtrudeMode::CUSTOM:
+			{
+				assert(false);
+			}
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+float PrimoMeshViewer::get_average_vertex_distance(const Mesh &_mesh) const
+{
+	float accDist = 0;
+    int accCount = 0;
+
+    Mesh::ConstHalfedgeIter he_it = _mesh.halfedges_begin();
+    for (; he_it != _mesh.halfedges_end(); ++he_it) {
+        OpenMesh::Vec3f p = _mesh.point(_mesh.from_vertex_handle(*he_it));
+        OpenMesh::Vec3f q = _mesh.point(_mesh.to_vertex_handle(*he_it));
+        float edgeLength = sqrt((p - q) | (p - q));
+        accDist += edgeLength;
+        accCount++;
+    }
+
+    if (accCount > 0)
+        return accDist / float(accCount);
+    else
+        return 0;
+}
+void PrimoMeshViewer::get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles)
+{
+	Mesh::ConstFaceIter        f_it(mesh_.faces_sbegin()), 
+                               f_end(mesh_.faces_end());
+    Mesh::ConstFaceVertexIter  fv_it;
+
+    face_handles.clear();
+    face_handles.reserve(mesh_.n_faces());
+
+    for (; f_it!=f_end; ++f_it)
+    {
+      face_handles.push_back(*f_it);
+    }
+
+}
+void PrimoMeshViewer::build_allFace_BVH()
+{
+	allFaces_BVH_ = nanort::BVHAccel<float>();
+	nanort::TriangleMesh<float> triangle_mesh(
+      (const float *)mesh_.points(), indices_.data(), sizeof(float) * 3);
+    nanort::TriangleSAHPred<float> triangle_pred(
+      (const float *)mesh_.points(), indices_.data(), sizeof(float) * 3);
+    nanort::BVHBuildOptions<float> build_options;  // Use default option
+    if (!allFaces_BVH_.Build(mesh_.n_faces(), triangle_mesh, triangle_pred, build_options)) {
+        printf("\t[Build Target BVH]: build BVH failed\n");
+        assert(false);
+    }
+    // print bvh info
+    nanort::BVHBuildStatistics stats = allFaces_BVH_.GetStatistics();
+    printf(
+      "[BVH statistics]: %d leaf nodes, %d branch nodes, max tree depth %d\n",
+      stats.num_leaf_nodes, stats.num_branch_nodes, stats.max_tree_depth);
+}
+void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
+										std::vector<unsigned int> &indices_array){
+
+    Mesh::ConstFaceVertexIter  fv_it;
+    indices_array.clear();
+    indices_array.reserve(face_handles.size()*3);
+    for (size_t i = 0; i < face_handles.size(); ++i)
+    {
+        Mesh::FaceHandle fh = face_handles[i];
+        indices_array.push_back((*(fv_it=mesh_.cfv_iter(fh))).idx());
+        indices_array.push_back((*(++fv_it)).idx());
+        indices_array.push_back((*(++fv_it)).idx());
+    }
+}
+void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+											std::unordered_map<int, int> *face_idx_2_i){
+	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
+		if(it->idx() == faceId){
+			if(face_idx_2_i){
+				// before remove, minus 1 all faces after it
+				for(auto jt = it + 1; jt != face_handles.end(); ++jt){
+					auto map_it = face_idx_2_i->find(jt->idx());
+					assert(map_it != face_idx_2_i->end());
+					--map_it->second;
+					//(*face_idx_2_i)[jt->idx()] -= 1;
+				}
+				face_idx_2_i->erase(faceId);
+			}
+
+			// remove this fh
+			face_handles.erase(it);
+			return;
+		}
+	}
+	// this funtion is only used by raycast, and fh must be in face_handles where fh.idx()==faceId
+	// this assert is just for debug
+	assert(false);
+}
+void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, 
+											std::vector<OpenMesh::FaceHandle> &face_handles){
+	// translate all the vertices and prisms of face_handles, along axis, dist 
+	std::unordered_set<int> vertex_idxs;
+	OpenMesh::Vec3f trans(dist * axis);
+	//Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
+	for(OpenMesh::FaceHandle &fh : face_handles){
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			// if vertex is visited, do nothing
+ 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
+			vertex_idxs.insert(fv_it->idx());
+			// rotate this vertex
+			mesh_.point(*fv_it) += trans;
+ 		}
+		// transform all vertices of this face
+		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+
+			prop.FromVertPrismUp += trans;
+			prop.FromVertPrismDown += trans;
+			prop.ToVertPrismUp += trans;
+			prop.ToVertPrismDown += trans;
+		}
+	}
 }

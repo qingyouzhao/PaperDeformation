@@ -1,6 +1,5 @@
 #include "PrimoMeshViewer.h"
 #include "Timer.hh"
-#include "parallel.hh"
 #include <Eigen/Sparse>
 #include <unordered_set>
 typedef Eigen::SparseMatrix<float> SpMat;

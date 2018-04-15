@@ -104,6 +104,9 @@ private:
             second_array = f_ji;
             second -= 3;
         }
+        if(first_array == one){
+            return (second_array[0][second] + second_array[1][second] + second_array[2][second] + second_array[3][second]) * 0.25f;
+        }
         float value = 0.0;//result
         static const float one_ninth = 1.0f/9.0f;
         static const float root_2s[4] = { one_ninth*1, one_ninth * 0.5, one_ninth * 0.5, one_ninth * 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
@@ -117,13 +120,6 @@ private:
 			}
 		}
 
-        #ifndef NDEBUG
-        // if(first_array == one){
-        //     float test = (second_array[0][second] + second_array[1][second] + second_array[2][second] + second_array[3][second]) * 0.25f;
-        //     assert(std::fabs(test * 9-value) < FLT_EPSILON);
-
-        // }
-        #endif
         return value;
     }
     
@@ -403,6 +399,8 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
         SpMat B(n6, n6);
         B.reserve(Eigen::VectorXi::Constant(n6, 40));
         build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
+        std::cout<<"build linear system takes: "<<solve_linear_system_timer.lapString()<<std::endl;
+
         Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
         assert(solver.info() == Eigen::Success);
         Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side

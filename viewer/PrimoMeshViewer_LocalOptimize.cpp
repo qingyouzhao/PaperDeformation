@@ -202,7 +202,7 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::
 				// S_1(s_i, s_j) += S_1_ij;
 				// if we assume each face has the 16 point pair contribution
 				float S_16_ij = 0;
-				static const float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
+				static const float root_2s[4] = { 1, 0.5, 0.5, 0.25 }; 
 				for (int ij = 0; ij < 4; ij++)
 				{
 					for (int kl = 0; kl < 4; kl++)

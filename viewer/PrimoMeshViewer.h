@@ -57,7 +57,6 @@ struct LinearColor
 };
 
 
-// #TODOZQY: If I write three more helper, I am gonna move these to another file called utilities class
 struct DebugLine
 {
 	DebugLine(const Vector3d& _from, const Vector3d& _to, float _width, const LinearColor& _color, int _frames_alive = 1) : from_(_from), to_(_to), width_(_width), color_(_color), frames_alive(_frames_alive) {}
@@ -229,7 +228,6 @@ private:
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
 	// maintain a set of optimized faces' idx only for global optimization
 	
-	// #TODO[ZJW][QYZ]: redundant now, if have time, try to only mantain handles/idxs
 	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
 	std::vector<unsigned int> optimizedVertexIndices_;
 	// static faces(prisms) as hard constraints

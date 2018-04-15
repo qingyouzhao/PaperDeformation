@@ -108,7 +108,7 @@ private:
         }
         float value = 0.0;//result
         static const float one_ninth = 1.0f/9.0f;
-        static const float root_2s[4] = { one_ninth*1, one_ninth * 0.5, one_ninth * 0.5, one_ninth * 0.25 }; // TODO : his guy should be global later but for experimentation purpose, heck
+        static const float root_2s[4] = { one_ninth*1, one_ninth * 0.5, one_ninth * 0.5, one_ninth * 0.25 }; 
 		for (int ij = 0; ij < 4; ij++)
 		{
 			for (int kl = 0; kl < 4; kl++)

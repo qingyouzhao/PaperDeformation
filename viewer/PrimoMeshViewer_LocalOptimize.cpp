@@ -22,6 +22,7 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 	const float E_origin = E(face_handles);
 	const float E_threashold = E_origin * 0.1;
 	float E_k;
+	std::cout << "[Local Optimization]: iteration -1"<<", E = "<<E_origin<<std::endl;
 	for (int i = 0; i < max_iterations; i++)
 	{
 
@@ -35,11 +36,11 @@ void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &fa
 		//std::cout << "optimizing face handle idx " << fh.idx() << "optimized face handles idx = " << idx << std::endl;
 		local_optimize_face(fh, P_PrismProperty, false);
 		E_k = E(face_handles);
+		std::cout << "[Local Optimization]: iteration "<<i<<", E = "<<E_k<<std::endl;
 		if(E_k <= E_threashold){
 		 	printf("[Local Optimization]: converge, finish local optimization\n");
 		 	break;
 		}
-		std::cout << "[Local Optimization]: iteration "<<i<<", E = "<<E_k<<std::endl;
 		
 	}
 	// Now we want to update the face vertex based on rigid prisms instead of the values
@@ -93,9 +94,8 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::
 		const PrismProperty &P_ij = mesh_.property(P_PrismProperty, he_ij);
 		// circulate Neighbours to calculate centroid
 		Mesh::HalfedgeHandle he_ji = (is_ij ? he_ij: mesh_.opposite_halfedge_handle(*fhe_ccwiter));
-		// Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
-		if (!he_ji.is_valid())
-		{
+		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
+		if (!he_ji.is_valid() || ((mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid()) && !is_ij)  ){
 			//std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
 			continue;
 		}
@@ -151,9 +151,8 @@ void PrimoMeshViewer::local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::
 		const PrismProperty &P_ij = mesh_.property(P_PrismProperty, he_ij);
 		// circulate Neighbours to calculate centroid
 		Mesh::HalfedgeHandle he_ji = (is_ij ? he_ij: mesh_.opposite_halfedge_handle(*fhe_ccwiter));
-		// Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
-		if (!he_ji.is_valid())
-		{
+		Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_ccwiter);
+		if (!he_ji.is_valid() || ((mesh_.is_boundary(*fhe_ccwiter) || !fh_j.is_valid()) && !is_ij) )		{
 			//std::cout << "halfedge's opposite doesnot exist, idx = " << fhe_ccwiter->idx() << std::endl;
 			continue;
 		}

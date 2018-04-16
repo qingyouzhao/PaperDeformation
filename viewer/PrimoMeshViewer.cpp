@@ -32,7 +32,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	
 	// do not draw prisms at first
 	drawPrisms_ = false;
-	global_optimize_iterations_ = 10;
+	global_optimize_iterations_ = 25;
 	printf("Gloabl Max Iteration: %d\n", global_optimize_iterations_);
 
 	
@@ -48,6 +48,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	// do not draw debug info at first
 	drawDebugInfo_ = false;
 	printf("Draw Debug Info: false\n");
+
+	bKey_space_is_move_ = true;
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -391,10 +393,15 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case ' ':
 	{
+		if(bKey_space_is_move_){
+			squeeze_prisms(optimizedFaceHandles_, center_);
+
+		}
+		else{
+			thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		}
 		// move all optimizable prisms(faces) to a single point(Figure 6 in PriMo paper)
-		squeeze_prisms(optimizedFaceHandles_, center_);
-		glutPostRedisplay();
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		bKey_space_is_move_  = !bKey_space_is_move_;
 		glutPostRedisplay();
 	}
 		break;
@@ -494,7 +501,7 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// minimize all optimizedFaces
-					thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+					thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);});
 					glutPostRedisplay();
 					break;
 				}
@@ -703,41 +710,7 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 		dynamic_rotation_centroid_ /= (float)(dynamicFaceHandles_.size() * 3);
 	}
 }
-void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
-										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles){
-	// rotate all the vertices and prisms of face_handles, around rotation_centroid & axis, angle rad
-	std::unordered_set<int> vertex_idxs;
-	Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
-	for(OpenMesh::FaceHandle &fh : face_handles){
-		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
-			// if vertex is visited, do nothing
- 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
-			vertex_idxs.insert(fv_it->idx());
-			// rotate this vertex
-			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it) - rotation_centroid) + rotation_centroid;
- 		}
-		// transform all vertices of this face
-		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
-		// are not transformed. 
-		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
-			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
-			prop.FromVertPrismUp -= rotation_centroid;
-			prop.FromVertPrismDown -= rotation_centroid;
-			prop.ToVertPrismUp -= rotation_centroid;
-			prop.ToVertPrismDown -= rotation_centroid;
-			
-			prop.FromVertPrismUp = tr.transformPoint(prop.FromVertPrismUp);
-			prop.FromVertPrismDown = tr.transformPoint(prop.FromVertPrismDown);
-			prop.ToVertPrismUp = tr.transformPoint(prop.ToVertPrismUp);
-			prop.ToVertPrismDown = tr.transformPoint(prop.ToVertPrismDown);
 
-			prop.FromVertPrismUp += rotation_centroid;
-			prop.FromVertPrismDown += rotation_centroid;
-			prop.ToVertPrismUp += rotation_centroid;
-			prop.ToVertPrismDown += rotation_centroid;
-		}
-	}
-}
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){
 	// here max_iterations is for global optimization, for local we simply *100.

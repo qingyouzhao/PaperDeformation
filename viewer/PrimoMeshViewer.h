@@ -296,7 +296,7 @@ private:
 	inline static bool converge_E(float Ek, float Ekm1) {
   		static const float sigma = 0.005f;
   		return (std::fabs(Ek - Ekm1) < sigma * Ek) ||
-                 (Ek < std::numeric_limits<double>::epsilon())
+                 (Ek < 1e-8)
              ? true
              : false;
 	}
@@ -305,5 +305,7 @@ private:
 	void squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target);
 	// used for moving camera while doing optimization 
 	std::vector<std::thread> thread_pool_;
+
+	bool bKey_space_is_move_;
 
 };

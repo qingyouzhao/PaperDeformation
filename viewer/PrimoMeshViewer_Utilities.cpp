@@ -525,19 +525,56 @@ void PrimoMeshViewer::squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &fa
 		}
 		static constexpr float one_third = 1 / 3.0f; 
 		centoird *= one_third;
-		const Mesh::Point dir(target - centoird);
-
+		Mesh::Point dir(target - centoird);
+		float angle = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/M_PI));
+		dir += centoird;
+		Transformation tr(angle, mesh_.normal(fh));
 		for(; fv_it.is_valid(); ++fv_it){
-			mesh_.point(*fv_it) += dir;
+			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it)-centoird) + dir;
 		}
 		for(; fh_it.is_valid(); ++fh_it){
 			PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_it);
-			prop.FromVertPrismUp += dir;
-			prop.FromVertPrismDown += dir;
-			prop.ToVertPrismUp += dir;
-			prop.ToVertPrismDown += dir;
+			prop.FromVertPrismUp = tr.transformPoint(prop.FromVertPrismUp-centoird) + dir;
+			prop.FromVertPrismDown = tr.transformPoint(prop.FromVertPrismDown-centoird) + dir;
+			prop.ToVertPrismUp = tr.transformPoint(prop.ToVertPrismUp-centoird) + dir;
+			prop.ToVertPrismDown = tr.transformPoint(prop.ToVertPrismDown-centoird) + dir;
 		}
 	}
 	update_vertices_based_on_prisms();
 	mesh_.update_normals();
+}
+void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
+										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles){
+	// rotate all the vertices and prisms of face_handles, around rotation_centroid & axis, angle rad
+	std::unordered_set<int> vertex_idxs;
+	Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
+	for(OpenMesh::FaceHandle &fh : face_handles){
+		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
+			// if vertex is visited, do nothing
+ 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
+			vertex_idxs.insert(fv_it->idx());
+			// rotate this vertex
+			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it) - rotation_centroid) + rotation_centroid;
+ 		}
+		// transform all vertices of this face
+		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
+		// are not transformed. 
+		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
+			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
+			prop.FromVertPrismUp -= rotation_centroid;
+			prop.FromVertPrismDown -= rotation_centroid;
+			prop.ToVertPrismUp -= rotation_centroid;
+			prop.ToVertPrismDown -= rotation_centroid;
+			
+			prop.FromVertPrismUp = tr.transformPoint(prop.FromVertPrismUp);
+			prop.FromVertPrismDown = tr.transformPoint(prop.FromVertPrismDown);
+			prop.ToVertPrismUp = tr.transformPoint(prop.ToVertPrismUp);
+			prop.ToVertPrismDown = tr.transformPoint(prop.ToVertPrismDown);
+
+			prop.FromVertPrismUp += rotation_centroid;
+			prop.FromVertPrismDown += rotation_centroid;
+			prop.ToVertPrismUp += rotation_centroid;
+			prop.ToVertPrismDown += rotation_centroid;
+		}
+	}
 }

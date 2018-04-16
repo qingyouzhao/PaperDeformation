@@ -3,6 +3,7 @@
 #include "MeshViewer.hh"
 #include "nanort.h"
 #include "Transformation.hh"
+#include <thread>
 #include <vector>
 #include <unordered_map>
 #include <list>
@@ -178,6 +179,10 @@ protected:
 	virtual void setup_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 								EPrismExtrudeMode PrismExtrudeMode = EPrismExtrudeMode::FACE_NORMAL);
 	virtual void update_prisms_height_uniform(const std::vector<OpenMesh::FaceHandle> &face_handles, const float dh);
+
+	// optimize prisms based on optimizeMode_
+	virtual void optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations);
 	// Locally optimize for one prism
 	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations);
 	virtual void update_vertices_based_on_prisms();
@@ -222,7 +227,7 @@ private:
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
 	float averageVertexDisance_;
-	int local_optimize_iterations_;
+	int global_optimize_iterations_;
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
@@ -297,4 +302,8 @@ private:
 	}
 	//defined in PrimoMeshViewer_Utilities.cpp
 	float E(const std::vector<OpenMesh::FaceHandle> &face_handles)const;
+	void squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target);
+	// used for moving camera while doing optimization 
+	std::vector<std::thread> thread_pool_;
+
 };

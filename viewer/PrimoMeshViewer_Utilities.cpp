@@ -512,3 +512,32 @@ void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3
 		}
 	}
 }
+void PrimoMeshViewer::squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target){
+	// transform all faces of face_handles to the target position
+	// while KEEP REGIDITY OF PRISMS!
+	for (const Mesh::FaceHandle &fh : face_handles){
+		Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh);
+		Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh);
+		// calculate centoird of this face
+		Mesh::Point centoird(0,0,0);
+		for(; fv_it.is_valid(); ++fv_it){
+			centoird += mesh_.point(*fv_it);
+		}
+		static constexpr float one_third = 1 / 3.0f; 
+		centoird *= one_third;
+		const Mesh::Point dir(target - centoird);
+
+		for(; fv_it.is_valid(); ++fv_it){
+			mesh_.point(*fv_it) += dir;
+		}
+		for(; fh_it.is_valid(); ++fh_it){
+			PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_it);
+			prop.FromVertPrismUp += dir;
+			prop.FromVertPrismDown += dir;
+			prop.ToVertPrismUp += dir;
+			prop.ToVertPrismDown += dir;
+		}
+	}
+	update_vertices_based_on_prisms();
+	mesh_.update_normals();
+}

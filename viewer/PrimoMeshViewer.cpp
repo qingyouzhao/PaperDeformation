@@ -32,7 +32,9 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	
 	// do not draw prisms at first
 	drawPrisms_ = false;
-	local_optimize_iterations_ = 10;
+	global_optimize_iterations_ = 10;
+	printf("Gloabl Max Iteration: %d\n", global_optimize_iterations_);
+
 	
 	// select mode is STATIC at first
 	selectMode_ = ESelectMode::STATIC;
@@ -40,8 +42,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	printf("Select Mode: Static\n");
 	
 	// optimize mode is LOCAL at first
-	optimizeMode_ = EOptimizeMode::LOCAL;
-	printf("Optimize Mode: LOCAL\n");
+	optimizeMode_ = EOptimizeMode::GLOBAL;
+	printf("Optimize Mode: Global\n");
 
 	// do not draw debug info at first
 	drawDebugInfo_ = false;
@@ -306,12 +308,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 
 		// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
 
-		if(optimizeMode_ == EOptimizeMode::LOCAL){
-			local_optimize(optimizedFaceHandles_,100000);
-		}
-		else{
-			global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
-		}
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+
 		glutPostRedisplay();
 	}
 		break;
@@ -323,12 +321,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 			// immediately update all prisms, should not use setup_prisms.
 			update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * -0.1f);
 			// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
-			if(optimizeMode_ == EOptimizeMode::LOCAL){
-				local_optimize(optimizedFaceHandles_,100000);
-			}
-			else{
-				global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
-			}
+			thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 		}
 		printf("prismHeight: %f\n", prismHeight_);
 
@@ -394,6 +387,15 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		bool opIsLocal = (optimizeMode_ == EOptimizeMode::LOCAL);
 		optimizeMode_ = (opIsLocal ? EOptimizeMode::GLOBAL : EOptimizeMode::LOCAL);
 		printf("Optimize Mode: %s\n", opIsLocal ? "Global" : "Local");
+	}
+		break;
+	case ' ':
+	{
+		// move all optimizable prisms(faces) to a single point(Figure 6 in PriMo paper)
+		squeeze_prisms(optimizedFaceHandles_, center_);
+		glutPostRedisplay();
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		glutPostRedisplay();
 	}
 		break;
 	default:
@@ -492,12 +494,8 @@ void PrimoMeshViewer::mouse(int button, int state, int x, int y)
 					// the dynamic faces have been transformed by motion(), minimize all optimizedFaces
 
 					// minimize all optimizedFaces
-					if(optimizeMode_ == EOptimizeMode::LOCAL){
-						local_optimize(optimizedFaceHandles_,100000);
-					}
-					else{
-						global_optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, 10);
-					}
+					thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+					glutPostRedisplay();
 					break;
 				}
 				default:
@@ -740,5 +738,14 @@ void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Ve
 		}
 	}
 }
-
+void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){
+	// here max_iterations is for global optimization, for local we simply *100.
+	if(optimizeMode_ == EOptimizeMode::LOCAL){
+		local_optimize(face_handles,max_iterations * 100);
+	}
+	else{
+		global_optimize_faces(face_handles, face_idx_2_i, max_iterations);
+	}
+}
 

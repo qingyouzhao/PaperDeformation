@@ -43,19 +43,22 @@ set_property(
 )
 
 # collect sources
-file(GLOB viewer_sources viewer/*.cc viewer/*.cpp)
-file(GLOB viewer_headers viewer/*.hh viewer/*.h)
+file(GLOB primo_viewer_sources primo_viewer/*.cc primo_viewer/*.cpp)
+file(GLOB primo_viewer_headers primo_viewer/*.hh primo_viewer/*.h)
 
-file(GLOB reconstruct_sources reconstruct/*.cc)
-file(GLOB reconstruct_headers reconstruct/*.hh)
+file(GLOB paper_viewer_sources paper_viewer/*.cc paper_viewer/*.cpp)
+file(GLOB paper_viewer_headers paper_viewer/*.hh paper_viewer/*.h)
 
-file(GLOB ann_sources ANN/*.cpp)
-file(GLOB ann_headers ANN/*.h)
+#file(GLOB reconstruct_sources reconstruct/*.cc)
+#file(GLOB reconstruct_headers reconstruct/*.hh)
 
-file(GLOB primo_headers primo/*.h)
+#file(GLOB ann_sources ANN/*.cpp)
+#file(GLOB ann_headers ANN/*.h)
 
-file(GLOB_RECURSE isoex_sources isoex/*.cc)
-file(GLOB_RECURSE isoex_headers isoex/*.hh)
+#file(GLOB primo_headers primo/*.h)
+
+#file(GLOB_RECURSE isoex_sources isoex/*.cc)
+#file(GLOB_RECURSE isoex_headers isoex/*.hh)
 
 # setup Eigen
 # file(GLOB_RECURSE eigen_sources Eigen/src/*.cpp)
@@ -76,10 +79,18 @@ add_definitions(-DINCLUDE_TEMPLATES)
 # add_library(isoex ${isoex_sources} ${isoex_headers})
 # add_library(eigen ${eigen_sources} ${eigen_headers})
 # add_executable(reconstruct ${reconstruct_sources} ${reconstruct_headers})
-add_executable(viewer ${viewer_sources} ${viewer_headers})
+add_executable(primo_viewer ${primo_viewer_sources} ${primo_viewer_headers})
+add_executable(paper_viewer ${paper_viewer_sources} ${paper_viewer_headers})
+
 if(WIN32)
-target_link_libraries(viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
+target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
 else()
-target_link_libraries(viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
+target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
+endif()
+
+if(WIN32)
+target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
+else()
+target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
 endif()
 # target_link_libraries(reconstruct ${OPENMESH_LIBRARIES} isoex)

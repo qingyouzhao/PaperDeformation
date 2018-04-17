@@ -423,5 +423,6 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
     // update vertices position based on faces(prisms) around each vertex
     update_vertices_based_on_prisms(); 
     // update OpenMesh's normals
-    mesh_.update_normals(); 
+    mesh_.update_normals();
+    glutPostRedisplay();
 }

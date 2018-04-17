@@ -393,6 +393,10 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case ' ':
 	{
+		if(selectMode_ != ESelectMode::NONE){
+			printf("Deformation could only happen when select mode is NONE\n");
+			break;
+		}
 		if(bKey_space_is_move_){
 			squeeze_prisms(optimizedFaceHandles_, center_);
 
@@ -407,13 +411,19 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case 'r':
 	case 'R':{
+		if(selectMode_ != ESelectMode::NONE){
+			printf("Deformation could only happen when select mode is NONE\n");
+			break;
+		}
 		for(const OpenMesh::FaceHandle &fh : staticFaceHandles_){
 			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.emplace_back(fh);
+			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
 		}
 		for(const OpenMesh::FaceHandle &fh : dynamicFaceHandles_){
 			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
 			optimizedFaceHandles_.emplace_back(fh);
+			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
 		}
 		staticFaceHandles_.clear();
 		dynamicFaceHandles_.clear();

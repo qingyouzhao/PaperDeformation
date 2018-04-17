@@ -405,6 +405,26 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		glutPostRedisplay();
 	}
 		break;
+	case 'r':
+	case 'R':{
+		for(const OpenMesh::FaceHandle &fh : staticFaceHandles_){
+			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
+			optimizedFaceHandles_.emplace_back(fh);
+		}
+		for(const OpenMesh::FaceHandle &fh : dynamicFaceHandles_){
+			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
+			optimizedFaceHandles_.emplace_back(fh);
+		}
+		staticFaceHandles_.clear();
+		dynamicFaceHandles_.clear();
+		update_1typeface_indices(dynamicFaceHandles_, dynamicVertexIndices_);
+		update_1typeface_indices(staticFaceHandles_, staticVertexIndices_);
+		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+		glutPostRedisplay();
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		glutPostRedisplay();	
+	}
+		break;
 	default:
 		GlutExaminer::keyboard(key, x, y);
 		break;

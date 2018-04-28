@@ -294,7 +294,7 @@ private:
 private:
 	// Utilities to calculate prism energy and decide if converge
 	inline static bool converge_E(float Ek, float Ekm1) {
-  		static const float sigma = 0.005f;
+  		static const float sigma = 0.05f;
   		return (std::fabs(Ek - Ekm1) < sigma * Ek) ||
                  (Ek < 1e-8)
              ? true

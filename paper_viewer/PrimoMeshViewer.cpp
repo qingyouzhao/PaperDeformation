@@ -393,6 +393,10 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case ' ':
 	{
+		if(selectMode_ != ESelectMode::NONE){
+			printf("Deformation could only happen when select mode is NONE\n");
+			break;
+		}
 		if(bKey_space_is_move_){
 			squeeze_prisms(optimizedFaceHandles_, center_);
 
@@ -403,6 +407,32 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// move all optimizable prisms(faces) to a single point(Figure 6 in PriMo paper)
 		bKey_space_is_move_  = !bKey_space_is_move_;
 		glutPostRedisplay();
+	}
+		break;
+	case 'r':
+	case 'R':{
+		if(selectMode_ != ESelectMode::NONE){
+			printf("Deformation could only happen when select mode is NONE\n");
+			break;
+		}
+		for(const OpenMesh::FaceHandle &fh : staticFaceHandles_){
+			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
+			optimizedFaceHandles_.emplace_back(fh);
+			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
+		}
+		for(const OpenMesh::FaceHandle &fh : dynamicFaceHandles_){
+			optimizedFaceIdx_2_i_[fh.idx()] = optimizedFaceHandles_.size();
+			optimizedFaceHandles_.emplace_back(fh);
+			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
+		}
+		staticFaceHandles_.clear();
+		dynamicFaceHandles_.clear();
+		update_1typeface_indices(dynamicFaceHandles_, dynamicVertexIndices_);
+		update_1typeface_indices(staticFaceHandles_, staticVertexIndices_);
+		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+		glutPostRedisplay();
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		glutPostRedisplay();	
 	}
 		break;
 	default:

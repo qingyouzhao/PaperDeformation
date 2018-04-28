@@ -393,6 +393,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case ' ':
 	{
+		// 04/18 move all primsms on (optimizedFaceHandles_) to a point ( center_(Currently is the center of the scene) )
 		if(selectMode_ != ESelectMode::NONE){
 			printf("Deformation could only happen when select mode is NONE\n");
 			break;

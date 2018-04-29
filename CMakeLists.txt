@@ -10,7 +10,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(EIGEN_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
 set(GLM_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glm)
-
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # additional CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -73,6 +73,30 @@ include_directories(${GLM_INCLUDE_DIRECTORY})
 # for isoex
 add_definitions(-DINCLUDE_TEMPLATES)
 
+# libigl
+option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
+option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"    OFF)
+option(LIBIGL_WITH_CGAL              "Use CGAL"           OFF)
+option(LIBIGL_WITH_COMISO            "Use CoMiso"         OFF)
+option(LIBIGL_WITH_CORK              "Use Cork"           OFF)
+option(LIBIGL_WITH_EMBREE            "Use Embree"         OFF)
+option(LIBIGL_WITH_LIM               "Use LIM"            OFF)
+option(LIBIGL_WITH_MATLAB            "Use Matlab"         OFF)
+option(LIBIGL_WITH_MOSEK             "Use MOSEK"          OFF)
+option(LIBIGL_WITH_OPENGL            "Use OpenGL"         OFF)
+option(LIBIGL_WITH_OPENGL_GLFW       "Use GLFW"           OFF)
+option(LIBIGL_WITH_OPENGL_GLFW_IMGUI "Use ImGui"          OFF)
+option(LIBIGL_WITH_PNG               "Use PNG"            OFF)
+option(LIBIGL_WITH_PYTHON            "Use Python"         OFF)
+option(LIBIGL_WITH_TETGEN            "Use Tetgen"         OFF)
+option(LIBIGL_WITH_TRIANGLE          "Use Triangle"       ON)
+option(LIBIGL_WITH_VIEWER            "Use OpenGL viewer"  OFF)
+option(LIBIGL_WITH_XML               "Use XML"            OFF)
+
+find_package(LIBIGL REQUIRED QUIET)
+
+
+
 # compile and link
 # add_library(ann ${ann_sources} ${ann_headers})
 # no need for isoex, reconstruct here.
@@ -89,8 +113,7 @@ add_executable(paper_viewer ${paper_viewer_sources} ${paper_viewer_headers})
 # endif()
 
 if(WIN32)
-target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
+target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} igl::core igl::triangle)
 else()
-target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
+target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} igl::core igl::triangle -lpthread)
 endif()
-# target_link_libraries(reconstruct ${OPENMESH_LIBRARIES} isoex)

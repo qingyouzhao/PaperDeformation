@@ -29,24 +29,36 @@
 //   Boston, MA  02110-1301, USA.
 //                                                                            
 //=============================================================================
-#include "ValenceViewer.hh"
-#include "PrimoMeshViewer.h"
+#include <igl/triangle/triangulate.h>
+// Input polygon
+Eigen::MatrixXd V;
+Eigen::MatrixXi E;
+Eigen::MatrixXd H;
 
+// Triangulated interior
+Eigen::MatrixXd V2;
+Eigen::MatrixXi F2;
 
-
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-  glutInit(&argc, argv);
-  printf("Usage:\na: Toggle prism visualization\n+: Add prism height\n-: Minus prism height\no: switch optimization method (default: Global)\n\n");
-  printf("Legend:\nOrange: dynamic faces\nBlue: optimizable faces\nDark Green: static faces\n-------"
-          "---------------------------------------------------\n\n");
-  printf("Logging:\n");
+  using namespace Eigen;
+  using namespace std;
 
-  // ValenceViewer window("Valence Viewer", 512, 512);
-  PrimoMeshViewer window("Paper Demo", 1024, 1024);
+  // Create the boundary of a square
+  V.resize(8,2);
+  E.resize(8,2);
+  H.resize(1,2);
 
-  if (argc>1)
-    window.open_mesh(argv[1]);
+  V << -1,-1, 1,-1, 1,1, -1, 1,
+       -2,-2, 2,-2, 2,2, -2, 2;
 
-  glutMainLoop();
+  E << 0,1, 1,2, 2,3, 3,0,
+       4,5, 5,6, 6,7, 7,4;
+
+  H << 0,0;
+
+  // Triangulate the interior
+  igl::triangle::triangulate(V,E,H,"a0.005q",V2,F2);
+
+  // Plot the generated mesh
 }

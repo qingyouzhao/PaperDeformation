@@ -207,9 +207,8 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             const PrismProperty * const P_i = &(mesh.property(P_PrismProperty, he_i));
             const PrismProperty * const P_j = &(mesh.property(P_PrismProperty, he_j));
             const float w_ij = P_i->weight_ij * 0.1f;
-            const float a_ij = P_i->weight_ij;
             // assert for debug, opposite half edges should have same edge weight
-            assert(fabs(a_ij - P_j->weight_ij) < FLT_EPSILON);
+            assert(fabs(w_ij - P_j->weight_ij) < FLT_EPSILON);
 
             // get all p^ij p^ji that are used to fill in matrices
             Pij_ji p(P_i, P_j);

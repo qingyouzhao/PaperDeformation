@@ -1,6 +1,7 @@
 from maya import cmds
 import maya.api.OpenMaya as om
 from maya.api.OpenMaya import MVector
+import pymel.core.nodetypes as nodetypes
 
 # create a poly plane
 # valley and mountain define
@@ -39,10 +40,62 @@ def cubicBezierCurve(p0,p1,p2,p3,segments =4, include_p0 = False, include_p3 = F
 
 	return pts
 
+def createBeizerCrease(mesh,start, end, segments):
+	ip = []
+	ip.append(epStart)
+
+# some short hand wrappers to make the code more readable
+def getVertName(n, i):
+	return n + '.vtx[' + str(i) + ']'
+
+def getVertextFaceName(n, i,j):
+	return n + '.vtxFace[' + str(i) + '][' + str(j) + ']'
+
+def getEdgeName(n, i):
+	return n + '.e[' + str(i) + ']'
+
+def getFaceName(n, i):
+	return n + '.f[' + str(i) + ']'
+
+def findClosesVertexOnMesh(mesh, point):
+	'''
+	Try to find the closest vertex on the mesh
+	'''
+	# the core here here is to use http://download.autodesk.com/us/maya/2011help/CommandsPython/polyInfo.html
+	# the polyInfo command is like the iterator in openmesh
+	# or a guide here http://polycount.com/discussion/77642/maya-select-all-by-componets-verts-edges-faces
+	print("mesh is " + str(mesh))
+	vtxCount = cmds.polyEvaluate(mesh, v = True)
+	distance = 9999.0
+	closest_idx = -1
+	for i in range(vtxCount):
+		vert = getVertName(mesh,i)
+		vert_p = cmds.pointPosition(vert, w = True)
+		dist_sqrt = (vert_p[0] - point[0])**2 + (vert_p[1] - point[1])**2 + (vert_p[2] - point[2])**2
+		if dist_sqrt < distance:
+			distance = dist_sqrt
+			closest_idx = i
+
+	if closest_idx != -1:
+		return getVertName(mesh, closest_idx)
+	else:
+		return ""
+
+def findBestEdgeToCrease(vertex, crease_direction):
+	
 
 def polySplitCrease():
 	# create a uniform polygon first
 	newFace = cmds.polyCreateFacet(n='myPaper', p = [(-1, 0 , -1), (-1, 0, 1), (1, 0, 1), (1, 0, -1)])
+
+	# now need to find edge index from point
+	p0 = MVector(-1.0,0.0,-1.0)
+	p1 = MVector(-1,0,1)
+	closest_vert_0 = findClosesVertexOnMesh(newFace[0],p0)
+	print(closest_vert_0)
+	closest_vert_1 = findClosesVertexOnMesh(newFace[0],p1)
+	print(closest_vert_1)
+
 	epStart = (0,0.0)
 	epEnd = (0,1.0)
 	ip = []

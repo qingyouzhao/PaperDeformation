@@ -14,6 +14,7 @@ enum class EPrismExtrudeMode {
 	CUSTOM
 };
 
+extern const std::string test_crease_file;
 
 // A wrapper for GL color functionality
 struct LinearColor
@@ -276,9 +277,10 @@ private:
 										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles);
 	void translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, std::vector<OpenMesh::FaceHandle> &face_handles);
 
-
-	void read_mesh_and_cp(std::string& mesh_filename, std::string& crease_pattern_filename);
-	void read_cp(std::string& filename);
+public:
+	void read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename);
+	void test_read_crease_pattern();
+	void read_crease_pattern(const std::string& filename);
 	
 	//QYZ's version of the creases marked here.
 	std::vector<std::vector<Mesh::HalfedgeHandle>> creases;
@@ -296,6 +298,8 @@ public:
 	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points);
 	// Get the handled of the closes vert on this mesh from the point
 	Mesh::VertexHandle get_closes_vertex(Mesh::Point p);
+
+	
 
 private:
 	std::list<DebugLine> debug_lines_;

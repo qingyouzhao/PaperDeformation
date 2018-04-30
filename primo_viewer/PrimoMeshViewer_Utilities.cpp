@@ -304,7 +304,7 @@ void PrimoMeshViewer::update_prisms_height_uniform(const std::vector<OpenMesh::F
 		for (; fh_it.is_valid(); ++fh_it){
 			PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_it);
 			const OpenMesh::Vec3f dFrom = (prop.FromVertPrismUp - prop.FromVertPrismDown).normalized() * dh;
-			const OpenMesh::Vec3f dTo = (prop.ToVertPrismUp - prop.ToVertPrismDown) * dh;
+			const OpenMesh::Vec3f dTo = (prop.ToVertPrismUp - prop.ToVertPrismDown).normalized() * dh;
 			prop.FromVertPrismUp += dFrom;
 			prop.FromVertPrismDown -= dFrom;
 			prop.ToVertPrismUp += dTo;

@@ -37,8 +37,8 @@
 int main(int argc, char **argv)
 {
   glutInit(&argc, argv);
-  printf("Usage:\na: Toggle prism visualization\n+: Add prism height\n-: Minus prism height\no: switch optimization method (default: Global)\n\n");
-  printf("Legend:\nOrange: dynamic faces\nBlue: optimizable faces\nDark Green: static faces\n-------"
+  printf("Usage:\na: Toggle prism visualization\n+: Add prism height\n-: Minus prism height\no: switch optimization method (default: Global)\nc: read Dynamic Crease Folding file\nf: forward folding\nb: backward folding\n\n");
+  printf("Legend:\nOrange: foldable faces\nBlue: optimizable faces\n-------"
           "---------------------------------------------------\n\n");
   printf("Logging:\n");
 

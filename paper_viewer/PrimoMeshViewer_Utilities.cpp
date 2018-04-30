@@ -501,11 +501,30 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	optimizedFaceHandles_.clear();
 	optimizedFaceIdx_2_i_.clear();
 	// two faces belong to each NONE edge can be optimized
-	for(int i = 0; i < creases_.size(); ++i){
-		if(creases_[i].crease_type_ != Crease::ECreaseType::NONE){
+	std::unordered_set<int> not_optimizable_faceId;
+	for(const Crease &crease: creases_){
+		if(crease.crease_type_ == Crease::ECreaseType::NONE){
 			continue;
 		}
-		// #TODO[ZJW]
+		//mesh_.face_handle(creases_[i]);
+		for(int i = 0; i < crease.size(); ++i){
+			//not_optimizable_faceId.emplace(mesh_.face_handle())
+			not_optimizable_faceId.emplace(mesh_.face_handle(crease[i]).idx());
+			Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
+			if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
+				not_optimizable_faceId.emplace(mesh_.face_handle(he_j).idx());
+			}
+		}
 	}
+	//
+	for(int i = 0; i < allFaceHandles_.size(); ++i){
+		const auto &face_handle = allFaceHandles_[i];
+		if(not_optimizable_faceId.find(face_handle.idx()) != not_optimizable_faceId.end()){
+			continue;
+		}
+		optimizedFaceIdx_2_i_[face_handle.idx()] = optimizedFaceHandles_.size();
+		optimizedFaceHandles_.emplace_back(face_handle);
+	}
+	
 
 }

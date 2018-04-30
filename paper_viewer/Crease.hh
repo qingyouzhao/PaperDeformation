@@ -16,6 +16,9 @@ public:
         assert(i >= 0 && i < he_handles_.size());
         return he_handles_[i];
     }
+    inline int size() const{
+        return he_handles_.size();
+    }
     void set_prism_height(const float height, OpenMesh::HPropHandleT<PrismProperty> &p_handle);
     enum class ECreaseType{NONE, MOUNTAIN, VALLEY} crease_type_;
     void draw() const;

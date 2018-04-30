@@ -146,7 +146,6 @@ private:
 	// press x to visualize other stuff
 	bool drawDebugInfo_;
 	// colors of faces of prisms
-	GLfloat foldableFaceColor_[3];
 	GLfloat optimizedFacesColor_[3];
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
@@ -158,10 +157,12 @@ private:
 	// maintain a set of optimized faces' idx only for global optimization
 	
 	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
-	std::vector<unsigned int> optimizedVertexIndices_;
+	//std::vector<unsigned int> optimizedVertexIndices_;
 	
 	// used for ray-casting, from prim_id to faceHandle
 	std::vector<OpenMesh::FaceHandle> allFaceHandles_;
+	//std::vector<unsigned int> allVertexIndices_;
+
 	// face_handles is cleared and filled with all face handles in mesh_
 	void get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles);
 	
@@ -171,10 +172,10 @@ private:
 	
 	// delete a face_handle(fh) from face_handles, where fh.idx() == faceId
 	// O(n), need optimize if this is raycast bottleneck
-	void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
-							std::unordered_map<int, int> *face_idx_2_i = nullptr);
+	// void delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
+	// 						std::unordered_map<int, int> *face_idx_2_i = nullptr);
 	// each face could only have one type of STATIC/DYNAMI/NONE
-	std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
+	//std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
 	// draw prisms for all faces in array(vector)
 	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
 

@@ -489,7 +489,8 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 		assert(crease_index >= 0 && crease_index < creases_.size());
 		int tmp = 0;
 		fin >> tmp;
-		creases_[crease_index].set_foldable(tmp == 1 ? true : false);
+		creases_[crease_index].crease_type_ = 
+			(tmp == 0 ? Crease::ECreaseType::NONE : (tmp == 1 ? Crease::ECreaseType::MOUNTAIN: Crease::ECreaseType::VALLEY ));
 		float height_rate = 0.0f;
 		fin >> height_rate;
 		// prisms' height cannot be less than 0
@@ -498,6 +499,13 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	}
 	// update optimizable faces
 	optimizedFaceHandles_.clear();
-
+	optimizedFaceIdx_2_i_.clear();
+	// two faces belong to each NONE edge can be optimized
+	for(int i = 0; i < creases_.size(); ++i){
+		if(creases_[i].crease_type_ != Crease::ECreaseType::NONE){
+			continue;
+		}
+		// #TODO[ZJW]
+	}
 
 }

@@ -17,15 +17,10 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	mesh_.add_property(P_globalPrism_intermediate);
 	//mesh_.add_property(P_FaceTransformationCache);
 
-	// set color of 3 kind of faces(prisms) here 
-	// default: fodable(orange), 
-	foldableFaceColor_[0] = 1.0f;
-	foldableFaceColor_[1] = 0.64453125f;
-	foldableFaceColor_[2] = 0.0f;
-	// optimized(blue)
-	optimizedFacesColor_[0] = 0.5294117647f;
-	optimizedFacesColor_[1] = 0.80784313725f;
-	optimizedFacesColor_[2] = 0.98039215686f;
+	// default: optimized(white)
+	optimizedFacesColor_[0] = 0.8f;
+	optimizedFacesColor_[1] = 0.8f;
+	optimizedFacesColor_[2] = 0.8f;
 	
 	// do not draw prisms at first
 	drawPrisms_ = false;
@@ -73,13 +68,13 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 
 		// default: all faces are optimizable
 		get_allFace_handles(optimizedFaceHandles_);
-		update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
-		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
-			faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
-		}
+		//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+		// for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+		// 	faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
+		// }
 		// and then, prisms are set up 
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
-		
+		//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
 		// init the set of idx of opmizedFaces only for global optimization
 		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
 			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
@@ -155,7 +150,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		// draw 3 kind of faces
 		glColor3fv(optimizedFacesColor_);
 		glBegin(GL_TRIANGLES);
-		for (const OpenMesh::FaceHandle& fh : optimizedFaceHandles_)
+		for (const OpenMesh::FaceHandle& fh : allFaceHandles_)
 		{
 			GL::glNormal(mesh_.normal(fh));
 			fv_it = mesh_.cfv_iter(fh); 
@@ -178,11 +173,8 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		GL::glVertexPointer(mesh_.points());
 		GL::glNormalPointer(mesh_.vertex_normals());
 		// draw 3 type of faces
-		if(optimizedVertexIndices_.size()>0)
-		{
-			glColor3fv(optimizedFacesColor_);
-			glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(optimizedVertexIndices_.size()), GL_UNSIGNED_INT, &optimizedVertexIndices_[0]);
-		}
+		glColor3fv(optimizedFacesColor_);
+		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
 
 		// if(dynamicVertexIndices_.size()>0)
 		// {
@@ -199,6 +191,19 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisable(GL_COLOR_MATERIAL);
 	}
+	// draw mountain and valley edges
+	float prev_line_width;
+	glGetFloatv(GL_LINE_WIDTH, &prev_line_width);
+	glLineWidth(3 * prev_line_width);
+	for(const Crease &crease : creases_){
+		glEnable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHTING);
+		glBegin(GL_LINES);
+		crease.draw();
+		glEnd();
+		glDisable(GL_COLOR_MATERIAL);
+	}
+	glLineWidth(prev_line_width);
 	if(drawPrisms_){
 		// visualize prisms with wireframes
 		glEnable(GL_COLOR_MATERIAL);
@@ -211,6 +216,11 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		//draw_prisms(staticFaceHandles_);
 		glColor3fv(optimizedFacesColor_);
 		draw_prisms(optimizedFaceHandles_);
+
+		// overide the color 
+		for(const Crease &crease : creases_){
+			crease.draw_prisms(P_PrismProperty);
+		}
 		//
 		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
@@ -311,6 +321,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'f':
 	case 'F':{
 		// forward folding
+		// #TODO[ZJW]: implement forward folding
 		folding_angle_ += 0.5;
 	}
 		break;
@@ -318,6 +329,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'B':{
 		// backward folding
 		folding_angle_ -= 0.5;
+		// #TODO[ZJW]: implement backward folding
 
 	}
 		break;

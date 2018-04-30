@@ -5,6 +5,8 @@
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
+#include <istream>
+#include <fstream>
 
 
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
@@ -739,6 +741,111 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	if(dynamicFaceHandles_.size() > 0){
 		dynamic_rotation_centroid_ /= (float)(dynamicFaceHandles_.size() * 3);
 	}
+}
+
+void PrimoMeshViewer::read_mesh_and_cp(std::string& mesh_filename, std::string& crease_pattern_filename)
+{
+	// Read the obj file to make sure we have the mesh_ property
+		
+	// read the crease pattern file to get the important points
+		// A cp parser is needed here
+		// what is the output of the crease pattern?
+		// it should just update the crease pattern edge list based on the newly solved files
+	read_cp(crease_pattern_filename);
+
+	
+		// if triangulation is needed, compute triangulation on the mesh, preserving the crease patter
+
+		// refresh the crease edge list on the newly triangulated points
+}
+
+void PrimoMeshViewer::read_cp(std::string& filename)
+{
+	// check if file type is properly .cpx
+	std::string extension = ".cpx";
+	std::ifstream ifs(filename);
+	if (ifs)
+	{
+
+		// open file
+
+		// read line by line
+		
+		// for each line parse the line
+		// store approriate info in creases
+		std::string line;
+		// assume line is a single line of crease pattern
+
+		std::vector<Vector3f> crease_points;
+		get_points_from_line(line, crease_points);
+		assert(crease_points.size() > 1); // at least our points need to be more than 2
+
+		Mesh::Point start_point;
+		Mesh::Point end_point;
+		Mesh::VertexHandle start_vh = get_closes_vertex(start_point);
+		Mesh::VertexHandle end_vh = get_closes_vertex(end_point);
+
+		if (crease_points.size() == 2)
+		{
+			// this is a line
+			// just triangluate along the line
+			// try to find the creases along the line
+		}
+		else if (crease_points.size() == 3)
+		{
+			// this is a quadratic curve
+
+		}
+		else if (crease_points.size() == 4)
+		{
+			// cubic curve
+			// todo, write a beizier evaluation function
+			// find the list of half edges
+		}
+		else
+		{
+			std::cout << "this is an error" << std::endl;
+		}
+
+
+		// check if that is a line or a cubic spline
+		// if this is a cubic spline, evaluate the spline to find the closest point on the mesh
+		
+		// find starting point vertex
+
+		// let's write a search for closest point function
+
+
+
+
+		// from the crease pattern file line, mark all the edges by brute force search}
+
+	}
+	else
+	{
+		std::cout << "file is not found " << filename << std::endl;
+	}
+}
+
+void PrimoMeshViewer::get_points_from_line(std::string& line, std::vector<Vector3f>& out_points)
+{
+
+}
+
+MeshViewer::Mesh::VertexHandle PrimoMeshViewer::get_closes_vertex(Mesh::Point p)
+{
+	float smallest_dist = INT_MAX;
+	Mesh::VertexHandle vh;
+	for (Mesh::VertexIter v_it = mesh_.vertices_begin(); v_it->is_valid(); v_it++)
+	{
+		Mesh::Point cur_p = mesh_.point(*v_it);
+		if ((cur_p - p).norm() < smallest_dist)
+		{
+			vh = *v_it;
+			smallest_dist = (cur_p - p).norm();
+		}
+	}
+	return vh;
 }
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

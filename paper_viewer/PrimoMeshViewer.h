@@ -276,6 +276,13 @@ private:
 										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles);
 	void translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, std::vector<OpenMesh::FaceHandle> &face_handles);
 
+
+	void read_mesh_and_cp(std::string& mesh_filename, std::string& crease_pattern_filename);
+	void read_cp(std::string& filename);
+	
+	//QYZ's version of the creases marked here.
+	std::vector<std::vector<Mesh::HalfedgeHandle>> creases;
+
 public:
 	// Debug Utilities, these arrows will be added by local optimize. Every draw flushes the debug lines once. SHould be more optimized 
 	void add_debug_arrow(const Vector3d& from, const Vector3d& to, LinearColor color, double arrow_size);
@@ -284,6 +291,11 @@ public:
 
 	std::list<Transformation> g_debug_transformations_to_draw_local_optimization;
 	std::list<Arrow> g_debug_arrows_to_draw_local_optimizations;
+
+public:
+	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points);
+	// Get the handled of the closes vert on this mesh from the point
+	Mesh::VertexHandle get_closes_vertex(Mesh::Point p);
 
 private:
 	std::list<DebugLine> debug_lines_;

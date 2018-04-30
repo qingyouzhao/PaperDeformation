@@ -321,10 +321,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'f':
 	case 'F':{
 		// forward folding
-		// #TODO[ZJW]: implement forward folding
 		folding_angle_ += 0.5;
-		for(const Crease &crease : creases_){
-			//crease.fold(folding_angle_);
+		for(Crease &crease : creases_){
+			crease.fold(0.5f, P_PrismProperty);
 		}
 		// thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 
@@ -334,9 +333,8 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'B':{
 		// backward folding
 		folding_angle_ -= 0.5;
-		// #TODO[ZJW]: implement backward folding
-		for(const Crease &crease : creases_){
-			//crease.fold(folding_angle_);
+		for(Crease &crease : creases_){
+			crease.fold(-0.5f, P_PrismProperty);
 		}
 		// thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 	}

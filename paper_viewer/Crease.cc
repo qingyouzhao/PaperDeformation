@@ -57,6 +57,8 @@ void Crease::draw() const{
     }
 }
 void Crease::draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const{
+    static constexpr int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+	static constexpr int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
     if(crease_type_ == ECreaseType::NONE){
         // do not draw NONE crease
         return;
@@ -68,33 +70,74 @@ void Crease::draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismPro
     // draw 8 lines of two faces
     for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
         Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
-        const PrismProperty &prop_i = mesh_.property(P_PrismProperty, he_i);
-        glVertex3f(prop_i.FromVertPrismDown[0], prop_i.FromVertPrismDown[1], prop_i.FromVertPrismDown[2]);
-		glVertex3f(prop_i.FromVertPrismUp[0], prop_i.FromVertPrismUp[1], prop_i.FromVertPrismUp[2]);
-        
-        glVertex3f(prop_i.ToVertPrismDown[0], prop_i.ToVertPrismDown[1], prop_i.ToVertPrismDown[2]);
-		glVertex3f(prop_i.ToVertPrismUp[0], prop_i.ToVertPrismUp[1], prop_i.ToVertPrismUp[2]);
-        
-        glVertex3f(prop_i.FromVertPrismDown[0], prop_i.FromVertPrismDown[1], prop_i.FromVertPrismDown[2]);
-		glVertex3f(prop_i.ToVertPrismDown[0], prop_i.ToVertPrismDown[1], prop_i.ToVertPrismDown[2]);
-        
-        glVertex3f(prop_i.FromVertPrismUp[0], prop_i.FromVertPrismUp[1], prop_i.FromVertPrismUp[2]);
-		glVertex3f(prop_i.ToVertPrismUp[0], prop_i.ToVertPrismUp[1], prop_i.ToVertPrismUp[2]);
+        const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
+        Mesh::ConstFaceHalfedgeCWIter fh_cwit_i = mesh_.cfh_cwbegin(fh_i);
+		const OpenMesh::Vec3f* pv_i[6];// 6 vertices of prism
+		for (int i = 0; fh_cwit_i.is_valid(); ++fh_cwit_i, ++i){
+			assert(i < 3);
+			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_i);
+			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			pv_i[i] = &(prop.FromVertPrismUp);
+			pv_i[i + 3] = &(prop.FromVertPrismDown);
+		}
+		// have got all six vertices of prism, draw 9 edges
+		// 01, 12, 02, 34, 45, 35, 03, 14, 25
+
+		for(int i = 0; i < 9; ++i){
+			glVertex3f((*pv_i[pv1i[i]])[0], (*pv_i[pv1i[i]])[1], (*pv_i[pv1i[i]])[2]);
+			glVertex3f((*pv_i[pv2i[i]])[0], (*pv_i[pv2i[i]])[1], (*pv_i[pv2i[i]])[2]);
+		}
         if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
-            const PrismProperty &prop_j = mesh_.property(P_PrismProperty, he_j);
-            glVertex3f(prop_j.FromVertPrismDown[0], prop_j.FromVertPrismDown[1], prop_j.FromVertPrismDown[2]);
-            glVertex3f(prop_j.FromVertPrismUp[0], prop_j.FromVertPrismUp[1], prop_j.FromVertPrismUp[2]);
-            
-            glVertex3f(prop_j.ToVertPrismDown[0], prop_j.ToVertPrismDown[1], prop_j.ToVertPrismDown[2]);
-            glVertex3f(prop_j.ToVertPrismUp[0], prop_j.ToVertPrismUp[1], prop_j.ToVertPrismUp[2]);
-            
-            glVertex3f(prop_j.FromVertPrismDown[0], prop_j.FromVertPrismDown[1], prop_j.FromVertPrismDown[2]);
-            glVertex3f(prop_j.ToVertPrismDown[0], prop_j.ToVertPrismDown[1], prop_j.ToVertPrismDown[2]);
-            
-            glVertex3f(prop_j.FromVertPrismUp[0], prop_j.FromVertPrismUp[1], prop_j.FromVertPrismUp[2]);
-            glVertex3f(prop_j.ToVertPrismUp[0], prop_j.ToVertPrismUp[1], prop_j.ToVertPrismUp[2]);
+            const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
+            Mesh::ConstFaceHalfedgeCWIter fh_cwit_j = mesh_.cfh_cwbegin(fh_j);
+            const OpenMesh::Vec3f* pv_j[6];// 6 vertices of prism
+            for (int i = 0; fh_cwit_j.is_valid(); ++fh_cwit_j, ++i){
+                assert(i < 3);
+                const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_j);
+                // const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+                // pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+                // pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+                pv_j[i] = &(prop.FromVertPrismUp);
+                pv_j[i + 3] = &(prop.FromVertPrismDown);
+            }
+            // have got all six vertices of prism, draw 9 edges
+            // 01, 12, 02, 34, 45, 35, 03, 14, 25
+
+            for(int i = 0; i < 9; ++i){
+                glVertex3f((*pv_j[pv1i[i]])[0], (*pv_j[pv1i[i]])[1], (*pv_j[pv1i[i]])[2]);
+                glVertex3f((*pv_j[pv2i[i]])[0], (*pv_j[pv2i[i]])[1], (*pv_j[pv2i[i]])[2]);
+            }
         }
     }
+
+
+
+
+
+    // each triangle face has 6 prism vertices and 9 edges
+	// for (const OpenMesh::FaceHandle& fh : face_handles){
+	// 	Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
+	// 	const Vec3f* pv[6];// 6 vertices of prism
+	// 	for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
+	// 		assert(i < 3);
+	// 		const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
+	// 		// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+	// 		// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+	// 		// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+	// 		pv[i] = &(prop.FromVertPrismUp);
+	// 		pv[i + 3] = &(prop.FromVertPrismDown);
+	// 	}
+	// 	// have got all six vertices of prism, draw 9 edges
+	// 	// 01, 12, 02, 34, 45, 35, 03, 14, 25
+	// 	static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+	// 	static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
+	// 	for(int i = 0; i < 9; ++i){
+	// 		glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
+	// 		glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
+	// 	}
+	// }
 
 }
 void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty){

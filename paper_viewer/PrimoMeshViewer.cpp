@@ -87,6 +87,9 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		}
 		float initE = E(optimizedFaceHandles_);
 		assert(fabs(initE) < FLT_EPSILON);
+
+		// read crease pattern curve
+		test_read_crease_pattern();
 		return true;
 	}
 	return false;
@@ -374,19 +377,6 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
 		}
 	}
-}
-
-void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
-{
-	if (!is_legal_boundary(boundary_hehs))
-	{
-		std::cout << "the boundary passed in is not legal, sorry mate" << std::endl;
-	}
-}
-
-bool PrimoMeshViewer::is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const
-{
-	return false;
 }
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

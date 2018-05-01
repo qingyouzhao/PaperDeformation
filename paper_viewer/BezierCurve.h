@@ -1,8 +1,8 @@
 #include "Vector.hh"
 #include <vector>
-#include <Eigen/Dense>
 #include <algorithm>
-
+#include <iostream>
+#include <climits>
 template <class T>
 class BezierCurve
 {
@@ -15,9 +15,9 @@ class BezierCurve
 
 	
 public:
-	BezierCurve(const Vector<T, 3> InP0,const Vector<T, 3> InP1,const Vector<T, 3> InP2,const Vector<T, 3> InP3)
-	:p0(InP0), p1(InP1), p2(InP2), p3(InP3),
-	{}
+	// BezierCurve(const Vector<T, 3> InP0,const Vector<T, 3> InP1,const Vector<T, 3> InP2,const Vector<T, 3> InP3)
+	// :p0(InP0), p1(InP1), p2(InP2), p3(InP3),
+	// {}
 
 
 	BezierCurve(const std::vector<Vector<T, 3>>& InPoints)
@@ -34,7 +34,7 @@ public:
 	// Evaluate the curve at time T
 	Vector<T, 3> Eval(double InT);
 
-	bool IsPointOnSpline(Vector<T, 3>& InPosition);
+	// bool IsPointOnSpline(Vector<T, 3>& InPosition);
 	// Calculate based on a piece wise evaluation of the point, should be more closely monitored.
 	T    GetClosestPointOnSpline_Inaccurate(const Vector<T, 3>& InPosition, Vector<T,3>& OutPosition, T& OutT, int Segments = 10);
 	bool IsPointOnSplineInaccurate(Vector<T, 3>& InPosition, int Segments);
@@ -78,32 +78,32 @@ bool BezierCurve<T>::IsPointOnSplineInaccurate(Vector<T, 3>& InPosition, int Seg
 	return false;
 }
 
-template <class T>
-bool BezierCurve<T>::IsPointOnSpline(Vector<T,3>& InPosition)
-{
-	//
-	Eigen::Matrix<T, 3, 3> RealA;
-	Eigen::Matrix<T, 3, 1> Realb;
+// template <class T>
+// bool BezierCurve<T>::IsPointOnSpline(Vector<T,3>& InPosition)
+// {
+// 	//
+// 	Eigen::Matrix<T, 3, 3> RealA;
+// 	Eigen::Matrix<T, 3, 1> Realb;
 
-	Vector<T, 3> T3_Coeff = (-p0 + (T)3*p1-(T)3*p2 + p3);
-	Vector<T, 3> T2_Coeff = ((T)3*p0 - (T)6*p1 + (T)3* p2);
-	Vector<T, 3> T_Coeff = - (T)3*p0 + (T)3*p1;
+// 	Vector<T, 3> T3_Coeff = (-p0 + (T)3*p1-(T)3*p2 + p3);
+// 	Vector<T, 3> T2_Coeff = ((T)3*p0 - (T)6*p1 + (T)3* p2);
+// 	Vector<T, 3> T_Coeff = - (T)3*p0 + (T)3*p1;
 
-	RealA << T3_Coeff[0], T2_Coeff[0], T_Coeff[0],
-			 T3_Coeff[1], T2_Coeff[1], T_Coeff[1], 
-			 T3_Coeff[2], T2_Coeff[2], T_Coeff[2];
-	Realb << (InPosition - p0)[0], (InPosition - p0)[1], (InPosition - p0)[2];
-	Eigen::Matrix<T, 3, 1> T3T2T = RealA.colPivHouseholderQr().solve(Realb);
+// 	RealA << T3_Coeff[0], T2_Coeff[0], T_Coeff[0],
+// 			 T3_Coeff[1], T2_Coeff[1], T_Coeff[1], 
+// 			 T3_Coeff[2], T2_Coeff[2], T_Coeff[2];
+// 	Realb << (InPosition - p0)[0], (InPosition - p0)[1], (InPosition - p0)[2];
+// 	Eigen::Matrix<T, 3, 1> T3T2T = RealA.colPivHouseholderQr().solve(Realb);
 
-#ifndef _DEBUG
-	std::cout << "Here is the Bezier matrix A:\n" << RealA << std::endl;
-	std::cout << "Here is the Bezier vector b:\n" << Realb << std::endl;
+// #ifndef _DEBUG
+// 	std::cout << "Here is the Bezier matrix A:\n" << RealA << std::endl;
+// 	std::cout << "Here is the Bezier vector b:\n" << Realb << std::endl;
 	
-	std::cout << "The solution is:\n" << T3T2T << std::endl;
-#endif // DEBUG
-	bool result = std::abs(T3T2T[0] - T3T2T[1] * T3T2T[2]) < 1e-4;
-	return result;
-}
+// 	std::cout << "The solution is:\n" << T3T2T << std::endl;
+// #endif // DEBUG
+// 	bool result = std::abs(T3T2T[0] - T3T2T[1] * T3T2T[2]) < 1e-4;
+// 	return result;
+// }
 
 template <class T>
 Vector<T, 3> BezierCurve<T>::Eval(double InT)

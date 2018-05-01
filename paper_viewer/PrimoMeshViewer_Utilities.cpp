@@ -9,9 +9,9 @@
 #include <fstream>
 #include "BezierCurve.h"
 // Triangulation stuff
-#include "triangle.h"
-#include "libigl/include/igl/delaunay_triangulation.h"
-#include "libigl/include/igl/triangle/triangulate.h"
+// #include "triangle.h"
+// #include <libigl/include/igl/delaunay_triangulation.h>
+// #include "libigl/include/igl/triangle/triangulate.h"
 
 const LinearColor LinearColor::RED(1.f,0.f,0.f);
 const LinearColor LinearColor::BLUE(0.f,0.f,1.0f);
@@ -560,7 +560,7 @@ void PrimoMeshViewer::test_read_crease_pattern()
 
 void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
 {
-	creases.clear();
+	creases_.clear();
 	// check if file type is properly .cpx
 	std::string extension = ".cpx";
 	// open file
@@ -599,7 +599,7 @@ void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
 				get_points_from_line(line, crease_points, segments);
 
 				// with crease points, search for corresponding half edges
-				std::vector<Mesh::HalfedgeHandle> crease_hehs;
+				std::vector<Mesh::HalfedgeHandle> crease_hehs; // zqy: this is the list for this crease
 				std::vector<Mesh::Point> crease_points_on_mesh;
 				// init parameters
 				const Vector3f start = crease_points[0];
@@ -686,7 +686,7 @@ void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
 				}
 				break;
 				}
-				creases.emplace_back(crease_hehs);
+				creases_.emplace_back(crease_hehs, mesh_); // this is whe
 			}
 			break;
 			default:
@@ -699,7 +699,7 @@ void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
 		std::cout << "file is not found " << filename << std::endl;
 	}
 	std::cout << "finished parsing crease pattern" << filename << std::endl;
-	std::cout << "Total crease found " << creases.size() << std::endl;
+	std::cout << "Total crease found " << creases_.size() << std::endl;
 
 }
 

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <list>
 
+
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
@@ -281,6 +282,8 @@ public:
 	void read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename);
 	void test_read_crease_pattern();
 	void read_crease_pattern(const std::string& filename);
+
+	// I might need t a beizer wrapper.
 	
 	//QYZ's version of the creases marked here.
 	std::vector<std::vector<Mesh::HalfedgeHandle>> creases;
@@ -295,7 +298,7 @@ public:
 	std::list<Arrow> g_debug_arrows_to_draw_local_optimizations;
 
 public:
-	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points);
+	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points, int& segments);
 	// Get the handled of the closes vert on this mesh from the point
 	Mesh::VertexHandle get_closes_vertex(Mesh::Point p);
 

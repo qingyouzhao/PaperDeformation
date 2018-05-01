@@ -5,6 +5,13 @@
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
+#include <istream>
+#include <fstream>
+#include "BezierCurve.h"
+// Triangulation stuff
+#include "triangle.h"
+#include "libigl/include/igl/delaunay_triangulation.h"
+#include "libigl/include/igl/triangle/triangulate.h"
 
 const LinearColor LinearColor::RED(1.f,0.f,0.f);
 const LinearColor LinearColor::BLUE(0.f,0.f,1.0f);
@@ -577,4 +584,258 @@ void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Ve
 			prop.ToVertPrismDown += rotation_centroid;
 		}
 	}
+}
+
+
+void PrimoMeshViewer::read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename)
+{
+	// Read the obj file to make sure we have the mesh_ property
+
+	// read the crease pattern file to get the important points
+	// populate/update teh crease pattern edge list based on the file
+	read_crease_pattern(crease_pattern_filename);
+
+
+	// if triangulation is needed, compute triangulation on the mesh, preserving the crease patter
+	bool b_triangulation_needed = false;
+
+	// refresh the crease edge list on the newly triangulated points after triangulation
+}
+
+void PrimoMeshViewer::test_read_crease_pattern()
+{
+	// Read crease pattern
+	read_crease_pattern(test_crease_file);
+
+	// Then triangulate
+
+}
+
+void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
+{
+	creases.clear();
+	// check if file type is properly .cpx
+	std::string extension = ".cpx";
+	// open file
+	std::ifstream ifs(filename);
+	if (ifs)
+	{
+		// read line by line
+
+		// for each line parse the line
+		// store approriate info in creases
+		std::string line;
+		// assume line is a single line of crease pattern
+		int crease_count = 0;
+		while (std::getline(ifs, line))
+		{
+			std::stringstream ss(line);
+			int type;
+			ss >> type;
+			switch (type)
+			{
+			case 1:
+			{
+				// countour, should should do sanity check here if time allows
+				std::cout << "read a countour" << std::endl;
+			}
+			break;
+			case 2:
+			case 3:
+			{
+				// 2 means mountain
+				// 3 means valley
+
+				crease_count++;
+				std::vector<Vector3f> crease_points;
+				int segments;
+				get_points_from_line(line, crease_points, segments);
+
+				// with crease points, search for corresponding half edges
+				std::vector<Mesh::HalfedgeHandle> crease_hehs;
+				std::vector<Mesh::Point> crease_points_on_mesh;
+				// init parameters
+				const Vector3f start = crease_points[0];
+				Mesh::Point start_point(start[0], start[1], start[2]);
+				const Vector3f end = crease_points[3];
+				Mesh::Point end_point(end[0], end[1], end[2]);
+				Mesh::VertexHandle start_vh = get_closes_vertex(start_point);
+				Mesh::VertexHandle end_vh = get_closes_vertex(end_point);
+				switch (crease_points.size())
+				{
+				case 4:
+				{
+					// shortest
+					std::cout << "start searching crease halfedges." << std::endl;
+
+					Mesh::VertexHandle current_vh = start_vh;
+					Mesh::VertexHandle last_vh;
+					BezierCurve<float> bezier_curve(crease_points);
+					// I am just going to search based on the crease points and segment
+					for (int i = 0; i < segments; i++)
+					{
+						// try to find the half edge based on the segment point count
+						Vector3f segment_pos = bezier_curve.Eval((double)(i + 0.5) / segments);
+						for (Mesh::VertexOHalfedgeCCWIter voh_iter = mesh_.voh_ccwbegin(current_vh); voh_iter.is_valid(); voh_iter++)
+						{
+							Mesh::VertexHandle candidate_vh = mesh_.to_vertex_handle(*voh_iter);
+							Mesh::Point candidate_point = mesh_.point(candidate_vh);
+							Vector3f potential_pt(candidate_point[0], candidate_point[1], candidate_point[2]);
+							if (length(segment_pos - potential_pt) < 1e-5)
+							{
+								std::cout << "found a potential half edge for point " << potential_pt.to_string() << std::endl;
+								last_vh = current_vh;
+								current_vh = candidate_vh;
+								crease_hehs.push_back(*voh_iter);
+								crease_points_on_mesh.push_back(candidate_point);
+								break;
+							}
+						}
+					}
+					// Now add the last one
+					for (Mesh::VertexOHalfedgeCCWIter voh_iter = mesh_.voh_ccwbegin(current_vh); voh_iter.is_valid(); voh_iter++)
+					{
+						Mesh::VertexHandle candidate_vh = mesh_.to_vertex_handle(*voh_iter);
+						Mesh::Point candidate_point = mesh_.point(candidate_vh);
+						if (candidate_vh == end_vh)
+						{
+							std::cout << "found the end of our crease " << std::endl;
+							current_vh = candidate_vh;
+							crease_hehs.push_back(*voh_iter);
+							crease_points_on_mesh.push_back(candidate_point);
+						}
+					}
+					/*
+					while (current_vh != end_vh)
+					{
+					if (crease_hehs.size() % 1 == 0)
+					{
+					std::cout << "current crease has" << crease_hehs.size()  << "halfedges. "<< std::endl;
+					}
+					for (Mesh::VertexOHalfedgeCCWIter voh_iter = mesh_.voh_ccwbegin(current_vh); voh_iter.is_valid(); voh_iter++)
+					{
+					Mesh::VertexHandle candidate_vh = mesh_.to_vertex_handle(*voh_iter);
+					// skip the last half edge
+					if (candidate_vh == last_vh) { continue; }
+
+					Mesh::Point candidate_point = mesh_.point(candidate_vh);
+					Vector3f potential_pt(candidate_point[0], candidate_point[1], candidate_point[2]);
+					if (bezier_curve.IsPointOnSplineInaccurate(potential_pt,segments))
+					{
+					std::cout << "found a potential half edge for point " << potential_pt.to_string()<< std::endl;
+					last_vh = current_vh;
+					current_vh = candidate_vh;
+					crease_hehs.push_back(*voh_iter);
+					crease_points_on_mesh.push_back(candidate_point);
+					break;
+					}
+					}
+					}*/
+				}
+				break;
+				default:
+				{
+					std::cout << "crease point number not supported" << std::endl;
+				}
+				break;
+				}
+				creases.emplace_back(crease_hehs);
+			}
+			break;
+			default:
+				break;
+			}
+		}
+	}
+	else
+	{
+		std::cout << "file is not found " << filename << std::endl;
+	}
+	std::cout << "finished parsing crease pattern" << filename << std::endl;
+	std::cout << "Total crease found " << creases.size() << std::endl;
+
+}
+
+
+void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
+{
+	if (!is_legal_boundary(boundary_hehs))
+	{
+		std::cout << "the boundary passed in is not legal, sorry mate" << std::endl;
+	}
+
+	// Actual triangulation
+	void triangulate(char *, struct triangulateio *, struct triangulateio *,
+		struct triangulateio *);
+
+}
+
+bool PrimoMeshViewer::is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const
+{
+	return false;
+}
+
+void PrimoMeshViewer::get_points_from_line(std::string& line, std::vector<Vector3f>& out_points, int& segments)
+{
+	out_points.clear();
+	std::cout << "reading crease line" << std::endl;
+	std::stringstream ss(line);
+	int type;
+	ss >> type;
+	// crease index should start from here
+	float start_x, start_y;
+	float end_x, end_y;
+	float p1_x, p1_y;
+	float p2_x, p2_y;
+	ss >> start_x;
+	ss >> start_y;
+	Vector3f p0(start_x, 0, start_y);
+	out_points.push_back(p0);
+	ss >> end_x;
+	ss >> end_y;
+	Vector3f p1(end_x, 0, end_y);
+	out_points.push_back(p1);
+	if (ss)
+	{
+		// 1st control point
+		ss >> p1_x;
+		ss >> p1_y;
+		Vector3f p(p1_x, 0, p1_y);
+		out_points.insert(out_points.end() - 1, p);
+	}
+	if (ss)
+	{
+		// 2nd control point
+		ss >> p2_x;
+		ss >> p2_y;
+		Vector3f p(p2_x, 0, p2_y);
+		out_points.insert(out_points.end() - 1, p);
+	}
+	if (ss)
+	{
+		// get num segments
+		ss >> segments;
+	}
+	std::cout << "finished reading crease line " << line << std::endl;
+
+}
+
+MeshViewer::Mesh::VertexHandle PrimoMeshViewer::get_closes_vertex(Mesh::Point p)
+{
+	float smallest_dist = INT_MAX;
+	Mesh::VertexHandle vh;
+	for (Mesh::VertexIter v_it = mesh_.vertices_begin(); v_it != mesh_.vertices_end(); v_it++)
+	{
+		Mesh::Point cur_p = mesh_.point(*v_it);
+		if ((cur_p - p).norm() < smallest_dist)
+		{
+			vh = *v_it;
+			smallest_dist = (cur_p - p).norm();
+		}
+	}
+	if (!vh.is_valid())
+	{
+		std::cout << "Cannot find closest point" << std::endl;
+	}
+	return vh;
 }

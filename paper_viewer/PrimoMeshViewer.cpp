@@ -5,8 +5,7 @@
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
-#include <istream>
-#include <fstream>
+
 
 const std::string test_crease_file("../data/curve1.cpx");
 
@@ -744,175 +743,17 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	}
 }
 
-void PrimoMeshViewer::read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename)
+void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
 {
-	// Read the obj file to make sure we have the mesh_ property
-		
-	// read the crease pattern file to get the important points
-	// populate/update teh crease pattern edge list based on the file
-	read_crease_pattern(crease_pattern_filename);
-
-	
-	// if triangulation is needed, compute triangulation on the mesh, preserving the crease patter
-	bool b_triangulation_needed = false;
-
-	// refresh the crease edge list on the newly triangulated points after triangulation
-}
-
-void PrimoMeshViewer::test_read_crease_pattern()
-{
-	read_crease_pattern(test_crease_file);
-}
-
-void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
-{
-	// check if file type is properly .cpx
-	std::string extension = ".cpx";
-	// open file
-	std::ifstream ifs(filename);
-	if (ifs)
+	if (!is_legal_boundary(boundary_hehs))
 	{
-		// read line by line
-			
-		// for each line parse the line
-		// store approriate info in creases
-		std::string line;
-		// assume line is a single line of crease pattern
-		int crease_count = 0;
-		while (std::getline(ifs, line))
-		{
-			std::stringstream ss(line);
-			int type;
-			ss >> type;
-			switch (type)
-			{
-			case 1:
-			{
-				// countour, should should do sanity check here if time allows
-				std::cout << "read a countour" << std::endl;
-			}
-			break;
-			case 2:
-			case 3:
-			{
-				// 2 means mountain
-				// 3 means valley
-				crease_count++;
-				std::vector<Vector3f> crease_points;
-				get_points_from_line(line, crease_points);
-				
-				// now do the search
-				
-
-			}
-			break;
-			default:
-				break;
-			}
-		}
-
-		assert(crease_points.size() > 1); // at least our points need to be more than 2
-
-		Mesh::Point start_point;
-		Mesh::Point end_point;
-		Mesh::VertexHandle start_vh = get_closes_vertex(start_point);
-		Mesh::VertexHandle end_vh = get_closes_vertex(end_point);
-
-		if (crease_points.size() == 2)
-		{
-			// this is a line
-			// just triangluate along the line
-			// try to find the creases along the line
-		}
-		else if (crease_points.size() == 3)
-		{
-			// this is a quadratic curve
-
-		}
-		else if (crease_points.size() == 4)
-		{
-			// cubic curve
-			// todo, write a beizier evaluation function
-			// find the list of half edges
-		}
-		else
-		{
-			std::cout << "this is an error" << std::endl;
-		}
-
-
-		// check if that is a line or a cubic spline
-		// if this is a cubic spline, evaluate the spline to find the closest point on the mesh
-		
-		// find starting point vertex
-
-		// let's write a search for closest point function
-
-
-
-
-		// from the crease pattern file line, mark all the edges by brute force search}
-
-	}
-	else
-	{
-		std::cout << "file is not found " << filename << std::endl;
+		std::cout << "the boundary passed in is not legal, sorry mate" << std::endl;
 	}
 }
 
-void PrimoMeshViewer::get_points_from_line(std::string& line, std::vector<Vector3f>& out_points)
+bool PrimoMeshViewer::is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const
 {
-	out_points.clear();
-	std::cout << "reading crease line" << std::endl;
-	std::stringstream ss(line);
-	int type;
-	ss >> type;
-	// crease index should start from here
-	float start_x, start_y;
-	float end_x, end_y;
-	float p1_x, p1_y;
-	float p2_x, p2_y;
-
-	ss >> start_x;
-	ss >> start_y;
-	Vector3f p0(start_x, 0, start_y);
-	out_points.push_back(p0);
-	ss >> end_x;
-	ss >> end_y;
-	Vector3f p1(end_x, 0, end_y);
-	out_points.push_back(p1);
-	if (ss)
-	{
-		// 1st control point
-		ss >> p1_x;
-		ss >> p1_y;
-		Vector3f p(p1_x, 0, p1_y);
-		out_points.insert(out_points.end() - 1, p);
-	}
-	if (ss)
-	{
-		// 2nd control point
-		ss >> p2_x;
-		ss >> p2_y;
-		Vector3f p(p2_x, 0, p2_x);
-		out_points.insert(out_points.end() - 1, p);
-	}
-}
-
-MeshViewer::Mesh::VertexHandle PrimoMeshViewer::get_closes_vertex(Mesh::Point p)
-{
-	float smallest_dist = INT_MAX;
-	Mesh::VertexHandle vh;
-	for (Mesh::VertexIter v_it = mesh_.vertices_begin(); v_it->is_valid(); v_it++)
-	{
-		Mesh::Point cur_p = mesh_.point(*v_it);
-		if ((cur_p - p).norm() < smallest_dist)
-		{
-			vh = *v_it;
-			smallest_dist = (cur_p - p).norm();
-		}
-	}
-	return vh;
+	return false;
 }
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

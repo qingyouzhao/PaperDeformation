@@ -743,18 +743,6 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	}
 }
 
-void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
-{
-	if (!is_legal_boundary(boundary_hehs))
-	{
-		std::cout << "the boundary passed in is not legal, sorry mate" << std::endl;
-	}
-}
-
-bool PrimoMeshViewer::is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const
-{
-	return false;
-}
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){

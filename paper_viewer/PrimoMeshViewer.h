@@ -282,7 +282,11 @@ public:
 	void read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename);
 	void test_read_crease_pattern();
 	void read_crease_pattern(const std::string& filename);
+	// Triangulate based on a connected list of half edges
+	void triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs);
 
+	// check if this list is a legal boundary
+	bool is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const;
 	// I might need t a beizer wrapper.
 	
 	//QYZ's version of the creases marked here.

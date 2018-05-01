@@ -9,7 +9,7 @@
 #include <fstream>
 #include "BezierCurve.h"
 // Triangulation stuff
-#include "triangle.h"
+// #include "triangle.h"
 #include "libigl/include/igl/delaunay_triangulation.h"
 #include "libigl/include/igl/triangle/triangulate.h"
 

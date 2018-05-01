@@ -101,7 +101,7 @@ GlutExaminer::init()
   GLfloat pos2[] = {-0.1f, 0.1f, -0.02f, 0.0f};
   GLfloat pos3[] = { 0.0f, 0.0f, 0.1f, 0.0f};
   GLfloat col1[] = {.05f, .05f, .6f, 1.0f};
-  GLfloat col2[] = {.6f, .05f, .05f, 1.0f};
+  GLfloat col2[] = {.6f, .6f, .05f, 1.0f};
   GLfloat col3[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
   glEnable(GL_LIGHT0);    

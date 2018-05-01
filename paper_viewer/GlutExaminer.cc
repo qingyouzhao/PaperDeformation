@@ -72,7 +72,7 @@ void
 GlutExaminer::init()
 {
   // OpenGL state
-  glClearColor(0.3, 0.3, 0.3, 0.0);
+  glClearColor(1.0, 1.0, 1.0, 0.0);
   glDisable( GL_DITHER );
   glEnable( GL_DEPTH_TEST );
 

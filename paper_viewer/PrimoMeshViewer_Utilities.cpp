@@ -5,6 +5,7 @@
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
+#include <fstream>
 
 const LinearColor LinearColor::RED(1.f,0.f,0.f);
 const LinearColor LinearColor::BLUE(0.f,0.f,1.0f);
@@ -304,7 +305,7 @@ void PrimoMeshViewer::update_prisms_height_uniform(const std::vector<OpenMesh::F
 		for (; fh_it.is_valid(); ++fh_it){
 			PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_it);
 			const OpenMesh::Vec3f dFrom = (prop.FromVertPrismUp - prop.FromVertPrismDown).normalized() * dh;
-			const OpenMesh::Vec3f dTo = (prop.ToVertPrismUp - prop.ToVertPrismDown) * dh;
+			const OpenMesh::Vec3f dTo = (prop.ToVertPrismUp - prop.ToVertPrismDown).normalized() * dh;
 			prop.FromVertPrismUp += dFrom;
 			prop.FromVertPrismDown -= dFrom;
 			prop.ToVertPrismUp += dTo;
@@ -430,24 +431,6 @@ void PrimoMeshViewer::get_allFace_handles(std::vector<OpenMesh::FaceHandle> &fac
     }
 
 }
-void PrimoMeshViewer::build_allFace_BVH()
-{
-	allFaces_BVH_ = nanort::BVHAccel<float>();
-	nanort::TriangleMesh<float> triangle_mesh(
-      (const float *)mesh_.points(), indices_.data(), sizeof(float) * 3);
-    nanort::TriangleSAHPred<float> triangle_pred(
-      (const float *)mesh_.points(), indices_.data(), sizeof(float) * 3);
-    nanort::BVHBuildOptions<float> build_options;  // Use default option
-    if (!allFaces_BVH_.Build(mesh_.n_faces(), triangle_mesh, triangle_pred, build_options)) {
-        printf("\t[Build Target BVH]: build BVH failed\n");
-        assert(false);
-    }
-    // print bvh info
-    nanort::BVHBuildStatistics stats = allFaces_BVH_.GetStatistics();
-    printf(
-      "[BVH statistics]: %d leaf nodes, %d branch nodes, max tree depth %d\n",
-      stats.num_leaf_nodes, stats.num_branch_nodes, stats.max_tree_depth);
-}
 void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceHandle>& face_handles, 
 										std::vector<unsigned int> &indices_array){
 
@@ -461,56 +444,6 @@ void PrimoMeshViewer::update_1typeface_indices(const std::vector<OpenMesh::FaceH
         indices_array.push_back((*(++fv_it)).idx());
         indices_array.push_back((*(++fv_it)).idx());
     }
-}
-void PrimoMeshViewer::delete_faceHandle(unsigned int faceId, std::vector<OpenMesh::FaceHandle> &face_handles,
-											std::unordered_map<int, int> *face_idx_2_i){
-	for(auto it = face_handles.begin(); it != face_handles.end(); ++it){
-		if(it->idx() == faceId){
-			if(face_idx_2_i){
-				// before remove, minus 1 all faces after it
-				for(auto jt = it + 1; jt != face_handles.end(); ++jt){
-					auto map_it = face_idx_2_i->find(jt->idx());
-					assert(map_it != face_idx_2_i->end());
-					--map_it->second;
-					//(*face_idx_2_i)[jt->idx()] -= 1;
-				}
-				face_idx_2_i->erase(faceId);
-			}
-
-			// remove this fh
-			face_handles.erase(it);
-			return;
-		}
-	}
-	// this funtion is only used by raycast, and fh must be in face_handles where fh.idx()==faceId
-	// this assert is just for debug
-	assert(false);
-}
-void PrimoMeshViewer::translate_faces_and_prisms_along_axis(const OpenMesh::Vec3f &axis, float dist, 
-											std::vector<OpenMesh::FaceHandle> &face_handles){
-	// translate all the vertices and prisms of face_handles, along axis, dist 
-	std::unordered_set<int> vertex_idxs;
-	OpenMesh::Vec3f trans(dist * axis);
-	//Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
-	for(OpenMesh::FaceHandle &fh : face_handles){
-		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
-			// if vertex is visited, do nothing
- 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
-			vertex_idxs.insert(fv_it->idx());
-			// rotate this vertex
-			mesh_.point(*fv_it) += trans;
- 		}
-		// transform all vertices of this face
-		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
-		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
-			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
-
-			prop.FromVertPrismUp += trans;
-			prop.FromVertPrismDown += trans;
-			prop.ToVertPrismUp += trans;
-			prop.ToVertPrismDown += trans;
-		}
-	}
 }
 void PrimoMeshViewer::squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target){
 	// transform all faces of face_handles to the target position
@@ -543,38 +476,54 @@ void PrimoMeshViewer::squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &fa
 	update_vertices_based_on_prisms();
 	mesh_.update_normals();
 }
-void PrimoMeshViewer::rotate_faces_and_prisms_around_centroid(const OpenMesh::Vec3f &rotation_centroid, const OpenMesh::Vec3f &rotation_axis
-										, float angle, std::vector<OpenMesh::FaceHandle> &face_handles){
-	// rotate all the vertices and prisms of face_handles, around rotation_centroid & axis, angle rad
-	std::unordered_set<int> vertex_idxs;
-	Transformation tr(angle, Vector3f(rotation_axis[0], rotation_axis[1],rotation_axis[2]));
-	for(OpenMesh::FaceHandle &fh : face_handles){
-		for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh); fv_it.is_valid(); ++fv_it){
-			// if vertex is visited, do nothing
- 			if(vertex_idxs.find(fv_it->idx()) != vertex_idxs.end()) continue;
-			vertex_idxs.insert(fv_it->idx());
-			// rotate this vertex
-			mesh_.point(*fv_it) = tr.transformPoint(mesh_.point(*fv_it) - rotation_centroid) + rotation_centroid;
- 		}
-		// transform all vertices of this face
-		// only 4 vertices of each prism face are transformed, FromVertNormal/ToVertNormal
-		// are not transformed. 
-		for(Mesh::FaceHalfedgeIter fh_it = mesh_.fh_begin(fh); fh_it.is_valid(); ++fh_it){
-			PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_it);
-			prop.FromVertPrismUp -= rotation_centroid;
-			prop.FromVertPrismDown -= rotation_centroid;
-			prop.ToVertPrismUp -= rotation_centroid;
-			prop.ToVertPrismDown -= rotation_centroid;
-			
-			prop.FromVertPrismUp = tr.transformPoint(prop.FromVertPrismUp);
-			prop.FromVertPrismDown = tr.transformPoint(prop.FromVertPrismDown);
-			prop.ToVertPrismUp = tr.transformPoint(prop.ToVertPrismUp);
-			prop.ToVertPrismDown = tr.transformPoint(prop.ToVertPrismDown);
-
-			prop.FromVertPrismUp += rotation_centroid;
-			prop.FromVertPrismDown += rotation_centroid;
-			prop.ToVertPrismUp += rotation_centroid;
-			prop.ToVertPrismDown += rotation_centroid;
+bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
+	//read dcc file, choose which creases to be folded, set each crease's prism height
+	std::ifstream fin(dcc_file_name.c_str(), std::ifstream::in);
+	if(!fin.is_open()){
+		return false;
+	}
+	// start read dcc file and set
+	int crease_index = -1;
+	while(fin >> crease_index){
+		// must be valid index(from 0)
+		assert(crease_index >= 0 && crease_index < creases_.size());
+		int tmp = 0;
+		fin >> tmp;
+		creases_[crease_index].crease_type_ = 
+			(tmp == 0 ? Crease::ECreaseType::NONE : (tmp == 1 ? Crease::ECreaseType::MOUNTAIN: Crease::ECreaseType::VALLEY ));
+		float height_rate = 0.0f;
+		fin >> height_rate;
+		// prisms' height cannot be less than 0
+		assert(height_rate * prismHeight_ > 0);
+		creases_[crease_index].set_prism_height(height_rate * prismHeight_, P_PrismProperty);
+	}
+	// update optimizable faces
+	optimizedFaceHandles_.clear();
+	optimizedFaceIdx_2_i_.clear();
+	// two faces belong to each NONE edge can be optimized
+	std::unordered_set<int> not_optimizable_faceId;
+	for(const Crease &crease: creases_){
+		if(crease.crease_type_ == Crease::ECreaseType::NONE){
+			continue;
+		}
+		//mesh_.face_handle(creases_[i]);
+		for(int i = 0; i < crease.size(); ++i){
+			//not_optimizable_faceId.emplace(mesh_.face_handle())
+			not_optimizable_faceId.emplace(mesh_.face_handle(crease[i]).idx());
+			Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
+			if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
+				not_optimizable_faceId.emplace(mesh_.face_handle(he_j).idx());
+			}
 		}
 	}
+	//
+	for(int i = 0; i < allFaceHandles_.size(); ++i){
+		const auto &face_handle = allFaceHandles_[i];
+		if(not_optimizable_faceId.find(face_handle.idx()) != not_optimizable_faceId.end()){
+			continue;
+		}
+		optimizedFaceIdx_2_i_[face_handle.idx()] = optimizedFaceHandles_.size();
+		optimizedFaceHandles_.emplace_back(face_handle);
+	}
+	
 }

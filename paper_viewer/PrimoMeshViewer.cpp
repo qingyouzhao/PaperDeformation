@@ -8,7 +8,7 @@
 #include <string>
 
 
-const std::string test_crease_file("../data/curve1.cpx");
+const std::string test_crease_file("data/curve1.cpx");
 
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	: MeshViewer(_title, _width, _height)
@@ -332,9 +332,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// forward folding
 		folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(0.5f, P_PrismProperty);
+			crease.fold(10.0f, P_PrismProperty);
 		}
-		// thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 
 	}
 		break;
@@ -343,9 +343,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// backward folding
 		folding_angle_ -= 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(-0.5f, P_PrismProperty);
+			crease.fold(-10.0f, P_PrismProperty);
 		}
-		// thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 	}
 		break;
 	default:

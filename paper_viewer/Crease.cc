@@ -2,12 +2,19 @@
 const GLfloat Crease::mountainEdgeColor_[3] = {1.0f, 0.0f, 0.0f};
 	// default: valley(blue)
 const GLfloat Crease::valleyEdgeColor_[3] = {0.0f, 0.0f, 1.0f};
-Crease::Crease(const std::vector<OpenMesh::HalfedgeHandle> &other_he_handles, Mesh &mesh):
+Crease::Crease(const std::vector<OpenMesh::HalfedgeHandle> &other_he_handles, Mesh &mesh, const int type):
 mesh_(mesh)
 {
     // copy all edge handles into this crease
     this->he_handles_ = other_he_handles;
-    this->crease_type_ = ECreaseType::NONE;
+    if(type == 2){
+        this->crease_type_ = ECreaseType::MOUNTAIN;
+    }else if(type == 3){
+        this->crease_type_ = ECreaseType::VALLEY;
+    }
+    else{
+        assert("Only Mountain and valley type is valid when initilizing a crease");
+    }
 }
 void Crease::set_prism_height(const float height, OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty){
     // only set prisms height of pair of halfedges

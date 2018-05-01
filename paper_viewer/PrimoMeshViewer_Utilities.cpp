@@ -686,7 +686,7 @@ void PrimoMeshViewer::read_crease_pattern(const std::string& filename)
 				}
 				break;
 				}
-				creases_.emplace_back(crease_hehs, mesh_); // this is whe
+				creases_.emplace_back(crease_hehs, mesh_, type); // this is whe
 			}
 			break;
 			default:

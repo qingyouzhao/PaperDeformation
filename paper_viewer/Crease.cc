@@ -63,6 +63,8 @@ void Crease::draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismPro
     }
     const GLfloat *const edgeColor_ 
         = ( crease_type_ == ECreaseType::MOUNTAIN ? mountainEdgeColor_:valleyEdgeColor_);
+    // change color
+    glColor3fv(edgeColor_);
     // draw 8 lines of two faces
     for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
         Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);

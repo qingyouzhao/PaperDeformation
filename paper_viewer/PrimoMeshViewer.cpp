@@ -21,11 +21,15 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	mesh_.add_property(P_faceBN);
 	//mesh_.add_property(P_FaceTransformationCache);
 
-	// default: optimized(white)
-	optimizedFacesColor_[0] = 0.8f;
-	optimizedFacesColor_[1] = 0.8f;
-	optimizedFacesColor_[2] = 0.8f;
+	// default: optimized(orange)
+	optimizedFacesColor_[0] = 0.6f;
+	optimizedFacesColor_[1] = 0.6f;
+	optimizedFacesColor_[2] = 0.0f;
 	
+	notOptimizaedFacesColor_[0] = 0.8f;
+	notOptimizaedFacesColor_[1] = 0.8f;
+	notOptimizaedFacesColor_[2] = 0.8f;
+
 	// do not draw prisms at first
 	drawPrisms_ = false;
 	global_optimize_iterations_ = 25;
@@ -81,15 +85,15 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		setup_faceBN(allFaceHandles_);
 		setup_collisionProperty();
 		//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
-		// init the set of idx of opmizedFaces only for global optimization
-		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
-			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
-		}
-		float initE = E(optimizedFaceHandles_);
-		assert(fabs(initE) < FLT_EPSILON);
 
 		// read crease pattern curve
+		// also set optimizedFaceHandles_ and optimizedFaceIdx_2_i_
 		test_read_crease_pattern();
+
+		// optimizedFaceHandles_ and optimizedFaceIdx_2_i_ are setted
+		// calculate total energy
+		float initE = E(optimizedFaceHandles_);
+		assert(fabs(initE) < FLT_EPSILON);
 		return true;
 	}
 	return false;
@@ -157,9 +161,9 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glShadeModel(GL_FLAT);
 		glEnable(GL_COLOR_MATERIAL);
 		// draw 3 kind of faces
-		glColor3fv(optimizedFacesColor_);
+		glColor3fv(notOptimizaedFacesColor_);
 		glBegin(GL_TRIANGLES);
-		for (const OpenMesh::FaceHandle& fh : allFaceHandles_)
+		for (const OpenMesh::FaceHandle& fh : not_optimizedFaceHandles_)
 		{
 			GL::glNormal(mesh_.normal(fh));
 			fv_it = mesh_.cfv_iter(fh); 
@@ -170,6 +174,21 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 			GL::glVertex(mesh_.point(*fv_it));
 		}
 		glEnd();
+		
+		glColor3fv(optimizedFacesColor_);
+		glBegin(GL_TRIANGLES);
+		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+			GL::glNormal(mesh_.normal(fh));
+			fv_it = mesh_.cfv_iter(fh); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+		}
+		glEnd();
+		glDisable(GL_COLOR_MATERIAL);
+
 	}
 	else if (_draw_mode == "Solid Smooth")
 	{
@@ -182,7 +201,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		GL::glVertexPointer(mesh_.points());
 		GL::glNormalPointer(mesh_.vertex_normals());
 		// draw 3 type of faces
-		glColor3fv(optimizedFacesColor_);
+		glColor3fv(notOptimizaedFacesColor_);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
 
 		// if(dynamicVertexIndices_.size()>0)
@@ -204,33 +223,30 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	float prev_line_width;
 	glGetFloatv(GL_LINE_WIDTH, &prev_line_width);
 	glLineWidth(3 * prev_line_width);
+	glEnable(GL_COLOR_MATERIAL);
+	glDisable(GL_LIGHTING);
+	glBegin(GL_LINES);
 	for(const Crease &crease : creases_){
-		glEnable(GL_COLOR_MATERIAL);
-		glDisable(GL_LIGHTING);
-		glBegin(GL_LINES);
 		crease.draw();
-		glEnd();
-		glDisable(GL_COLOR_MATERIAL);
 	}
+	glEnd();
+	glDisable(GL_COLOR_MATERIAL);
 	glLineWidth(prev_line_width);
 	if(drawPrisms_){
 		// visualize prisms with wireframes
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
+		
+ 
 		glBegin(GL_LINES);
-		// draw 3 types of prisms with different color
-		//glColor3fv(dynamicFacesColor_);
-		//draw_prisms(dynamicFaceHandles_);
-		//glColor3fv(staticFacesColor_);
-		//draw_prisms(staticFaceHandles_);
-		glColor3fv(optimizedFacesColor_);
-		draw_prisms(optimizedFaceHandles_);
-
-		// overide the color 
 		for(const Crease &crease : creases_){
 			crease.draw_prisms(P_PrismProperty);
 		}
-		//
+		glEnd();
+
+		glBegin(GL_LINES);
+		glColor3fv(optimizedFacesColor_);
+		draw_prisms(optimizedFaceHandles_);
 		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}

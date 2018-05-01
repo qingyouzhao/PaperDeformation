@@ -153,6 +153,7 @@ private:
 	bool drawDebugInfo_;
 	// colors of faces of prisms
 	GLfloat optimizedFacesColor_[3];
+	GLfloat notOptimizaedFacesColor_[3];
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
 	float averageVertexDisance_;
@@ -160,6 +161,7 @@ private:
 	// 3 types of face handles
 	// only optimize the optimizedFaces
 	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	std::vector<OpenMesh::FaceHandle> not_optimizedFaceHandles_;
 	// maintain a set of optimized faces' idx only for global optimization
 	
 	std::unordered_map<int, int> optimizedFaceIdx_2_i_;

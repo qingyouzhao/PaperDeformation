@@ -40,6 +40,7 @@
 #include <cmath>
 #include <OpenMesh/Core/Geometry/Vector11T.hh>
 #include <OpenMesh/Core/Geometry/VectorT_inc.hh>
+#include <sstream>
 template <class T, unsigned int C>
 struct Vector;
 
@@ -52,6 +53,7 @@ typedef Vector<float, 1> Vector1f;
 typedef Vector<float, 2> Vector2f;
 typedef Vector<float, 3> Vector3f;
 typedef Vector<float, 4> Vector4f;
+
 // only for save 3 ints
 typedef Vector<int, 3> Vector3i;
 
@@ -138,7 +140,23 @@ struct Vector {
 	  axis1 = (axis1 - *this * (axis1 | *this)).normalize();
 	  axis2 = axis1 % *this;
   }
+
+  // A nicely formated string of this vector
+  std::string to_string() const;
 };
+
+template <class T, unsigned int C>
+std::string Vector<T, C>::to_string() const
+{
+	std::ostringstream oss;
+	oss << "[ ";
+	for (unsigned i = 0; i < C; i++)
+	{
+		oss << v[i] << '\t';
+	}
+	oss << "]";
+	return oss.str();
+}
 
 template <class T, unsigned int C>
 inline Vector<T, C> operator-(const Vector<T, C>& v1) {

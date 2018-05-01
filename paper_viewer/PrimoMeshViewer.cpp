@@ -8,6 +8,8 @@
 #include <string>
 
 
+const std::string test_crease_file("../data/curve1.cpx");
+
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	: MeshViewer(_title, _width, _height)
 {
@@ -372,6 +374,19 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
 		}
 	}
+}
+
+void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
+{
+	if (!is_legal_boundary(boundary_hehs))
+	{
+		std::cout << "the boundary passed in is not legal, sorry mate" << std::endl;
+	}
+}
+
+bool PrimoMeshViewer::is_legal_boundary(const std::vector<HalfedgeHandle>& boundary_hehs) const
+{
+	return false;
 }
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

@@ -8,12 +8,14 @@
 #include <unordered_map>
 #include <list>
 
+
 enum class EPrismExtrudeMode {
 	VERT_NORMAL,
 	FACE_NORMAL,
 	CUSTOM
 };
 
+extern const std::string test_crease_file;
 
 // A wrapper for GL color functionality
 struct LinearColor
@@ -184,6 +186,16 @@ private:
 	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
 
 public:
+	void read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename);
+	void test_read_crease_pattern();
+	void read_crease_pattern(const std::string& filename);
+
+	// I might need t a beizer wrapper.
+	
+	//QYZ's version of the creases marked here.
+	std::vector<std::vector<Mesh::HalfedgeHandle>> creases;
+
+public:
 	// Debug Utilities, these arrows will be added by local optimize. Every draw flushes the debug lines once. SHould be more optimized 
 	void add_debug_arrow(const Vector3d& from, const Vector3d& to, LinearColor color, double arrow_size);
 	void add_debug_coordinate(Transformation& world_transform, double size, Transformation base_transform = Transformation());
@@ -191,6 +203,13 @@ public:
 
 	std::list<Transformation> g_debug_transformations_to_draw_local_optimization;
 	std::list<Arrow> g_debug_arrows_to_draw_local_optimizations;
+
+public:
+	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points, int& segments);
+	// Get the handled of the closes vert on this mesh from the point
+	Mesh::VertexHandle get_closes_vertex(Mesh::Point p);
+
+	
 
 private:
 	std::list<DebugLine> debug_lines_;

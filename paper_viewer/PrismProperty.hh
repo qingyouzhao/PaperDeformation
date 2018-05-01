@@ -2,6 +2,7 @@
 #include <OpenMesh/Core/Geometry/VectorT.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include "Transformation.hh"
+#include <unordered_map>
 /// This struct store the prism data structure and provides basic functionalities for retrieval and claculation
 struct PrismProperty {
 	// Vec3f FromVertPrismDir_DEPRECATED;
@@ -71,4 +72,15 @@ struct PrismProperty {
 		ToVertPrismDown = Transform * (ToVertPrismDown);
 	}
 
+};
+// used for handle self-collision
+struct PrismFaceProperty{
+	OpenMesh::Vec3f n;// normal
+	OpenMesh::Vec3f b;// barycenter of triangle
+};
+struct PrismCollisionProperty{
+	std::unordered_map<int, float> from_faceID_val;
+	std::unordered_map<int, float> to_faceID_val;
+	bool from_OK;
+	bool to_OK;
 };

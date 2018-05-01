@@ -112,7 +112,7 @@ protected:
 	// Locally optimize for one prism
 	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations);
 	virtual void update_vertices_based_on_prisms();
-
+	
 	// Locally optimize for one prism faces 
 	virtual void local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::HPropHandleT<PrismProperty> &, bool is_ij = false);
 
@@ -139,7 +139,11 @@ private:
 	// Normalized direction
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
 	OpenMesh::HPropHandleT<PrismProperty>  P_globalPrism_intermediate;
-
+	// property used for handle self-collision
+	OpenMesh::FPropHandleT<PrismFaceProperty> P_faceBN;
+	OpenMesh::HPropHandleT<PrismCollisionProperty> P_collision;
+	void setup_faceBN(const std::vector<OpenMesh::FaceHandle> &face_handles);
+	void setup_collisionProperty();
 	//OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
 	// press p to visualize prisms
 	bool drawPrisms_;
@@ -217,5 +221,5 @@ private:
 
 	// functions for paper folding
 	bool read_dcc_file(const std::string &dcc_file_name);
-
+	void update_vertices_based_on_prisms_self_collision();
 };

@@ -526,5 +526,4 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 		optimizedFaceHandles_.emplace_back(face_handle);
 	}
 	
-
 }

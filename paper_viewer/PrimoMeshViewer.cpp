@@ -15,6 +15,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 
 	mesh_.add_property(P_PrismProperty);
 	mesh_.add_property(P_globalPrism_intermediate);
+	mesh_.add_property(P_collision);
+	mesh_.add_property(P_faceBN);
 	//mesh_.add_property(P_FaceTransformationCache);
 
 	// default: optimized(white)
@@ -74,6 +76,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		// }
 		// and then, prisms are set up 
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+		setup_faceBN(allFaceHandles_);
+		setup_collisionProperty();
 		//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
 		// init the set of idx of opmizedFaces only for global optimization
 		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){

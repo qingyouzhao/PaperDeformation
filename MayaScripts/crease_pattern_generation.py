@@ -226,12 +226,17 @@ def createSingleCrease(mesh,p):
 	ip.append(epEnd)
 	cmds.ls(mesh)
 	print(ip)
+
+	# split the polygons
 	cmds.polySplit(mesh,ip = ip)
 	
+	# poly subdivide?
+
 
 def polySplitCrease():
 	# create a uniform polygon first
-	newFace = cmds.polyCreateFacet(n='myPaper', p = [(-1, 0 , -1), (-1, 0, 1), (1, 0, 1), (1, 0, -1)])
+	newFace = cmds.polyCreateFacet(n='myPaperFace', p = [(-1, 0 , -1), (-1, 0, 1), (1, 0, 1), (1, 0, -1)], s = 4)
+    newFace = cmds.polyPlane(n='myPaperPlane', sx=10, sy=15, w=2, h=2)
 
 	sel_list = om.MSelectionList()
 	verticePos = [(-1, 0 , -1,1), (-1, 0, 1,1), (1, 0, 1,1), (1, 0, -1,1)]
@@ -272,5 +277,8 @@ def polySplitCrease():
 	createSingleCrease(newFace[0], c2)
 	createSingleCrease(newFace[0], c3)
 	createSingleCrease(newFace[0], c4)
+
+	# subdivide the faces with polySubdivideFacet
+
 
 polySplitCrease()

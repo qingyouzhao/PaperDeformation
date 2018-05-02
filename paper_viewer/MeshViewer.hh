@@ -71,7 +71,7 @@ public:
   virtual void draw(const std::string& _draw_mode);
 
   // get the cloeset vertex handle, this should be in the utilities function 
-  static Mesh::VertexHandle MeshViewer::get_closes_vertex_handle(const Mesh& mesh, Mesh::Point p);
+  static Mesh::VertexHandle get_closes_vertex_handle(const Mesh& mesh, Mesh::Point p);
 
   void triangulate_current_mesh();
 protected:

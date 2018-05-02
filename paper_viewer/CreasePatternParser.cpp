@@ -11,9 +11,9 @@
 #include "BezierCurve.h"
 
 
-static const int CONTOUR		= 1;
-static const int MOUNTAIN		= 2;
-static const int VALLEY			= 3;
+const int CONTOUR		= 1;
+const int MOUNTAIN		= 2;
+const int VALLEY	    = 3;
 void CreasePatternParser::igl_example() const
 {
 

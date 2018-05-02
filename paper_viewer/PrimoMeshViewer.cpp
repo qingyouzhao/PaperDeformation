@@ -75,7 +75,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		get_allFace_handles(allFaceHandles_);
 
 		// default: all faces are optimizable
-		get_allFace_handles(optimizedFaceHandles_);
+		// get_allFace_handles(optimizedFaceHandles_);
 		//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
 		// for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
 		// 	faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
@@ -161,19 +161,19 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glShadeModel(GL_FLAT);
 		glEnable(GL_COLOR_MATERIAL);
 		// draw 3 kind of faces
-		glColor3fv(notOptimizaedFacesColor_);
-		glBegin(GL_TRIANGLES);
-		for (const OpenMesh::FaceHandle& fh : not_optimizedFaceHandles_)
-		{
-			GL::glNormal(mesh_.normal(fh));
-			fv_it = mesh_.cfv_iter(fh); 
-			GL::glVertex(mesh_.point(*fv_it));
-			++fv_it;
-			GL::glVertex(mesh_.point(*fv_it));
-			++fv_it;
-			GL::glVertex(mesh_.point(*fv_it));
-		}
-		glEnd();
+		// glColor3fv(notOptimizaedFacesColor_);
+		// glBegin(GL_TRIANGLES);
+		// for (const OpenMesh::FaceHandle& fh : not_optimizedFaceHandles_)
+		// {
+		// 	GL::glNormal(mesh_.normal(fh));
+		// 	fv_it = mesh_.cfv_iter(fh); 
+		// 	GL::glVertex(mesh_.point(*fv_it));
+		// 	++fv_it;
+		// 	GL::glVertex(mesh_.point(*fv_it));
+		// 	++fv_it;
+		// 	GL::glVertex(mesh_.point(*fv_it));
+		// }
+		// glEnd();
 		
 		glColor3fv(optimizedFacesColor_);
 		glBegin(GL_TRIANGLES);

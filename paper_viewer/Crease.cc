@@ -153,6 +153,8 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
     }
     //
     const float dRad = dAngle * M_PI / 180.0f;
+    // need to rotate full prism of two faces of each half-handle
+    // also need to change OpenMesh vertices of each faces
     for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
         Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
         PrismProperty &prop_i = mesh_.property(P_PrismProperty, he_i);
@@ -166,10 +168,14 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
             PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
             const OpenMesh::Vec3f midFrom = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
             const OpenMesh::Vec3f midTo = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
+            // update Prism data
             prop.FromVertPrismUp = midFrom + newN_i * height_i;
             prop.FromVertPrismDown = midFrom - newN_i * height_i;
             prop.ToVertPrismUp = midTo + newN_i * height_i;
             prop.ToVertPrismDown = midTo - newN_i * height_i;
+            // update OpenMesh vertices
+            mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
+            mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
         }
         if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
             PrismProperty &prop_j = mesh_.property(P_PrismProperty, he_j);
@@ -181,12 +187,16 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
             for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_j);fh_iter.is_valid();++fh_iter){
                 //
                 PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
-                const OpenMesh::Vec3f midFrom_j = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
-                const OpenMesh::Vec3f midTo_j = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
-                prop.FromVertPrismUp = midFrom_j + newN_j * height_j;
-                prop.FromVertPrismDown = midFrom_j - newN_j * height_j;
-                prop.ToVertPrismUp = midTo_j + newN_j * height_j;
-                prop.ToVertPrismDown = midTo_j - newN_j * height_j;
+                const OpenMesh::Vec3f midFrom = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
+                const OpenMesh::Vec3f midTo = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
+                // update Prism data
+                prop.FromVertPrismUp = midFrom + newN_j * height_j;
+                prop.FromVertPrismDown = midFrom - newN_j * height_j;
+                prop.ToVertPrismUp = midTo + newN_j * height_j;
+                prop.ToVertPrismDown = midTo - newN_j * height_j;
+                // update OpenMesh vertices
+                mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
+                mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
             }
         }
     }

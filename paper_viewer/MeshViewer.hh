@@ -52,6 +52,10 @@
 
 class MeshViewer : public GlutExaminer
 {
+protected:
+
+	typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
+
 public:
    
   /// default constructor
@@ -65,17 +69,16 @@ public:
 
   /// draw the scene
   virtual void draw(const std::string& _draw_mode);
-  
 
-protected:
+  // get the cloeset vertex handle, this should be in the utilities function 
+  static Mesh::VertexHandle MeshViewer::get_closes_vertex_handle(const Mesh& mesh, Mesh::Point p);
 
-  typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
-  
-
+  void triangulate_current_mesh();
 protected:
 
   Mesh                       mesh_;
   std::vector<unsigned int>  indices_;
+
 };
 
 

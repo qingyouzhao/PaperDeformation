@@ -30,6 +30,7 @@
 //                                                                            
 //=============================================================================
 #include "ValenceViewer.hh"
+#include "CreasePatternParser.h"
 #include "PrimoMeshViewer.h"
 
 
@@ -46,7 +47,9 @@ int main(int argc, char **argv)
   PrimoMeshViewer window("Paper Demo", 1024, 1024);
 
   if (argc>1)
-    window.open_mesh(argv[1]);
+  {  
+	  window.open_mesh(argv[1]);
+  }
 
   glutMainLoop();
 }

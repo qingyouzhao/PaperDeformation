@@ -186,9 +186,8 @@ private:
 	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
 
 public:
-	void read_mesh_and_cp(const std::string& mesh_filename, const std::string& crease_pattern_filename);
 	void test_read_crease_pattern();
-	void read_crease_pattern(const std::string& filename);
+
 	// Triangulate based on a connected list of half edges
 	void triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs);
 
@@ -211,9 +210,6 @@ public:
 public:
 	void get_points_from_line(std::string& line, std::vector<Vector3f>& out_points, int& segments);
 	// Get the handled of the closes vert on this mesh from the point
-	Mesh::VertexHandle get_closes_vertex(Mesh::Point p);
-
-	
 
 private:
 	std::list<DebugLine> debug_lines_;
@@ -238,11 +234,12 @@ private:
 
 	bool bKey_space_is_move_;
 private:
-	// data for paper folding
-	std::vector<Crease> creases_;
 	float folding_angle_;// in degree, default: 0 degree
 
 	// functions for paper folding
 	bool read_dcc_file(const std::string &dcc_file_name);
 	void update_vertices_based_on_prisms_self_collision();
+
+	// data for paper folding
+	std::vector<Crease> creases_;
 };

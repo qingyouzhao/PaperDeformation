@@ -44,7 +44,8 @@
 #include "gl.hh"
 #include <iostream>
 #include <fstream>
-
+#include "BezierCurve.h"
+#include "Triangulation.h"
 
 //== IMPLEMENTATION ========================================================== 
 
@@ -233,5 +234,38 @@ draw(const std::string& _draw_mode)
   }
 }
 
+void MeshViewer::triangulate_current_mesh()
+{
+	Triangulation triangulator;
+	triangulator.triangulate_crease_pattern(mesh_);
+
+	mesh_ = triangulator.new_mesh;
+	int nv =  mesh_.n_vertices();
+	int nvv = triangulator.new_mesh.n_vertices();
+	// compute face & vertex normals
+	mesh_.update_normals();
+	// update face indices for faster rendering
+	update_face_indices();
+}
+
+MeshViewer::Mesh::VertexHandle MeshViewer::get_closes_vertex_handle(const Mesh& mesh, Mesh::Point p)
+{
+	float smallest_dist = INT_MAX;
+	Mesh::VertexHandle vh;
+	for (Mesh::VertexIter v_it = mesh.vertices_begin(); v_it != mesh.vertices_end(); v_it++)
+	{
+		Mesh::Point cur_p = mesh.point(*v_it);
+		if ((cur_p - p).norm() < smallest_dist)
+		{
+			vh = *v_it;
+			smallest_dist = (cur_p - p).norm();
+		}
+	}
+	if (!vh.is_valid())
+	{
+		std::cout << "Cannot find closest point" << std::endl;
+	}
+	return vh;
+}
 
 //=============================================================================

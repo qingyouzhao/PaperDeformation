@@ -117,12 +117,26 @@ struct Vector {
     return *this;
   }
 
+  Vector operator*(T b)
+  {
+	  Vector res;
+	  for (unsigned int i = 0; i < C; i++) res[i] = v[i] * b;
+	  return  res;
+  }
+
   Vector& operator/=(T o) {
     for (unsigned i = 0; i < C; i++) v[i] /= o;
     return *this;
   }
 
+  bool operator==(const Vector& o) const
+  {
+	  return (o - *this).is_nearly_zero();
+  }
+
   Vector& normalize() { return (*this) /= length(*this); }
+
+  Vector get_normalized() { return (*this) / length(*this); } const
 
   void fill(T f) {
     for (unsigned i = 0; i < C; i++) v[i] = f;
@@ -143,6 +157,11 @@ struct Vector {
 
   // A nicely formated string of this vector
   std::string to_string() const;
+
+  inline bool is_nearly_zero(T epsilon = 1E-6) const
+  {
+	  return length2(*this) < epsilon;
+  }
 };
 
 template <class T, unsigned int C>
@@ -159,7 +178,7 @@ std::string Vector<T, C>::to_string() const
 }
 
 template <class T, unsigned int C>
-inline Vector<T, C> operator-(const Vector<T, C>& v1) {
+inline Vector<T, C> operator-(const Vector<T, C>& v1){
   Vector<T, C> res;
   for (unsigned i = 0; i < C; i++) res.v[i] = -v1.v[i];
   return res;
@@ -238,6 +257,9 @@ T length(const Vector<T, C>& a) {
   return (T)sqrt(length2(a));
 }
 
-
-
+template <class T, unsigned int C>
+Vector<T,C> lerp(const Vector<T, C>& a, const Vector<T, C>& b, T t)
+{
+	return a * ((T)1 - t) + b * t;
+}
 #endif /*VECTOR_HH_*/

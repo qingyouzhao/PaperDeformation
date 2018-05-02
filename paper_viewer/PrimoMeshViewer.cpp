@@ -61,7 +61,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		// do pre pass of stuff.
 
 		glutPostRedisplay();
-
+		// read a crese pattern and override our mesh
+		test_read_crease_pattern();
 		// after successfully opening the mesh, we need firstly calculate average vertices distance
 		// prismHeight_ = average vertices distance
 		averageVertexDisance_ = get_average_vertex_distance(mesh_);
@@ -79,7 +80,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		// and then, prisms are set up 
 		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 		setup_faceBN(allFaceHandles_);
-		setup_collisionProperty();
+		// setup_collisionProperty();
 		//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
 		// init the set of idx of opmizedFaces only for global optimization
 		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
@@ -89,7 +90,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 		assert(fabs(initE) < FLT_EPSILON);
 
 		// read crease pattern curve
-		test_read_crease_pattern();
+		
 		return true;
 	}
 	return false;
@@ -378,6 +379,7 @@ void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_
 		}
 	}
 }
+
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){

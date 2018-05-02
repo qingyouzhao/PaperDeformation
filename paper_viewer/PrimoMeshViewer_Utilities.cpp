@@ -486,6 +486,8 @@ void PrimoMeshViewer::squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &fa
 }
 bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	//read dcc file, choose which creases to be folded, set each crease's prism height
+	// for each crease
+	// index(from 1) type(0:none, 2:mountain, 3(or other):valley) height_rate(>0)
 	std::ifstream fin(dcc_file_name.c_str(), std::ifstream::in);
 	if(!fin.is_open()){
 		return false;
@@ -493,12 +495,13 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	// start read dcc file and set
 	int crease_index = -1;
 	while(fin >> crease_index){
-		// must be valid index(from 0)
+		// index start from 1, need to decrease 1
+		--crease_index;
 		assert(crease_index >= 0 && crease_index < creases_.size());
 		int tmp = 0;
 		fin >> tmp;
 		creases_[crease_index].crease_type_ = 
-			(tmp == 0 ? Crease::ECreaseType::NONE : (tmp == 1 ? Crease::ECreaseType::MOUNTAIN: Crease::ECreaseType::VALLEY ));
+			(tmp == 0 ? Crease::ECreaseType::NONE : (tmp == 2 ? Crease::ECreaseType::MOUNTAIN: Crease::ECreaseType::VALLEY ));
 		float height_rate = 0.0f;
 		fin >> height_rate;
 		// prisms' height cannot be less than 0
@@ -508,6 +511,7 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	// update optimizable faces
 	optimizedFaceHandles_.clear();
 	optimizedFaceIdx_2_i_.clear();
+	not_optimizedFaceHandles_.clear();
 	// two faces belong to each NONE edge can be optimized
 	std::unordered_set<int> not_optimizable_faceId;
 	for(const Crease &crease: creases_){
@@ -528,11 +532,14 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	for(int i = 0; i < allFaceHandles_.size(); ++i){
 		const auto &face_handle = allFaceHandles_[i];
 		if(not_optimizable_faceId.find(face_handle.idx()) != not_optimizable_faceId.end()){
-			continue;
+			not_optimizedFaceHandles_.emplace_back(face_handle);
+		}else{
+			optimizedFaceIdx_2_i_[face_handle.idx()] = optimizedFaceHandles_.size();
+			optimizedFaceHandles_.emplace_back(face_handle);
 		}
-		optimizedFaceIdx_2_i_[face_handle.idx()] = optimizedFaceHandles_.size();
-		optimizedFaceHandles_.emplace_back(face_handle);
 	}
+	glutPostRedisplay();
+	return true;
 }
 
 // void PrimoMeshViewer::test_read_crease_pattern()

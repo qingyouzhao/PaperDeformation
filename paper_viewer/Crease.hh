@@ -7,7 +7,7 @@ class Crease{
 public:
     typedef OpenMesh::TriMesh_ArrayKernelT<>  Mesh;
     
-    explicit Crease(const std::vector<OpenMesh::HalfedgeHandle> &other_edge_handles, Mesh &mesh);
+    explicit Crease(const std::vector<OpenMesh::HalfedgeHandle> &other_edge_handles, Mesh &mesh, const int type);
     inline OpenMesh::HalfedgeHandle& operator[](const int& i){ 
         assert(i >= 0 && i < he_handles_.size());
         return he_handles_[i];

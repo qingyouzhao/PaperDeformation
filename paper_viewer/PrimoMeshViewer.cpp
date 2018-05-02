@@ -59,8 +59,6 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	if (MeshViewer::open_mesh(_filename))
 	{
 		// do pre pass of stuff.
-
-		glutPostRedisplay();
 		// read a crese pattern and override our mesh
 		test_read_crease_pattern();
 		// after successfully opening the mesh, we need firstly calculate average vertices distance

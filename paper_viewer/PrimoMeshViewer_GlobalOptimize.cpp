@@ -545,10 +545,10 @@ void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHand
         project_v_and_update_prisms(x,face_handles,lambda);
         E_k = E(face_handles);
         std::cout<<"E"<< i <<": "<<E(face_handles)<<std::endl;
-        if(converge_E(E_k, E_km1)){
-            std::cout<<"[Global Optimization]:converge\n";
-            break;
-        }
+        // if(converge_E(E_k, E_km1)){
+        //     std::cout<<"[Global Optimization]:converge\n";
+        //     break;
+        // }
         update_vertices_based_on_prisms();
         mesh_.update_normals(); 
         glutPostRedisplay();

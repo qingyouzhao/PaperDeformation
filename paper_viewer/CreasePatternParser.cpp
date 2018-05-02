@@ -394,7 +394,7 @@ CreaseEdge CreasePatternParser::read_line(const std::string& line)
 	{
 	case 1:
 	{
-		ss >> result.segments;
+		result.segments = 1.0f;// [ZJW] defaultly, contour only need 1 segment
 	}
 	break;
 	case 2:

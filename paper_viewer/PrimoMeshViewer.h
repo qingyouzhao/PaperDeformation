@@ -186,7 +186,7 @@ private:
 	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
 
 public:
-	void test_read_crease_pattern();
+	//void test_read_crease_pattern();
 
 	// Triangulate based on a connected list of half edges
 	void triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs);

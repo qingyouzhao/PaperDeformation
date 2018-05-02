@@ -535,36 +535,36 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 	}
 }
 
-void PrimoMeshViewer::test_read_crease_pattern()
-{
-	//--------------------------------
-	// init a crease parser
-	CreasePatternParser parser;
-	parser.read_crease_pattern("../data/curve1.cpx");
-	// this is where the data is processed
-	std::vector<std::vector<Mesh::HalfedgeHandle>> crease_hehs;
-	std::vector<int> types;
-	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
-	//--------------------------------
+// void PrimoMeshViewer::test_read_crease_pattern()
+// {
+// 	//--------------------------------
+// 	// init a crease parser
+// 	CreasePatternParser parser;
+// 	parser.read_crease_pattern("data/curve1.cpx");
+// 	// this is where the data is processed
+// 	std::vector<std::vector<Mesh::HalfedgeHandle>> crease_hehs;
+// 	std::vector<int> types;
+// 	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
+// 	//--------------------------------
 
-	// MeshViewer open_mesh
-	Mesh::ConstVertexIter  v_it(mesh_.vertices_begin()),
-		v_end(mesh_.vertices_end());
-	Mesh::Point            bbMin, bbMax;
+// 	// MeshViewer open_mesh
+// 	Mesh::ConstVertexIter  v_it(mesh_.vertices_begin()),
+// 		v_end(mesh_.vertices_end());
+// 	Mesh::Point            bbMin, bbMax;
 
-	bbMin = bbMax = mesh_.point(v_it);
-	for (; v_it != v_end; ++v_it)
-	{
-		bbMin.minimize(mesh_.point(v_it));
-		bbMax.maximize(mesh_.point(v_it));
-	}
-	set_scene((Vec3f)(bbMin + bbMax)*0.5f, 0.5f*(bbMin - bbMax).norm());
-	// compute face & vertex normals
-	mesh_.update_normals();
-	// update face indices for faster rendering
-	update_face_indices();
+// 	bbMin = bbMax = mesh_.point(v_it);
+// 	for (; v_it != v_end; ++v_it)
+// 	{
+// 		bbMin.minimize(mesh_.point(v_it));
+// 		bbMax.maximize(mesh_.point(v_it));
+// 	}
+// 	set_scene((Vec3f)(bbMin + bbMax)*0.5f, 0.5f*(bbMin - bbMax).norm());
+// 	// compute face & vertex normals
+// 	mesh_.update_normals();
+// 	// update face indices for faster rendering
+// 	update_face_indices();
 
-}
+// }
 
 void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
 {

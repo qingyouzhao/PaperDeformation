@@ -6,9 +6,10 @@
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
 #include <string>
+#include "CreasePatternParser.h"
 
 
-const std::string test_crease_file("../data/curve1.cpx");
+//const std::string test_crease_file("../data/curve1.cpx");
 
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	: MeshViewer(_title, _width, _height)
@@ -56,42 +57,95 @@ PrimoMeshViewer::~PrimoMeshViewer()
 
 bool PrimoMeshViewer::open_mesh(const char* _filename)
 {
-	if (MeshViewer::open_mesh(_filename))
+	//--------------------------------
+	// init a crease parser
+	CreasePatternParser parser;
+	parser.read_crease_pattern(_filename);
+	// this is where the data is processed
+	std::vector<std::vector<Mesh::HalfedgeHandle>> crease_hehs;
+	std::vector<int> types;
+	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
+	//--------------------------------
+
+	// MeshViewer open_mesh
+	Mesh::ConstVertexIter  v_it(mesh_.vertices_begin()),
+		v_end(mesh_.vertices_end());
+	Mesh::Point            bbMin, bbMax;
+
+	bbMin = bbMax = mesh_.point(v_it);
+	for (; v_it != v_end; ++v_it)
 	{
-		// do pre pass of stuff.
-		// read a crese pattern and override our mesh
-		test_read_crease_pattern();
-		// after successfully opening the mesh, we need firstly calculate average vertices distance
-		// prismHeight_ = average vertices distance
-		averageVertexDisance_ = get_average_vertex_distance(mesh_);
-		prismHeight_ = averageVertexDisance_;
-
-		// init face handles for ray-casting lookup from prim_id to faceHandle
-		get_allFace_handles(allFaceHandles_);
-
-		// default: all faces are optimizable
-		get_allFace_handles(optimizedFaceHandles_);
-		//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
-		// for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
-		// 	faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
-		// }
-		// and then, prisms are set up 
-		setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
-		setup_faceBN(allFaceHandles_);
-		// setup_collisionProperty();
-		//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
-		// init the set of idx of opmizedFaces only for global optimization
-		for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
-			optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
-		}
-		float initE = E(optimizedFaceHandles_);
-		assert(fabs(initE) < FLT_EPSILON);
-
-		// read crease pattern curve
-		
-		return true;
+		bbMin.minimize(mesh_.point(v_it));
+		bbMax.maximize(mesh_.point(v_it));
 	}
-	return false;
+	set_scene((Vec3f)(bbMin + bbMax)*0.5f, 0.5f*(bbMin - bbMax).norm());
+	// compute face & vertex normals
+	mesh_.update_normals();
+	// update face indices for faster rendering
+	update_face_indices();
+	averageVertexDisance_ = get_average_vertex_distance(mesh_);
+	prismHeight_ = averageVertexDisance_;
+
+	// init face handles for ray-casting lookup from prim_id to faceHandle
+	get_allFace_handles(allFaceHandles_);
+
+	// default: all faces are optimizable
+	get_allFace_handles(optimizedFaceHandles_);
+	//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+	// for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+	// 	faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
+	// }
+	// and then, prisms are set up 
+	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+	setup_faceBN(allFaceHandles_);
+	// setup_collisionProperty();
+	//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
+	// init the set of idx of opmizedFaces only for global optimization
+	for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
+		optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
+	}
+	float initE = E(optimizedFaceHandles_);
+	assert(fabs(initE) < FLT_EPSILON);
+
+	// read crease pattern curve
+	
+	return true;
+	// if (MeshViewer::open_mesh(_filename))
+	// {
+	// 	// do pre pass of stuff.
+	// 	// read a crese pattern and override our mesh
+	// 	test_read_crease_pattern();
+	// 	// after successfully opening the mesh, we need firstly calculate average vertices distance
+	// 	// prismHeight_ = average vertices distance
+	// 	averageVertexDisance_ = get_average_vertex_distance(mesh_);
+	// 	prismHeight_ = averageVertexDisance_;
+
+	// 	// init face handles for ray-casting lookup from prim_id to faceHandle
+	// 	get_allFace_handles(allFaceHandles_);
+
+	// 	// default: all faces are optimizable
+	// 	get_allFace_handles(optimizedFaceHandles_);
+	// 	//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
+	// 	// for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+	// 	// 	faceIdx_to_selType_[fh.idx()] = ESelectMode::OPTIMIZED;
+	// 	// }
+	// 	// and then, prisms are set up 
+	// 	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
+	// 	setup_faceBN(allFaceHandles_);
+	// 	// setup_collisionProperty();
+	// 	//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
+	// 	// init the set of idx of opmizedFaces only for global optimization
+	// 	for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
+	// 		optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
+	// 	}
+	// 	float initE = E(optimizedFaceHandles_);
+	// 	assert(fabs(initE) < FLT_EPSILON);
+
+	// 	// read crease pattern curve
+		
+	// 	return true;
+	// }
+	// return false;
 }
 
 void PrimoMeshViewer::draw(const std::string& _draw_mode)

@@ -2,6 +2,7 @@
 
 #include "MeshViewer.hh"
 #include "Transformation.hh"
+#include "OpUnit.h"
 #include "Crease.hh"
 #include <thread>
 #include <vector>
@@ -142,34 +143,37 @@ private:
 	OpenMesh::HPropHandleT<PrismProperty>  P_PrismProperty;
 	OpenMesh::HPropHandleT<PrismProperty>  P_globalPrism_intermediate;
 	// property used for handle self-collision
-	OpenMesh::FPropHandleT<PrismFaceProperty> P_faceBN;
-	OpenMesh::HPropHandleT<PrismCollisionProperty> P_collision;
-	void setup_faceBN(const std::vector<OpenMesh::FaceHandle> &face_handles);
-	void setup_collisionProperty();
+	//OpenMesh::FPropHandleT<PrismFaceProperty> P_faceBN;
+	//OpenMesh::HPropHandleT<PrismCollisionProperty> P_collision;
+	//void setup_faceBN(const std::vector<OpenMesh::FaceHandle> &face_handles);
+	//void setup_collisionProperty();
 	//OpenMesh::FPropHandleT<Transformation> P_FaceTransformationCache;
 	// press p to visualize prisms
 	bool drawPrisms_;
 	// press x to visualize other stuff
 	bool drawDebugInfo_;
 	// colors of faces of prisms
-	GLfloat optimizedFacesColor_[3];
+	GLfloat opUnitsColor_[3];
 	GLfloat allFacesColor_[3];
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
 	float averageVertexDisance_;
 	int global_optimize_iterations_;
-	// 3 types of face handles
-	// only optimize the optimizedFaces
-	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
-	std::vector<OpenMesh::FaceHandle> not_optimizedFaceHandles_;
-	// maintain a set of optimized faces' idx only for global optimization
+
 	
+	std::vector<OpUnit> opUnits_;
+	// given setted creases_ and allFaceHandles_, generate all opUnits
+	void set_all_opUnits();
+	// #TODO[ZJW]: Delete optimizedFaceHandles_
+	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	// maintain a set of optimized faces' idx only for global optimization
+	// #TODO[ZJW]: Delete optimizedFaceIdx_2_i_
 	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
+	std::unordered_map<int, int> optimizedFaceIdx_2_opUnits_i;
 	//std::vector<unsigned int> optimizedVertexIndices_;
 	
 	// used for ray-casting, from prim_id to faceHandle
 	std::vector<OpenMesh::FaceHandle> allFaceHandles_;
-	//std::vector<unsigned int> allVertexIndices_;
 
 	// face_handles is cleared and filled with all face handles in mesh_
 	void get_allFace_handles(std::vector<OpenMesh::FaceHandle> &face_handles);
@@ -185,7 +189,7 @@ private:
 	// each face could only have one type of STATIC/DYNAMI/NONE
 	//std::unordered_map<unsigned int, ESelectMode> faceIdx_to_selType_;
 	// draw prisms for all faces in array(vector)
-	void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
+	// void draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const;
 
 public:
 	//void test_read_crease_pattern();
@@ -234,13 +238,12 @@ private:
 	// used for moving camera while doing optimization 
 	std::vector<std::thread> thread_pool_;
 
-	bool bKey_space_is_move_;
 private:
 	float folding_angle_;// in degree, default: 0 degree
 
 	// functions for paper folding
 	bool read_dcc_file(const std::string &dcc_file_name);
-	void update_vertices_based_on_prisms_self_collision();
+	//void update_vertices_based_on_prisms_self_collision();
 
 	// data for paper folding
 	std::vector<Crease> creases_;

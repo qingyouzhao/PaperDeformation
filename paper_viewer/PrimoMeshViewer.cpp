@@ -18,14 +18,14 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 
 	mesh_.add_property(P_PrismProperty);
 	mesh_.add_property(P_globalPrism_intermediate);
-	mesh_.add_property(P_collision);
-	mesh_.add_property(P_faceBN);
+	// mesh_.add_property(P_collision);
+	// mesh_.add_property(P_faceBN);
 	//mesh_.add_property(P_FaceTransformationCache);
 
 	// default: optimized(orange)
-	optimizedFacesColor_[0] = 0.6f;
-	optimizedFacesColor_[1] = 0.6f;
-	optimizedFacesColor_[2] = 0.0f;
+	opUnitsColor_[0] = 0.6f;
+	opUnitsColor_[1] = 0.6f;
+	opUnitsColor_[2] = 0.0f;
 	
 	allFacesColor_[0] = 0.8f;
 	allFacesColor_[1] = 0.8f;
@@ -50,7 +50,6 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	drawDebugInfo_ = false;
 	printf("Draw Debug Info: false\n");
 
-	bKey_space_is_move_ = true;
 	folding_angle_ = 0.0f;
 }
 
@@ -108,7 +107,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 
 	// #TODO[ZJW]:init all optimizeUnits(OpUnits) based on current Creases.
-
+	// given setted creases_ and allFaceHandles_, generate all opUnits
+	set_all_opUnits();
 
 	// setup_faceBN(allFaceHandles_);
 	// setup_collisionProperty();
@@ -288,20 +288,22 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	glDisable(GL_COLOR_MATERIAL);
 	glLineWidth(prev_line_width);
 	if(drawPrisms_){
-		// #TODO[ZJW]: visualize prisms of all OpUnit boundary prisms
+		// visualize prisms of all OpUnit boundary prisms
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
 		
  
-		glBegin(GL_LINES);
-		for(const Crease &crease : creases_){
-			crease.draw_prisms(P_PrismProperty);
-		}
-		glEnd();
+		// glBegin(GL_LINES);
+		// for(const Crease &crease : creases_){
+		// 	crease.draw_prisms(P_PrismProperty);
+		// }
+		// glEnd();
 
 		glBegin(GL_LINES);
-		glColor3fv(optimizedFacesColor_);
-		draw_prisms(optimizedFaceHandles_);
+		glColor3fv(opUnitsColor_);
+		for(const OpUnit &opUnit : opUnits_){
+			opUnit.draw_prism(P_PrismProperty);
+		}
 		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
@@ -425,30 +427,30 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	}
 }
 
-void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
-	// each triangle face has 6 prism vertices and 9 edges
-	for (const OpenMesh::FaceHandle& fh : face_handles){
-		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
-		const Vec3f* pv[6];// 6 vertices of prism
-		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
-			assert(i < 3);
-			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
-			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-			pv[i] = &(prop.FromVertPrismUp);
-			pv[i + 3] = &(prop.FromVertPrismDown);
-		}
-		// have got all six vertices of prism, draw 9 edges
-		// 01, 12, 02, 34, 45, 35, 03, 14, 25
-		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
-		for(int i = 0; i < 9; ++i){
-			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
-			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
-		}
-	}
-}
+// void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
+// 	// each triangle face has 6 prism vertices and 9 edges
+// 	for (const OpenMesh::FaceHandle& fh : face_handles){
+// 		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
+// 		const Vec3f* pv[6];// 6 vertices of prism
+// 		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
+// 			assert(i < 3);
+// 			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
+// 			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+// 			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+// 			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+// 			pv[i] = &(prop.FromVertPrismUp);
+// 			pv[i + 3] = &(prop.FromVertPrismDown);
+// 		}
+// 		// have got all six vertices of prism, draw 9 edges
+// 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
+// 		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+// 		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
+// 		for(int i = 0; i < 9; ++i){
+// 			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
+// 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
+// 		}
+// 	}
+// }
 
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

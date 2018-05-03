@@ -508,70 +508,133 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 		assert(height_rate * prismHeight_ > 0);
 		creases_[crease_index].set_prism_height(height_rate * prismHeight_, P_PrismProperty);
 	}
-	// update optimizable faces
-	optimizedFaceHandles_.clear();
-	optimizedFaceIdx_2_i_.clear();
-	not_optimizedFaceHandles_.clear();
+	
+	// given setted creases_ and allFaceHandles_, generate all opUnits
+	set_all_opUnits();
+	
+	glutPostRedisplay();
+	return true;
+}
+
+void PrimoMeshViewer::set_all_opUnits(){
+	// clear opUnits and reverse index
+	opUnits_.clear();
+	optimizedFaceIdx_2_opUnits_i.clear();
 	// two faces belong to each NONE edge can be optimized
 	std::unordered_set<int> not_optimizable_faceId;
-	for(const Crease &crease: creases_){
+	std::unordered_set<int> temp_faceId;
+	for(Crease &crease: creases_){
 		if(crease.crease_type_ == Crease::ECreaseType::NONE){
 			continue;
 		}
 		//mesh_.face_handle(creases_[i]);
 		for(int i = 0; i < crease.size(); ++i){
 			//not_optimizable_faceId.emplace(mesh_.face_handle())
-			not_optimizable_faceId.emplace(mesh_.face_handle(crease[i]).idx());
-			// Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
-			// if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
-			// 	not_optimizable_faceId.emplace(mesh_.face_handle(he_j).idx());
-			// }
+			const int face_i_id = mesh_.face_handle(crease[i]).idx();
+			if(not_optimizable_faceId.find(face_i_id) != not_optimizable_faceId.end()){
+				// special case, where this face has more than one half edges are creases
+				// put it in a special set, and add them one by one to opUnits
+				temp_faceId.emplace(face_i_id);
+			}else{
+				not_optimizable_faceId.emplace(face_i_id);
+			}
+			
+			
+			Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
+			if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
+				const int face_j_id = mesh_.face_handle(he_j).idx();
+				if(not_optimizable_faceId.find(face_j_id) != not_optimizable_faceId.end()){
+					// special case, where this face has more than one half edges are creases
+					// put it in a special set, and add them one by one to opUnits
+					temp_faceId.emplace(face_j_id);
+				}
+				else{
+					not_optimizable_faceId.emplace(face_j_id);
+				}
+				
+			}
 		}
 	}
-	//
+	for(const int& face_id : temp_faceId){
+		assert(not_optimizable_faceId.find(face_id) != not_optimizable_faceId.end());
+		// erase by key
+		not_optimizable_faceId.erase(face_id);
+	}
+	// single face units
 	for(int i = 0; i < allFaceHandles_.size(); ++i){
 		const auto &face_handle = allFaceHandles_[i];
-		if(not_optimizable_faceId.find(face_handle.idx()) != not_optimizable_faceId.end()){
-			not_optimizedFaceHandles_.emplace_back(face_handle);
-		}else{
-			optimizedFaceIdx_2_i_[face_handle.idx()] = optimizedFaceHandles_.size();
-			optimizedFaceHandles_.emplace_back(face_handle);
+		if(not_optimizable_faceId.find(face_handle.idx()) == not_optimizable_faceId.end()){
+			// these are all the single units
+			assert(optimizedFaceIdx_2_opUnits_i.find(face_handle.idx()) == optimizedFaceIdx_2_opUnits_i.end());
+			optimizedFaceIdx_2_opUnits_i[face_handle.idx()] = opUnits_.size();
+			opUnits_.emplace_back(face_handle, mesh_);
 		}
 	}
-	glutPostRedisplay();
-	return true;
+	// // special case, single face units
+	// for(const int &face_id : temp_faceId){
+	// 	optimizedFaceIdx_2_opUnits_i[face_id] = opUnits_.size();
+	// 	opUnits_.emplace_back(mesh_.face_handle(face_id), mesh_);
+	// }
+	// double(single when is special case) face units, only on creases
+	for(Crease &crease: creases_){
+		if(crease.crease_type_ == Crease::ECreaseType::NONE){
+			continue;
+		}
+		for(int i = 0; i < crease.size(); ++i){
+			const OpenMesh::HalfedgeHandle he_i(crease[i]);
+			const OpenMesh::FaceHandle face_i(mesh_.face_handle(he_i));
+			const OpenMesh::HalfedgeHandle he_j(mesh_.opposite_halfedge_handle(he_i));
+			if(he_j.is_valid() && !mesh_.is_boundary(crease[i]) 
+				&& temp_faceId.find(face_i.idx()) == temp_faceId.end()
+				&& temp_faceId.find(mesh_.face_handle(he_j).idx()) == temp_faceId.end()){
+				// double triangle
+				assert(temp_faceId.find(face_i.idx()) == temp_faceId.end());
+				assert(temp_faceId.find(mesh_.face_handle(he_j).idx()) == temp_faceId.end());
+
+				optimizedFaceIdx_2_opUnits_i[face_i.idx()] = opUnits_.size();
+				optimizedFaceIdx_2_opUnits_i[mesh_.face_handle(he_j).idx()] = opUnits_.size();
+				opUnits_.emplace_back(face_i, mesh_.face_handle(he_j), he_i, mesh_);
+			}else if(temp_faceId.find(face_i.idx()) == temp_faceId.end()
+						/*&& !(he_j.is_valid() && !mesh_.is_boundary(crease[i]))*/){
+				// single triangle
+				assert(optimizedFaceIdx_2_opUnits_i.find(face_i.idx()) == optimizedFaceIdx_2_opUnits_i.end());
+				optimizedFaceIdx_2_opUnits_i[face_i.idx()] = opUnits_.size();
+				opUnits_.emplace_back(face_i, mesh_);
+				crease.toFace_foldable[i] = false;
+			}else if(temp_faceId.find(mesh_.face_handle(he_j).idx()) == temp_faceId.end() 
+					/*&& he_j.is_valid() && !mesh_.is_boundary(crease[i])*/){
+				// single triangle
+				assert(optimizedFaceIdx_2_opUnits_i.find(mesh_.face_handle(he_j).idx()) == optimizedFaceIdx_2_opUnits_i.end());
+				optimizedFaceIdx_2_opUnits_i[mesh_.face_handle(he_j).idx()] = opUnits_.size();
+				opUnits_.emplace_back(mesh_.face_handle(he_j), mesh_);
+				crease.fromFace_foldable[i] = false;
+			}
+		}
+	}
+	#ifndef NDEBUG
+	int all_face_num = 0;
+	for(const OpUnit &opUnit : opUnits_){
+		assert(opUnit.face_handles_.size() == 1 || opUnit.face_handles_.size() == 2);
+		all_face_num += opUnit.face_handles_.size();
+	}
+	int origin_all_face_num = allFaceHandles_.size();
+	int temp_size = optimizedFaceIdx_2_opUnits_i.size();
+	
+	for(int i = 0; i < opUnits_.size(); ++i){
+		const OpUnit &opUnit = opUnits_[i];
+		for(const auto &fh :opUnit.face_handles_){
+			assert(optimizedFaceIdx_2_opUnits_i[fh.idx()] == i);
+		}
+	}
+	for(const int& face_id : temp_faceId){
+		assert(optimizedFaceIdx_2_opUnits_i.find(face_id) != optimizedFaceIdx_2_opUnits_i.end());
+	}
+	assert(all_face_num == origin_all_face_num);
+	assert(temp_size == origin_all_face_num);
+	#endif
+
 }
 
-// void PrimoMeshViewer::test_read_crease_pattern()
-// {
-// 	//--------------------------------
-// 	// init a crease parser
-// 	CreasePatternParser parser;
-// 	parser.read_crease_pattern("data/curve1.cpx");
-// 	// this is where the data is processed
-// 	std::vector<std::vector<Mesh::HalfedgeHandle>> crease_hehs;
-// 	std::vector<int> types;
-// 	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
-// 	//--------------------------------
-
-// 	// MeshViewer open_mesh
-// 	Mesh::ConstVertexIter  v_it(mesh_.vertices_begin()),
-// 		v_end(mesh_.vertices_end());
-// 	Mesh::Point            bbMin, bbMax;
-
-// 	bbMin = bbMax = mesh_.point(v_it);
-// 	for (; v_it != v_end; ++v_it)
-// 	{
-// 		bbMin.minimize(mesh_.point(v_it));
-// 		bbMax.maximize(mesh_.point(v_it));
-// 	}
-// 	set_scene((Vec3f)(bbMin + bbMax)*0.5f, 0.5f*(bbMin - bbMax).norm());
-// 	// compute face & vertex normals
-// 	mesh_.update_normals();
-// 	// update face indices for faster rendering
-// 	update_face_indices();
-
-// }
 
 void PrimoMeshViewer::triangulate_by_boundary(const std::vector<HalfedgeHandle>& boundary_hehs)
 {

@@ -161,8 +161,18 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
         const OpenMesh::Vec3f n_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).normalized();
         const OpenMesh::Vec3f x_i = (prop_i.ToVertPrismUp - prop_i.FromVertPrismUp).normalized();
         const float height_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).length() * 0.5f;
-        const OpenMesh::Vec3f newN_i = std::cos(dRad) * n_i - std::sin(dRad) * (OpenMesh::cross(n_i, x_i));
+        const OpenMesh::Vec3f newN_i = (std::cos(dRad) * n_i - std::sin(dRad) * (OpenMesh::cross(n_i, x_i))).normalized() ;
         const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
+        Mesh::VertexHandle oppo_vi;
+        for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh_i); fv_it.is_valid(); ++fv_it){
+            if(mesh_.from_vertex_handle(he_i) != *fv_it && mesh_.to_vertex_handle(he_i) != *fv_it){
+                oppo_vi = *fv_it;
+                break;
+            }
+        }
+        // opposite point is rotated
+        Transformation tr(dRad, Vector3f(x_i[0], x_i[1],x_i[2]));
+        mesh_.point(oppo_vi) = tr.transformPoint(mesh_.point(oppo_vi));
         for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
             //
             PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
@@ -174,30 +184,33 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
             prop.ToVertPrismUp = midTo + newN_i * height_i;
             prop.ToVertPrismDown = midTo - newN_i * height_i;
             // update OpenMesh vertices
-            mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
-            mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
         }
-        if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
-            PrismProperty &prop_j = mesh_.property(P_PrismProperty, he_j);
-            const OpenMesh::Vec3f n_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).normalized();
-            const OpenMesh::Vec3f x_j = (prop_j.ToVertPrismUp - prop_j.FromVertPrismUp).normalized();
-            const float height_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).length() * 0.5f;
-            const OpenMesh::Vec3f newN_j = std::cos(dRad) * n_j - std::sin(dRad) * (OpenMesh::cross(n_j, x_j));
-            const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
-            for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_j);fh_iter.is_valid();++fh_iter){
-                //
-                PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
-                const OpenMesh::Vec3f midFrom = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
-                const OpenMesh::Vec3f midTo = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
-                // update Prism data
-                prop.FromVertPrismUp = midFrom + newN_j * height_j;
-                prop.FromVertPrismDown = midFrom - newN_j * height_j;
-                prop.ToVertPrismUp = midTo + newN_j * height_j;
-                prop.ToVertPrismDown = midTo - newN_j * height_j;
-                // update OpenMesh vertices
-                mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
-                mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
-            }
-        }
+        // for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
+        //     PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
+        //     mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
+        //     mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
+        // }
+        // if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
+        //     PrismProperty &prop_j = mesh_.property(P_PrismProperty, he_j);
+        //     const OpenMesh::Vec3f n_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).normalized();
+        //     const OpenMesh::Vec3f x_j = (prop_j.ToVertPrismUp - prop_j.FromVertPrismUp).normalized();
+        //     const float height_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).length() * 0.5f;
+        //     const OpenMesh::Vec3f newN_j = (std::cos(dRad) * n_j - std::sin(dRad) * (OpenMesh::cross(n_j, x_j))).normalized();
+        //     const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
+        //     for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_j);fh_iter.is_valid();++fh_iter){
+        //         //
+        //         PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
+        //         const OpenMesh::Vec3f midFrom = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
+        //         const OpenMesh::Vec3f midTo = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
+        //         // update Prism data
+        //         prop.FromVertPrismUp = midFrom + newN_j * height_j;
+        //         prop.FromVertPrismDown = midFrom - newN_j * height_j;
+        //         prop.ToVertPrismUp = midTo + newN_j * height_j;
+        //         prop.ToVertPrismDown = midTo - newN_j * height_j;
+        //         // update OpenMesh vertices
+        //         mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();
+        //         mesh_.point(mesh_.to_vertex_handle(*fh_iter)) = prop.TargetPosTo();
+        //     }
+        // }
     }
 }

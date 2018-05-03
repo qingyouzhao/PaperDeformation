@@ -404,7 +404,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// forward folding
 		folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(10.0f, P_PrismProperty);
+			crease.fold(2.0f, P_PrismProperty);
 		}
 		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
 

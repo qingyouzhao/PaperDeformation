@@ -522,10 +522,10 @@ bool PrimoMeshViewer::read_dcc_file(const std::string &dcc_file_name){
 		for(int i = 0; i < crease.size(); ++i){
 			//not_optimizable_faceId.emplace(mesh_.face_handle())
 			not_optimizable_faceId.emplace(mesh_.face_handle(crease[i]).idx());
-			Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
-			if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
-				not_optimizable_faceId.emplace(mesh_.face_handle(he_j).idx());
-			}
+			// Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(crease[i]);
+			// if (he_j.is_valid() && !mesh_.is_boundary(crease[i])){
+			// 	not_optimizable_faceId.emplace(mesh_.face_handle(he_j).idx());
+			// }
 		}
 	}
 	//

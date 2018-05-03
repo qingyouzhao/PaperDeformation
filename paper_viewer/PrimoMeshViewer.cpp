@@ -96,6 +96,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// init face handles for ray-casting lookup from prim_id to faceHandle
 	get_allFace_handles(allFaceHandles_);
 
+	
+
 	// default: all faces are optimizable
 	// get_allFace_handles(optimizedFaceHandles_);
 	//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
@@ -104,7 +106,11 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// }
 	// and then, prisms are set up 
 	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
-	setup_faceBN(allFaceHandles_);
+
+	// init all optimizeUnits(OpUnits) based on current Creases.
+
+
+	// setup_faceBN(allFaceHandles_);
 	// setup_collisionProperty();
 	//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
 	// init the set of idx of opmizedFaces only for global optimization
@@ -256,7 +262,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glEnableClientState(GL_NORMAL_ARRAY);
 		GL::glVertexPointer(mesh_.points());
 		GL::glNormalPointer(mesh_.vertex_normals());
-		// draw 3 type of faces
+		// draw all faces in solid smooth mode
 		glColor3fv(notOptimizaedFacesColor_);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
 

@@ -28,6 +28,8 @@ private:
     // crease handles for each Crease
     std::vector<OpenMesh::HalfedgeHandle> he_handles_;
     Mesh &mesh_;
+    std::vector<bool> fromFace_foldable;
+    std::vector<bool> toFace_foldable;
     // default: mountain(red)
     static const GLfloat mountainEdgeColor_[3];
 	// default: valley(blue)

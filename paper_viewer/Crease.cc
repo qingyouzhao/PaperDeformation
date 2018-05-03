@@ -7,6 +7,9 @@ mesh_(mesh)
 {
     // copy all edge handles into this crease
     this->he_handles_ = other_he_handles;
+    // defaulty both side of faces are foldable
+    // this will be setted when building OpUnits
+    fromFace_foldable = toFace_foldable = std::vector<bool>(other_he_handles.size(), true);
     if(type == 2){
         this->crease_type_ = ECreaseType::MOUNTAIN;
     }else if(type == 3){

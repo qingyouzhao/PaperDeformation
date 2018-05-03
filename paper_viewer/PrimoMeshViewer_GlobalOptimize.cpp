@@ -499,10 +499,6 @@ void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, cons
 void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations)
 {
-    /* #TODO[ZJW][QYZ]: Here we are using Eigen to solve the SPD(symmetric positive definite) linear system.
-       if it is the speed bottleneck, try SuiteSparse(even cuda - GPU implementation) with more pain :)
-       Also, here we are using float instead of double, need to make sure it is sufficient. 
-    */
     /* build the linear system. Here we follow the convention in 
        [PLH02]:http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F1D81AF3257335BC6E902048DF161317?doi=10.1.1.6.5569&rep=rep1&type=pdf
         B C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation

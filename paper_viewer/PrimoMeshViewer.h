@@ -110,14 +110,14 @@ protected:
 	virtual void update_prisms_height_uniform(const std::vector<OpenMesh::FaceHandle> &face_handles, const float dh);
 
 	// optimize prisms based on optimizeMode_
-	virtual void optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations);
+	virtual void optimize_faces(std::vector<OpUnit> &opUnits, 
+										const std::unordered_map<int,int> &optimizedFaceIdx_2_opUnits_i, const int max_iterations);
 	// Locally optimize for one prism
-	virtual void local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations);
+	virtual void local_optimize(std::vector<OpUnit> &opUnits, const int max_iterations);
 	virtual void update_vertices_based_on_prisms();
 	
 	// Locally optimize for one prism faces 
-	virtual void local_optimize_face(Mesh::FaceHandle _fh, const OpenMesh::HPropHandleT<PrismProperty> &, bool is_ij = false);
+	virtual void local_optimize_face(OpUnit &_fh, const OpenMesh::HPropHandleT<PrismProperty> &, bool is_ij = false);
 
 
 	// the wrapper for calculating the final rotation
@@ -125,8 +125,8 @@ protected:
 
 	// globally solve for all prism faces
 	// mostly face_handles should be optimizedFaceHandles_
-	virtual void global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations);
+	virtual void global_optimize_faces(std::vector<OpUnit> &opUnits, 
+										const std::unordered_map<int,int> &optimizedFaceIdx_2_opUnits_i, const int max_iterations);
 	void project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles, float lambda);
 
 	float calc_face_area(Mesh::FaceHandle _fh) const;
@@ -165,10 +165,10 @@ private:
 	// given setted creases_ and allFaceHandles_, generate all opUnits
 	void set_all_opUnits();
 	// #TODO[ZJW]: Delete optimizedFaceHandles_
-	std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
+	// std::vector<OpenMesh::FaceHandle> optimizedFaceHandles_;
 	// maintain a set of optimized faces' idx only for global optimization
 	// #TODO[ZJW]: Delete optimizedFaceIdx_2_i_
-	std::unordered_map<int, int> optimizedFaceIdx_2_i_;
+	// std::unordered_map<int, int> optimizedFaceIdx_2_i_;
 	std::unordered_map<int, int> optimizedFaceIdx_2_opUnits_i;
 	//std::vector<unsigned int> optimizedVertexIndices_;
 	
@@ -233,7 +233,7 @@ private:
              : false;
 	}
 	//defined in PrimoMeshViewer_Utilities.cpp
-	float E(const std::vector<OpenMesh::FaceHandle> &face_handles)const;
+	float E(const std::vector<OpUnit> &opUnits) const;
 	void squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target);
 	// used for moving camera while doing optimization 
 	std::vector<std::thread> thread_pool_;

@@ -117,7 +117,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
 	// 	optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
 	// }
-	float initE = E(optimizedFaceHandles_);
+	float initE = E(opUnits_);
 	assert(fabs(initE) < FLT_EPSILON);
 
 	// read crease pattern curve
@@ -293,18 +293,18 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glDisable(GL_LIGHTING);
 		
  
-		// glBegin(GL_LINES);
-		// for(const Crease &crease : creases_){
-		// 	crease.draw_prisms(P_PrismProperty);
-		// }
-		// glEnd();
-
 		glBegin(GL_LINES);
-		glColor3fv(opUnitsColor_);
-		for(const OpUnit &opUnit : opUnits_){
-			opUnit.draw_prism(P_PrismProperty);
+		for(const Crease &crease : creases_){
+			crease.draw_prisms(P_PrismProperty);
 		}
 		glEnd();
+
+		// glBegin(GL_LINES);
+		// glColor3fv(opUnitsColor_);
+		// for(const OpUnit &opUnit : opUnits_){
+		// 	opUnit.draw_prism(P_PrismProperty);
+		// }
+		// glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
 	if (drawDebugInfo_)
@@ -351,7 +351,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 
 		// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
 
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 
 		glutPostRedisplay();
 	}
@@ -364,7 +364,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 			// immediately update all prisms, should not use setup_prisms.
 			update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * -0.1f);
 			// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
-			thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+			thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 		}
 		printf("prismHeight: %f\n", prismHeight_);
 
@@ -405,9 +405,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// forward folding
 		folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(2.0f, P_PrismProperty);
+			crease.fold(5.0f, P_PrismProperty);
 		}
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 
 	}
 		break;
@@ -418,7 +418,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		for(Crease &crease : creases_){
 			crease.fold(-10.0f, P_PrismProperty);
 		}
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 	}
 		break;
 	default:
@@ -453,14 +453,14 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 // }
 
 
-void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+void PrimoMeshViewer::optimize_faces(std::vector<OpUnit> &opUnits, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){
 	// here max_iterations is for global optimization, for local we simply *100.
 	if(optimizeMode_ == EOptimizeMode::LOCAL){
-		local_optimize(face_handles,max_iterations * 100);
+		local_optimize(opUnits,max_iterations * 100);
 	}
 	else{
-		global_optimize_faces(face_handles, face_idx_2_i, max_iterations);
+		global_optimize_faces(opUnits, face_idx_2_i, max_iterations);
 	}
 }
 

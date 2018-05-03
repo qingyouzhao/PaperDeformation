@@ -59,61 +59,62 @@ void Crease::draw() const{
 		glVertex3f(to_pos[0], to_pos[1], to_pos[2]);
     }
 }
-// void Crease::draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const{
-//     static constexpr int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-// 	static constexpr int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
-//     if(crease_type_ == ECreaseType::NONE){
-//         // do not draw NONE crease
-//         return;
-//     }
-//     const GLfloat *const edgeColor_ 
-//         = ( crease_type_ == ECreaseType::MOUNTAIN ? mountainEdgeColor_:valleyEdgeColor_);
-//     // change color
-//     glColor3fv(edgeColor_);
-//     // draw 8 lines of two faces
-//     for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
-//         Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
-//         const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
-//         Mesh::ConstFaceHalfedgeCWIter fh_cwit_i = mesh_.cfh_cwbegin(fh_i);
-// 		const OpenMesh::Vec3f* pv_i[6];// 6 vertices of prism
-// 		for (int i = 0; fh_cwit_i.is_valid(); ++fh_cwit_i, ++i){
-// 			assert(i < 3);
-// 			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_i);
-// 			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-// 			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-// 			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-// 			pv_i[i] = &(prop.FromVertPrismUp);
-// 			pv_i[i + 3] = &(prop.FromVertPrismDown);
-// 		}
-// 		// have got all six vertices of prism, draw 9 edges
-// 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
+void Crease::draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const{
+    static constexpr int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+	static constexpr int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
+    if(crease_type_ == ECreaseType::NONE){
+        // do not draw NONE crease
+        return;
+    }
+    const GLfloat *const edgeColor_ 
+        = ( crease_type_ == ECreaseType::MOUNTAIN ? mountainEdgeColor_:valleyEdgeColor_);
+    // change color
+    glColor3fv(edgeColor_);
+    // draw 8 lines of two faces
+    for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
+        Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
+        const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
+        Mesh::ConstFaceHalfedgeCWIter fh_cwit_i = mesh_.cfh_cwbegin(fh_i);
+		const OpenMesh::Vec3f* pv_i[6];// 6 vertices of prism
+		for (int i = 0; fh_cwit_i.is_valid(); ++fh_cwit_i, ++i){
+			assert(i < 3);
+			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_i);
+			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+			pv_i[i] = &(prop.FromVertPrismUp);
+			pv_i[i + 3] = &(prop.FromVertPrismDown);
+		}
+		// have got all six vertices of prism, draw 9 edges
+		// 01, 12, 02, 34, 45, 35, 03, 14, 25
 
-// 		for(int i = 0; i < 9; ++i){
-// 			glVertex3f((*pv_i[pv1i[i]])[0], (*pv_i[pv1i[i]])[1], (*pv_i[pv1i[i]])[2]);
-// 			glVertex3f((*pv_i[pv2i[i]])[0], (*pv_i[pv2i[i]])[1], (*pv_i[pv2i[i]])[2]);
-// 		}
-//         if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
-//             const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
-//             Mesh::ConstFaceHalfedgeCWIter fh_cwit_j = mesh_.cfh_cwbegin(fh_j);
-//             const OpenMesh::Vec3f* pv_j[6];// 6 vertices of prism
-//             for (int i = 0; fh_cwit_j.is_valid(); ++fh_cwit_j, ++i){
-//                 assert(i < 3);
-//                 const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_j);
-//                 // const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-//                 // pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-//                 // pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-//                 pv_j[i] = &(prop.FromVertPrismUp);
-//                 pv_j[i + 3] = &(prop.FromVertPrismDown);
-//             }
-//             // have got all six vertices of prism, draw 9 edges
-//             // 01, 12, 02, 34, 45, 35, 03, 14, 25
+		for(int i = 0; i < 9; ++i){
+			glVertex3f((*pv_i[pv1i[i]])[0], (*pv_i[pv1i[i]])[1], (*pv_i[pv1i[i]])[2]);
+			glVertex3f((*pv_i[pv2i[i]])[0], (*pv_i[pv2i[i]])[1], (*pv_i[pv2i[i]])[2]);
+		}
+        if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
+            const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
+            Mesh::ConstFaceHalfedgeCWIter fh_cwit_j = mesh_.cfh_cwbegin(fh_j);
+            const OpenMesh::Vec3f* pv_j[6];// 6 vertices of prism
+            for (int i = 0; fh_cwit_j.is_valid(); ++fh_cwit_j, ++i){
+                assert(i < 3);
+                const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit_j);
+                // const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+                // pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+                // pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+                pv_j[i] = &(prop.FromVertPrismUp);
+                pv_j[i + 3] = &(prop.FromVertPrismDown);
+            }
+            // have got all six vertices of prism, draw 9 edges
+            // 01, 12, 02, 34, 45, 35, 03, 14, 25
 
-//             for(int i = 0; i < 9; ++i){
-//                 glVertex3f((*pv_j[pv1i[i]])[0], (*pv_j[pv1i[i]])[1], (*pv_j[pv1i[i]])[2]);
-//                 glVertex3f((*pv_j[pv2i[i]])[0], (*pv_j[pv2i[i]])[1], (*pv_j[pv2i[i]])[2]);
-//             }
-//         }
-//     }
+            for(int i = 0; i < 9; ++i){
+                glVertex3f((*pv_j[pv1i[i]])[0], (*pv_j[pv1i[i]])[1], (*pv_j[pv1i[i]])[2]);
+                glVertex3f((*pv_j[pv2i[i]])[0], (*pv_j[pv2i[i]])[1], (*pv_j[pv2i[i]])[2]);
+            }
+        }
+    }
+}
 
 
 
@@ -159,35 +160,57 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
     // need to rotate full prism of two faces of each half-handle
     // also need to change OpenMesh vertices of each faces
     // #TODO[ZJW]: need to take care about bool foldble
-    for(const OpenMesh::HalfedgeHandle &he_i : he_handles_){
+    for(int i = 0; i < he_handles_.size();++i){
+        OpenMesh::HalfedgeHandle &he_i = he_handles_[i];
         Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
-        PrismProperty &prop_i = mesh_.property(P_PrismProperty, he_i);
-        const OpenMesh::Vec3f n_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).normalized();
-        const OpenMesh::Vec3f x_i = (prop_i.ToVertPrismUp - prop_i.FromVertPrismUp).normalized();
-        const float height_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).length() * 0.5f;
-        const OpenMesh::Vec3f newN_i = (std::cos(dRad) * n_i - std::sin(dRad) * (OpenMesh::cross(n_i, x_i))).normalized() ;
-        const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
-        Mesh::VertexHandle oppo_vi;
-        for(Mesh::FaceVertexIter fv_it = mesh_.fv_begin(fh_i); fv_it.is_valid(); ++fv_it){
-            if(mesh_.from_vertex_handle(he_i) != *fv_it && mesh_.to_vertex_handle(he_i) != *fv_it){
-                oppo_vi = *fv_it;
-                break;
+
+        if(fromFace_foldable[i]){
+            PrismProperty &prop_i = mesh_.property(P_PrismProperty, he_i);
+            const OpenMesh::Vec3f n_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).normalized();
+            const OpenMesh::Vec3f x_i = (prop_i.ToVertPrismUp - prop_i.FromVertPrismUp).normalized();
+            const float height_i = (prop_i.FromVertPrismUp - prop_i.FromVertPrismDown).length() * 0.5f;
+            // const OpenMesh::Vec3f newN_i = (std::cos(dRad) * n_i - std::sin(dRad) * (OpenMesh::cross(n_i, x_i))).normalized() ;
+            const OpenMesh::Vec3f newN_i = (std::cos(dRad) * n_i + std::sin(dRad) * (OpenMesh::cross(n_i, x_i))).normalized() ;
+
+            const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
+            Mesh::VertexHandle oppo_vi;
+            Mesh::Point oppo_vi_pos;
+            for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
+                if(mesh_.from_vertex_handle(he_i) != mesh_.from_vertex_handle(*fh_iter) && mesh_.to_vertex_handle(he_i) != mesh_.from_vertex_handle(*fh_iter)){
+                    oppo_vi = mesh_.from_vertex_handle(*fh_iter);
+                    oppo_vi_pos = mesh_.property(P_PrismProperty, *fh_iter).TargetPosFrom();
+                    break;
+                }
+                if(mesh_.from_vertex_handle(he_i) != mesh_.to_vertex_handle(*fh_iter) && mesh_.to_vertex_handle(he_i) != mesh_.to_vertex_handle(*fh_iter)){
+                    oppo_vi = mesh_.to_vertex_handle(*fh_iter);
+                    oppo_vi_pos = mesh_.property(P_PrismProperty, *fh_iter).TargetPosTo();
+                    break;
+                }
+            }
+            // opposite point is rotated
+            Transformation tr(dRad, Vector3f(x_i[0], x_i[1],x_i[2]));
+            oppo_vi_pos = tr.transformPoint(oppo_vi_pos - mesh_.point(mesh_.from_vertex_handle(he_i))) + mesh_.point(mesh_.from_vertex_handle(he_i));
+
+            // we modify OpenMesh vertices only for visualization, it is not involed in optimization
+            mesh_.point(oppo_vi) = oppo_vi_pos;
+
+            for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
+                //
+                PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
+                Mesh::VertexHandle vh_from = mesh_.from_vertex_handle(*fh_iter);
+                Mesh::VertexHandle vh_to = mesh_.to_vertex_handle(*fh_iter);
+                const OpenMesh::Vec3f midFrom = vh_from.idx() == oppo_vi.idx() ? oppo_vi_pos : (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
+                const OpenMesh::Vec3f midTo = vh_to.idx() == oppo_vi.idx() ? oppo_vi_pos : (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
+                // update Prism data
+                prop.FromVertPrismUp = midFrom + newN_i * height_i;
+                prop.FromVertPrismDown = midFrom - newN_i * height_i;
+                prop.ToVertPrismUp = midTo + newN_i * height_i;
+                prop.ToVertPrismDown = midTo - newN_i * height_i;
+                // update OpenMesh vertices
             }
         }
-        // opposite point is rotated
-        Transformation tr(dRad, Vector3f(x_i[0], x_i[1],x_i[2]));
-        mesh_.point(oppo_vi) = tr.transformPoint(mesh_.point(oppo_vi));
-        for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
-            //
-            PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
-            const OpenMesh::Vec3f midFrom = (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
-            const OpenMesh::Vec3f midTo = (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
-            // update Prism data
-            prop.FromVertPrismUp = midFrom + newN_i * height_i;
-            prop.FromVertPrismDown = midFrom - newN_i * height_i;
-            prop.ToVertPrismUp = midTo + newN_i * height_i;
-            prop.ToVertPrismDown = midTo - newN_i * height_i;
-            // update OpenMesh vertices
+        if(toFace_foldable[i]){
+
         }
         // for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
         //     PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);

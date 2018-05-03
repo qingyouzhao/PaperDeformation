@@ -22,7 +22,7 @@ public:
     void set_prism_height(const float height, OpenMesh::HPropHandleT<PrismProperty> &p_handle);
     enum class ECreaseType{NONE, MOUNTAIN, VALLEY} crease_type_;
     void draw() const;
-    // void draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const;
+    void draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const;
     void draw_falt_foldable_faces(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const;
     void fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty);
     std::vector<int> fromFace_foldable;

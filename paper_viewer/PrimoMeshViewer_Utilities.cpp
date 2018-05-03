@@ -142,85 +142,90 @@ void PrimoMeshViewer::print_quaternion(Eigen::Quaternion<double>& Q)
 void PrimoMeshViewer::update_vertices_based_on_prisms()
 {
 	std::unordered_set<int> visited_vertices_idx;
-	for(const OpenMesh::FaceHandle &fh: optimizedFaceHandles_){
-		for (Mesh::FaceVertexIter fv_iter = mesh_.fv_begin(fh); fv_iter.is_valid(); ++fv_iter)
-		{
-			// check if this vertice is visited
-			if(visited_vertices_idx.find(fv_iter->idx()) != visited_vertices_idx.end()){
-				continue;
-			}
-			visited_vertices_idx.emplace(fv_iter->idx());
-			
-			Mesh::Point original_point = mesh_.point(*fv_iter);
-			Vector3d new_point(0, 0, 0);
-			float weight = 0;
-
-			for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*fv_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
+	for(OpUnit &op_unit : opUnits_){
+		for(const OpenMesh::FaceHandle &fh : op_unit.face_handles_){
+			for (Mesh::FaceVertexIter fv_iter = mesh_.fv_begin(fh); fv_iter.is_valid(); ++fv_iter)
 			{
-				if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
-				{
-					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
-					new_point += voh_prop.TargetPosFrom();
-					weight += 1.0f;
-
-					#ifndef NDEBUG
-					Arrow arrow(
-						Vector3d(original_point),
-						Vector3d(voh_prop.TargetPosFrom()),
-						LinearColor::RED,
-						3.0f
-					);
-					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-					#endif
+				// check if this vertice is visited
+				if(visited_vertices_idx.find(fv_iter->idx()) != visited_vertices_idx.end()){
+					continue;
 				}
-			}
-			for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*fv_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
-			{
-				if (mesh_.face_handle(*vih_ccwiter).is_valid())
+				visited_vertices_idx.emplace(fv_iter->idx());
+				
+				Mesh::Point original_point = mesh_.point(*fv_iter);
+				Vector3d new_point(0, 0, 0);
+				float weight = 0;
+
+				for (Mesh::VertexOHalfedgeCCWIter voh_ccwiter = mesh_.voh_ccwbegin(*fv_iter); voh_ccwiter.is_valid(); voh_ccwiter++)
 				{
-					PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
-					new_point += voh_prop.TargetPosTo();
-					weight += 1.0f;
+					if (mesh_.face_handle(*voh_ccwiter).is_valid()) // Make sure this half edge has a face
+					{
+						PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *voh_ccwiter);
+						new_point += voh_prop.TargetPosFrom();
+						weight += 1.0f;
 
-					#ifndef NDEBUG
-					Arrow arrow(
-						Vector3d(original_point),
-						Vector3d(voh_prop.TargetPosTo()),
-						LinearColor::GREEN,
-						3.0f
-					);
-					g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-					#endif
+						#ifndef NDEBUG
+						Arrow arrow(
+							Vector3d(original_point),
+							Vector3d(voh_prop.TargetPosFrom()),
+							LinearColor::RED,
+							3.0f
+						);
+						g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+						#endif
+					}
 				}
+				for (Mesh::VertexIHalfedgeCCWIter vih_ccwiter = mesh_.vih_ccwbegin(*fv_iter); vih_ccwiter.is_valid(); vih_ccwiter++)
+				{
+					if (mesh_.face_handle(*vih_ccwiter).is_valid())
+					{
+						PrismProperty& voh_prop = mesh_.property(P_PrismProperty, *vih_ccwiter);
+						new_point += voh_prop.TargetPosTo();
+						weight += 1.0f;
+
+						#ifndef NDEBUG
+						Arrow arrow(
+							Vector3d(original_point),
+							Vector3d(voh_prop.TargetPosTo()),
+							LinearColor::GREEN,
+							3.0f
+						);
+						g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+						#endif
+					}
+				}
+				new_point /= weight;
+
+				mesh_.point(*fv_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
+
+				#ifndef NDEBUG
+				Arrow arrow(
+					Vector3d(original_point),
+					Vector3d(new_point),
+					LinearColor::BLUE,
+					3.0f
+				);
+				g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
+				#endif
 			}
-			new_point /= weight;
-
-			mesh_.point(*fv_iter) = Vec3f(new_point[0], new_point[1], new_point[2]);
-
-			#ifndef NDEBUG
-			Arrow arrow(
-				Vector3d(original_point),
-				Vector3d(new_point),
-				LinearColor::BLUE,
-				3.0f
-			);
-			g_debug_arrows_to_draw_local_optimizations.emplace_back(arrow);
-			#endif
 		}
 	}
 }
-float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
+float PrimoMeshViewer::E(const std::vector<OpUnit> &opUnits) const{
 	float E = 0.0f;
     std::unordered_set<int> he_id_set;
-	for(int i = 0; i < face_handles.size(); ++i){
+	for(int i = 0; i < opUnits.size(); ++i){
         // iterate all faces
-        const OpenMesh::FaceHandle &fh_i = face_handles[i];
-        const int f_i_id = fh_i.idx();
-        for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh_.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
+        // const OpenMesh::FaceHandle &fh_i = face_handles[i];
+        //const int f_i_id = fh_i.idx();
+		// iterate all boundary halfedges of opUnits
+		const OpUnit &op_unit = opUnits[i];
+		for(const OpenMesh::HalfedgeHandle &he_i : op_unit.boundary_he_handles_){
+        //for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh_.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
             // Grab the opposite half edge and face
-            const Mesh::HalfedgeHandle he_i = *fhe_it;
+            // const Mesh::HalfedgeHandle he_i = *fhe_it;
             Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
-		    Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(*fhe_it);
+		    Mesh::FaceHandle fh_j = mesh_.opposite_face_handle(he_i);
             // if he_i is a boundary halfedge, there is no opposite prism face,
             // which means that it has no contribution to the total energy E = Sum(w_ij * E_ij)
             // we could skip this half edge he_i now
@@ -248,7 +253,7 @@ float PrimoMeshViewer::E(const std::vector<OpenMesh::FaceHandle> &face_handles) 
             he_id_set.insert(he_i_id);	
             he_id_set.insert(he_j_id);
             // get the f^ij_[0/1][0/1] in the PriMo equation
-            const int f_j_id = fh_j.idx();
+            // const int f_j_id = fh_j.idx();
             const PrismProperty * const P_i = &(mesh_.property(P_PrismProperty, he_i));
             const PrismProperty * const P_j = &(mesh_.property(P_PrismProperty, he_j));
             const float w_ij = P_i->weight_ij;
@@ -600,14 +605,14 @@ void PrimoMeshViewer::set_all_opUnits(){
 				assert(optimizedFaceIdx_2_opUnits_i.find(face_i.idx()) == optimizedFaceIdx_2_opUnits_i.end());
 				optimizedFaceIdx_2_opUnits_i[face_i.idx()] = opUnits_.size();
 				opUnits_.emplace_back(face_i, mesh_);
-				crease.toFace_foldable[i] = false;
+				crease.toFace_foldable[i] = 0;
 			}else if(temp_faceId.find(mesh_.face_handle(he_j).idx()) == temp_faceId.end() 
 					/*&& he_j.is_valid() && !mesh_.is_boundary(crease[i])*/){
 				// single triangle
 				assert(optimizedFaceIdx_2_opUnits_i.find(mesh_.face_handle(he_j).idx()) == optimizedFaceIdx_2_opUnits_i.end());
 				optimizedFaceIdx_2_opUnits_i[mesh_.face_handle(he_j).idx()] = opUnits_.size();
 				opUnits_.emplace_back(mesh_.face_handle(he_j), mesh_);
-				crease.fromFace_foldable[i] = false;
+				crease.fromFace_foldable[i] = 0;
 			}
 		}
 	}

@@ -217,7 +217,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	}
 	else if (_draw_mode == "Solid Flat")
 	{
-
+		// only draw all foldable faces 
 		Mesh::ConstFaceVertexIter  fv_it;
 		glEnable(GL_LIGHTING);
 		glShadeModel(GL_FLAT);
@@ -237,16 +237,9 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		// }
 		// glEnd();
 		
-		glColor3fv(optimizedFacesColor_);
 		glBegin(GL_TRIANGLES);
-		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
-			GL::glNormal(mesh_.normal(fh));
-			fv_it = mesh_.cfv_iter(fh); 
-			GL::glVertex(mesh_.point(*fv_it));
-			++fv_it;
-			GL::glVertex(mesh_.point(*fv_it));
-			++fv_it;
-			GL::glVertex(mesh_.point(*fv_it));
+		for(const Crease &crease : creases_){
+			crease.draw_falt_foldable_faces(P_PrismProperty); 
 		}
 		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
@@ -295,7 +288,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	glDisable(GL_COLOR_MATERIAL);
 	glLineWidth(prev_line_width);
 	if(drawPrisms_){
-		// visualize prisms with wireframes
+		// #TODO[ZJW]: visualize prisms of all OpUnit boundary prisms
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
 		

@@ -217,3 +217,43 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
         // }
     }
 }
+void Crease::draw_falt_foldable_faces(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const{
+    if(crease_type_ == ECreaseType::NONE){
+        // do not draw NONE crease
+        return;
+    }
+    const GLfloat *const edgeColor_ 
+        = ( crease_type_ == ECreaseType::MOUNTAIN ? mountainEdgeColor_:valleyEdgeColor_);
+    // change color
+    glColor3fv(edgeColor_);
+	for(int i = 0; i < he_handles_.size(); ++i){
+        const OpenMesh::HalfedgeHandle &he_i = he_handles_[i];
+        if(fromFace_foldable[i]){
+            const Mesh::FaceHandle fh_i = mesh_.face_handle(he_i);
+            GL::glNormal(mesh_.normal(fh_i));
+            Mesh::ConstFaceVertexIter  fv_it;
+			fv_it = mesh_.cfv_iter(fh_i); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+
+        }
+        if(toFace_foldable[i]){
+            Mesh::HalfedgeHandle he_j = mesh_.opposite_halfedge_handle(he_i);
+            if (he_j.is_valid() && !mesh_.is_boundary(he_i)){
+                const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
+                GL::glNormal(mesh_.normal(fh_j));
+                Mesh::ConstFaceVertexIter  fv_it;
+			    fv_it = mesh_.cfv_iter(fh_j); 
+			    GL::glVertex(mesh_.point(*fv_it));
+			    ++fv_it;
+			    GL::glVertex(mesh_.point(*fv_it));
+			    ++fv_it;
+			    GL::glVertex(mesh_.point(*fv_it));
+            }
+        }
+    }
+}
+

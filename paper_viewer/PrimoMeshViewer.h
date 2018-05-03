@@ -153,7 +153,7 @@ private:
 	bool drawDebugInfo_;
 	// colors of faces of prisms
 	GLfloat optimizedFacesColor_[3];
-	GLfloat notOptimizaedFacesColor_[3];
+	GLfloat allFacesColor_[3];
 	// prism' height (homogeneous: all prisms' height are same now)
 	float prismHeight_;
 	float averageVertexDisance_;

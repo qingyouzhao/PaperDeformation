@@ -27,9 +27,9 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	optimizedFacesColor_[1] = 0.6f;
 	optimizedFacesColor_[2] = 0.0f;
 	
-	notOptimizaedFacesColor_[0] = 0.8f;
-	notOptimizaedFacesColor_[1] = 0.8f;
-	notOptimizaedFacesColor_[2] = 0.8f;
+	allFacesColor_[0] = 0.8f;
+	allFacesColor_[1] = 0.8f;
+	allFacesColor_[2] = 0.8f;
 
 	// do not draw prisms at first
 	drawPrisms_ = false;
@@ -107,7 +107,7 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// and then, prisms are set up 
 	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
 
-	// init all optimizeUnits(OpUnits) based on current Creases.
+	// #TODO[ZJW]:init all optimizeUnits(OpUnits) based on current Creases.
 
 
 	// setup_faceBN(allFaceHandles_);
@@ -256,7 +256,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		GL::glVertexPointer(mesh_.points());
 		GL::glNormalPointer(mesh_.vertex_normals());
 		// draw all faces in solid smooth mode
-		glColor3fv(notOptimizaedFacesColor_);
+		glColor3fv(allFacesColor_);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
 
 		// if(dynamicVertexIndices_.size()>0)

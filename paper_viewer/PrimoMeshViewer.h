@@ -4,7 +4,6 @@
 #include "Transformation.hh"
 #include "OpUnit.h"
 #include "Crease.hh"
-#include <thread>
 #include <vector>
 #include <unordered_map>
 #include <list>
@@ -235,8 +234,6 @@ private:
 	//defined in PrimoMeshViewer_Utilities.cpp
 	float E(const std::vector<OpUnit> &opUnits) const;
 	void squeeze_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, const OpenMesh::Vec3f &target);
-	// used for moving camera while doing optimization 
-	std::vector<std::thread> thread_pool_;
 
 private:
 	//float folding_angle_;// in degree, default: 0 degree

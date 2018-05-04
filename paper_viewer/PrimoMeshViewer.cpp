@@ -359,7 +359,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 
 		// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
 
-		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
 
 		glutPostRedisplay();
 	}
@@ -372,7 +372,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 			// immediately update all prisms, should not use setup_prisms.
 			update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * -0.1f);
 			// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
-			thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+			optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
 		}
 		printf("prismHeight: %f\n", prismHeight_);
 
@@ -505,11 +505,11 @@ void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *fi
 	pic_free(in);
 }
 void PrimoMeshViewer::idle(){
-	char s[20] = "xxxx.ppm";
-	s[0] = 48 + (sprite_ % 10000) / 1000;
-	s[1] = 48 + (sprite_ % 1000) / 100;
-	s[2] = 48 + (sprite_ % 100) / 10;
-	s[3] = 48 + sprite_ % 10;
+	char s[20] = "ppm/xxxx.ppm";
+	s[3] = 48 + (sprite_ % 10000) / 1000;
+	s[4] = 48 + (sprite_ % 1000) / 100;
+	s[5] = 48 + (sprite_ % 100) / 10;
+	s[6] = 48 + sprite_ % 10;
 	if (folding_play_){
 		if(folding_record_){
 			saveScreenshot(width_, height_, s);

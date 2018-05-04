@@ -518,7 +518,7 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpUnit> &opUnits,
     float E_k = 0.0f, E_km1 = E(opUnits);
     // std::cout<<"E_origin: "<<E_origin<<std::endl;
     float lambda = 1.0f;
-    for(int i = 0; i < max_iterations; ++i, lambda *= 0.5f){
+    for(int i = 0; i < 2; ++i, lambda *= 0.6f){
         // find optimal velocities
         Timer solve_linear_system_timer;
         Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);

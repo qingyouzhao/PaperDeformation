@@ -410,10 +410,11 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// forward folding
 		folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(2.0f, P_PrismProperty);
+			crease.fold(1.0f, P_PrismProperty);
 		}
-		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
-
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		glutPostRedisplay();
 	}
 		break;
 	case 'b':
@@ -421,9 +422,32 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// backward folding
 		folding_angle_ -= 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(-2.0f, P_PrismProperty);
+			crease.fold(-1.0f, P_PrismProperty);
 		}
-		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		glutPostRedisplay();
+		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+	}
+		break;
+	case 'r':
+	case 'R':{
+		// used for recording the final vedio
+	}
+		break;
+	case 'p':
+	case 'P':{
+		// used for real time demo
+		thread_pool_.emplace_back([&]() { 
+			for(int i = 0; i < 90; ++i){
+				for(Crease &crease : creases_){
+					crease.fold(1.0f, P_PrismProperty);
+				}
+				optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+				glutPostRedisplay();
+			}
+		});
+
 	}
 		break;
 	default:

@@ -102,7 +102,7 @@ protected:
 
 	// GLut overload, inputs
 	virtual void keyboard(int key, int x, int y);
-
+	virtual void idle();
 	// Setup prisms for the meshes
 	// default to face normals, this makes the prism very flat
 	virtual void setup_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles, 
@@ -239,7 +239,7 @@ private:
 	std::vector<std::thread> thread_pool_;
 
 private:
-	float folding_angle_;// in degree, default: 0 degree
+	//float folding_angle_;// in degree, default: 0 degree
 
 	// functions for paper folding
 	bool read_dcc_file(const std::string &dcc_file_name);
@@ -247,4 +247,9 @@ private:
 
 	// data for paper folding
 	std::vector<Crease> creases_;
+	static bool folding_play_;
+	static float folding_dAngle_;
+	static bool folding_record_;
+	static int sprite_;
+	void saveScreenshot(int windowWidth, int windowHeight, char *filename);
 };

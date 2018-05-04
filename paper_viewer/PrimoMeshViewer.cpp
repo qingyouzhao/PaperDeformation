@@ -7,10 +7,13 @@
 #include <unordered_set>
 #include <string>
 #include "CreasePatternParser.h"
-
+#include "pic.h"
 
 //const std::string test_crease_file("../data/curve1.cpx");
-
+bool PrimoMeshViewer::folding_play_ = false;
+bool PrimoMeshViewer::folding_record_ = false;
+int PrimoMeshViewer::sprite_ = 0;
+float PrimoMeshViewer::folding_dAngle_ = 1.0f;
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	: MeshViewer(_title, _width, _height)
 {
@@ -50,7 +53,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	drawDebugInfo_ = false;
 	printf("Draw Debug Info: false\n");
 
-	folding_angle_ = 0.0f;
+	//folding_angle_ = 0.0f;	
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -408,9 +411,9 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'f':
 	case 'F':{
 		// forward folding
-		folding_angle_ += 0.5;
+		//folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(1.0f, P_PrismProperty);
+			crease.fold(folding_dAngle_, P_PrismProperty);
 		}
 		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
 		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
@@ -419,35 +422,21 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		break;
 	case 'b':
 	case 'B':{
-		// backward folding
-		folding_angle_ -= 0.5;
-		for(Crease &crease : creases_){
-			crease.fold(-1.0f, P_PrismProperty);
-		}
-		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
-		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
-		glutPostRedisplay();
-		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		folding_dAngle_ *= -1.0f;
+		printf("folding_dAngle_: %f\n", folding_dAngle_);
 	}
 		break;
 	case 'r':
 	case 'R':{
 		// used for recording the final vedio
+		folding_record_ = !folding_record_;
+		folding_play_ = !folding_play_; 
 	}
 		break;
 	case 'p':
 	case 'P':{
 		// used for real time demo
-		thread_pool_.emplace_back([&]() { 
-			for(int i = 0; i < 90; ++i){
-				for(Crease &crease : creases_){
-					crease.fold(1.0f, P_PrismProperty);
-				}
-				optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
-				glutPostRedisplay();
-			}
-		});
-
+		folding_play_ = !folding_play_; 
 	}
 		break;
 	default:
@@ -492,4 +481,52 @@ void PrimoMeshViewer::optimize_faces(std::vector<OpUnit> &opUnits,
 		global_optimize_faces(opUnits, face_idx_2_i, max_iterations);
 	}
 }
+void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *filename)
+{
+	if (filename == NULL)
+		return;
 
+	// Allocate a picture buffer 
+	Pic * in = pic_alloc(windowWidth, windowHeight, 3, NULL);
+
+	printf("File to save to: %s\n", filename);
+
+	for (int i = windowHeight - 1; i >= 0; i--)
+	{
+		glReadPixels(0, windowHeight - i - 1, windowWidth, 1, GL_RGB, GL_UNSIGNED_BYTE,
+			&in->pix[i*in->nx*in->bpp]);
+	}
+
+	if (ppm_write(filename, in))
+		printf("File saved Successfully\n");
+	else
+		printf("Error in Saving\n");
+
+	pic_free(in);
+}
+void PrimoMeshViewer::idle(){
+	char s[20] = "xxxx.ppm";
+	s[0] = 48 + (sprite_ % 10000) / 1000;
+	s[1] = 48 + (sprite_ % 1000) / 100;
+	s[2] = 48 + (sprite_ % 100) / 10;
+	s[3] = 48 + sprite_ % 10;
+	if (folding_play_){
+		if(folding_record_){
+			saveScreenshot(width_, height_, s);
+		}
+		for(Crease &crease : creases_){
+			crease.fold(folding_dAngle_, P_PrismProperty);
+		}
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+		glutPostRedisplay();
+		++sprite_;
+	}
+	
+	if (sprite_ >= 90) // allow only 90 degree folding now
+	{
+		sprite_ = 0;
+		folding_record_ = false;
+		folding_play_ = false;
+	}
+	glutPostRedisplay();
+}

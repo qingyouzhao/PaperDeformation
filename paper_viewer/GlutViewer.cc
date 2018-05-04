@@ -70,7 +70,7 @@ GlutViewer(const char* _title, int _width, int _height)
   glutPassiveMotionFunc(passivemotion__);
   glutReshapeFunc(reshape__); 
   glutVisibilityFunc(visibility__);
-
+  glutIdleFunc(idle__);
 
   // create menu
   n_draw_modes_ = 0;

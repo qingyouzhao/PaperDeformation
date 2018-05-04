@@ -26,7 +26,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 lib/
-
+ppm/
+obj/
 # Linux Build results
 [bB]uild/
 .vscode

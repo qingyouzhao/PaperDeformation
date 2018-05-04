@@ -1,3 +1,4 @@
+#include <OpenMesh/Core/IO/MeshIO.hh>
 #include "PrimoMeshViewer.h"
 #include <iostream>
 #include <Eigen/Dense>
@@ -504,15 +505,32 @@ void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *fi
 
 	pic_free(in);
 }
+
+void PrimoMeshViewer::save_mesh_to_obj(const std::string & filename)
+{
+	if (!OpenMesh::IO::write_mesh(mesh_, filename))
+	{
+		std::cerr << "Write mesh to " << filename << " failed!" << std::endl;
+	}
+}
+
 void PrimoMeshViewer::idle(){
-	char s[20] = "ppm/xxxx.ppm";
-	s[3] = 48 + (sprite_ % 10000) / 1000;
-	s[4] = 48 + (sprite_ % 1000) / 100;
-	s[5] = 48 + (sprite_ % 100) / 10;
-	s[6] = 48 + sprite_ % 10;
+	// char s[20] = "xxxx.ppm";
+	std::string base_name;
+	base_name += (char)(48 + (sprite_ % 10000) / 1000);
+	base_name += (char)(48 + (sprite_ % 1000) / 100);
+	base_name += (char)(48 + (sprite_ % 100) / 10);
+	base_name += (char)(48 + sprite_ % 10);
+	std::string obj_name;
+	obj_name += "../obj/";
+	obj_name += base_name;
+	obj_name += ".obj";
+	std::string ppm_name = "../ppm/" + base_name + ".ppm";
 	if (folding_play_){
 		if(folding_record_){
-			saveScreenshot(width_, height_, s);
+			char * charx = (char*)(ppm_name.c_str());
+			saveScreenshot(width_, height_, charx);
+			save_mesh_to_obj(obj_name);
 		}
 		for(Crease &crease : creases_){
 			crease.fold(folding_dAngle_, P_PrismProperty);

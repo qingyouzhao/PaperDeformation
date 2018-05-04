@@ -629,7 +629,7 @@ void PrimoMeshViewer::set_all_opUnits(){
 			}
 		}
 	}
-	#ifndef NDEBUG
+	#ifdef NDEBUG 
 	int all_face_num = 0;
 	for(const OpUnit &opUnit : opUnits_){
 		assert(opUnit.face_handles_.size() == 1 || opUnit.face_handles_.size() == 2);
@@ -647,8 +647,8 @@ void PrimoMeshViewer::set_all_opUnits(){
 	for(const int& face_id : temp_faceId){
 		assert(optimizedFaceIdx_2_opUnits_i.find(face_id) != optimizedFaceIdx_2_opUnits_i.end());
 	}
-	assert(all_face_num == origin_all_face_num);
-	assert(temp_size == origin_all_face_num);
+	 assert(all_face_num == origin_all_face_num);
+	 assert(temp_size == origin_all_face_num);
 	#endif
 
 }

@@ -249,4 +249,6 @@ private:
 	static bool folding_record_;
 	static int sprite_;
 	void saveScreenshot(int windowWidth, int windowHeight, char *filename);
+
+	void save_mesh_to_obj(const std::string & filename);
 };

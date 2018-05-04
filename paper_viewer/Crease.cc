@@ -189,7 +189,7 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
             }
             // opposite point is rotated
             Transformation tr(dRad, Vector3f(x_i[0], x_i[1],x_i[2]));
-            oppo_vi_pos = tr.transformPoint(oppo_vi_pos - mesh_.point(mesh_.from_vertex_handle(he_i))) + mesh_.point(mesh_.from_vertex_handle(he_i));
+            oppo_vi_pos = tr.transformPoint(oppo_vi_pos - prop_i.TargetPosFrom()) + prop_i.TargetPosFrom();
 
             // we modify OpenMesh vertices only for visualization, it is not involed in optimization
             mesh_.point(oppo_vi) = oppo_vi_pos;
@@ -208,10 +208,54 @@ void Crease::fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismPr
                 prop.ToVertPrismDown = midTo - newN_i * height_i;
                 // update OpenMesh vertices
             }
-        }
-        if(toFace_foldable[i]){
 
         }
+        if(toFace_foldable[i]){
+            PrismProperty &prop_j = mesh_.property(P_PrismProperty, he_j);
+            const OpenMesh::Vec3f n_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).normalized();
+            const OpenMesh::Vec3f x_j = (prop_j.ToVertPrismUp - prop_j.FromVertPrismUp).normalized();
+            const float height_j = (prop_j.FromVertPrismUp - prop_j.FromVertPrismDown).length() * 0.5f;
+            // const OpenMesh::Vec3f newN_i = (std::cos(dRad) * n_i - std::sin(dRad) * (OpenMesh::cross(n_i, x_i))).normalized() ;
+            const OpenMesh::Vec3f newN_j = (std::cos(dRad) * n_j + std::sin(dRad) * (OpenMesh::cross(n_j, x_j))).normalized() ;
+
+            const Mesh::FaceHandle fh_j = mesh_.face_handle(he_j);
+            Mesh::VertexHandle oppo_vj;
+            Mesh::Point oppo_vj_pos;
+            for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_j);fh_iter.is_valid();++fh_iter){
+                if(mesh_.from_vertex_handle(he_j) != mesh_.from_vertex_handle(*fh_iter) && mesh_.to_vertex_handle(he_j) != mesh_.from_vertex_handle(*fh_iter)){
+                    oppo_vj = mesh_.from_vertex_handle(*fh_iter);
+                    oppo_vj_pos = mesh_.property(P_PrismProperty, *fh_iter).TargetPosFrom();
+                    break;
+                }
+                if(mesh_.from_vertex_handle(he_j) != mesh_.to_vertex_handle(*fh_iter) && mesh_.to_vertex_handle(he_j) != mesh_.to_vertex_handle(*fh_iter)){
+                    oppo_vj = mesh_.to_vertex_handle(*fh_iter);
+                    oppo_vj_pos = mesh_.property(P_PrismProperty, *fh_iter).TargetPosTo();
+                    break;
+                }
+            }
+            // opposite point is rotated
+            Transformation tr(dRad, Vector3f(x_j[0], x_j[1],x_j[2]));
+            oppo_vj_pos = tr.transformPoint(oppo_vj_pos - prop_j.TargetPosFrom()) + prop_j.TargetPosFrom();
+
+            // we modify OpenMesh vertices only for visualization, it is not involed in optimization
+            mesh_.point(oppo_vj) = oppo_vj_pos;
+
+            for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_j);fh_iter.is_valid();++fh_iter){
+                //
+                PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
+                Mesh::VertexHandle vh_from = mesh_.from_vertex_handle(*fh_iter);
+                Mesh::VertexHandle vh_to = mesh_.to_vertex_handle(*fh_iter);
+                const OpenMesh::Vec3f midFrom = vh_from.idx() == oppo_vj.idx() ? oppo_vj_pos : (prop.FromVertPrismUp + prop.FromVertPrismDown) * 0.5f;
+                const OpenMesh::Vec3f midTo = vh_to.idx() == oppo_vj.idx() ? oppo_vj_pos : (prop.ToVertPrismUp + prop.ToVertPrismDown) * 0.5f;
+                // update Prism data
+                prop.FromVertPrismUp = midFrom + newN_j * height_j;
+                prop.FromVertPrismDown = midFrom - newN_j * height_j;
+                prop.ToVertPrismUp = midTo + newN_j * height_j;
+                prop.ToVertPrismDown = midTo - newN_j * height_j;
+                // update OpenMesh vertices
+            }
+        }
+        mesh_.update_normals();
         // for(Mesh::FaceHalfedgeIter fh_iter = mesh_.fh_begin(fh_i);fh_iter.is_valid();++fh_iter){
         //     PrismProperty &prop = mesh_.property(P_PrismProperty, *fh_iter);
         //     mesh_.point(mesh_.from_vertex_handle(*fh_iter)) = prop.TargetPosFrom();

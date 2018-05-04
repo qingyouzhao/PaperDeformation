@@ -70,6 +70,11 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
 	//--------------------------------
 
+	//-----------------only for the demo, change all y from 0 to 1 --------------------
+	for(Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); ++v_iter){
+		mesh_.point(*v_iter)[1] += 1.0f;
+	}
+	//---------------------------------------------------------------------------------
 	for(int i = 0; i < crease_hehs.size(); ++i){
 		creases_.emplace_back(crease_hehs[i], mesh_, types[i]);
 	}
@@ -405,7 +410,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// forward folding
 		folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(5.0f, P_PrismProperty);
+			crease.fold(2.0f, P_PrismProperty);
 		}
 		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 
@@ -416,7 +421,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		// backward folding
 		folding_angle_ -= 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(-10.0f, P_PrismProperty);
+			crease.fold(-2.0f, P_PrismProperty);
 		}
 		thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
 	}

@@ -518,7 +518,7 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpUnit> &opUnits,
     float E_k = 0.0f, E_km1 = E(opUnits);
     // std::cout<<"E_origin: "<<E_origin<<std::endl;
     float lambda = 1.0f;
-    for(int i = 0; i < 1; ++i, lambda *= 0.95f){
+    for(int i = 0; i < max_iterations; ++i, lambda *= 0.5f){
         // find optimal velocities
         Timer solve_linear_system_timer;
         Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
@@ -528,7 +528,10 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpUnit> &opUnits,
         std::cout<<"build linear system takes: "<<solve_linear_system_timer.lapString()<<std::endl;
 
         Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
-        assert(solver.info() == Eigen::Success);
+        // assert(solver.info() == Eigen::Success);
+        if(solver.info() != Eigen::Success){
+            break;
+        }
         Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
 
         std::cout<<"find optimal velocities takes: "<<solve_linear_system_timer.elapsedString()<<std::endl;
@@ -538,10 +541,11 @@ void PrimoMeshViewer::global_optimize_faces(std::vector<OpUnit> &opUnits,
         project_v_and_update_prisms(x, opUnits, lambda);
         E_k = E(opUnits);
         std::cout<<"E"<< i <<": "<<E_k<<std::endl;
-        // if(converge_E(E_k, E_km1)){
-        //     std::cout<<"[Global Optimization]:converge\n";
-        //     break;
-        // }
+        if(converge_E(E_k, E_km1)){
+            std::cout<<"[Global Optimization]:converge\n";
+            break;
+        }
+        E_km1 = E_k;
         update_vertices_based_on_prisms();
         mesh_.update_normals(); 
         glutPostRedisplay();

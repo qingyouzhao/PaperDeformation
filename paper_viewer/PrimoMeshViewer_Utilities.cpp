@@ -528,6 +528,15 @@ void PrimoMeshViewer::set_all_opUnits(){
 	// two faces belong to each NONE edge can be optimized
 	std::unordered_set<int> not_optimizable_faceId;
 	std::unordered_set<int> temp_faceId;
+	//------------only for the demo, exclude the center prism----------------
+	Mesh::VertexHandle vh = get_closes_vertex_handle(mesh_,Mesh::Point(0,1,0));
+	Mesh::VertexFaceCCWIter iter = mesh_.vf_ccwbegin(vh);
+	std::unordered_set<int> exclude_face_indices;
+	exclude_face_indices.emplace(iter->idx());
+	// for(; iter.is_valid();++iter){
+	// 	exclude_face_indices.emplace(iter->idx());
+	// }
+	//----------------------------------------------------------------
 	for(Crease &crease: creases_){
 		if(crease.crease_type_ == Crease::ECreaseType::NONE){
 			continue;
@@ -569,7 +578,11 @@ void PrimoMeshViewer::set_all_opUnits(){
 	for(int i = 0; i < allFaceHandles_.size(); ++i){
 		const auto &face_handle = allFaceHandles_[i];
 		if(not_optimizable_faceId.find(face_handle.idx()) == not_optimizable_faceId.end()){
-			// these are all the single units
+			//------------only for the demo, exclude the center prism----------------
+			if(exclude_face_indices.find(face_handle.idx()) !=  exclude_face_indices.end()){
+				continue;
+			}
+			//-----------------------------------------------------------------------
 			assert(optimizedFaceIdx_2_opUnits_i.find(face_handle.idx()) == optimizedFaceIdx_2_opUnits_i.end());
 			optimizedFaceIdx_2_opUnits_i[face_handle.idx()] = opUnits_.size();
 			opUnits_.emplace_back(face_handle, mesh_);

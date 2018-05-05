@@ -508,7 +508,7 @@ void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *fi
 
 void PrimoMeshViewer::save_mesh_to_obj(const std::string & filename)
 {
-	if (!OpenMesh::IO::write_mesh(mesh_, filename))
+	if (!OpenMesh::IO::write_mesh(mesh_, filename,  IO::Options::VertexNormal + IO::Options::Default))
 	{
 		std::cerr << "Write mesh to " << filename << " failed!" << std::endl;
 	}

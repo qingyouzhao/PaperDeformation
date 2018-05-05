@@ -320,7 +320,19 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	{
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
-		draw_debug_lines();
+		//draw_debug_lines();
+		// only draw vertex normal now
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glBegin(GL_LINES);
+		for(Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); ++v_iter){
+			const Mesh::Point &start = mesh_.point(*v_iter);
+			Mesh::Point dir = mesh_.normal(*v_iter);
+			dir *= averageVertexDisance_;
+			const Mesh::Point end = start + dir;
+			glVertex3f(start[0], start[1], start[2]);
+			glVertex3f(end[0], end[1], end[2]);
+		}
+		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
 	// draw dynamic faces rotation axis
@@ -508,7 +520,7 @@ void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *fi
 
 void PrimoMeshViewer::save_mesh_to_obj(const std::string & filename)
 {
-	if (!OpenMesh::IO::write_mesh(mesh_, filename,  IO::Options::VertexNormal + IO::Options::Default))
+	if (!OpenMesh::IO::write_mesh(mesh_, filename))
 	{
 		std::cerr << "Write mesh to " << filename << " failed!" << std::endl;
 	}

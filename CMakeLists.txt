@@ -107,7 +107,7 @@ add_executable(paper_viewer ${paper_viewer_sources} ${paper_viewer_headers} )
 if(WIN32)
 target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} )
 else()
-target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES}-lpthread)
+target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
 endif()
 
 if(WIN32)

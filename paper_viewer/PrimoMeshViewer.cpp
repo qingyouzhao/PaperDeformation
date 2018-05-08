@@ -250,7 +250,20 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		for(const Crease &crease : creases_){
 			crease.draw_falt_foldable_faces(P_PrismProperty); 
 		}
+		glColor3fv(allFacesColor_);
+		for (const OpenMesh::FaceHandle& fh : allFaceHandles_)
+		{
+			GL::glNormal(mesh_.normal(fh));
+			fv_it = mesh_.cfv_iter(fh); 
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+			++fv_it;
+			GL::glVertex(mesh_.point(*fv_it));
+		}
+
 		glEnd();
+		
 		glDisable(GL_COLOR_MATERIAL);
 
 	}
@@ -528,18 +541,19 @@ void PrimoMeshViewer::save_mesh_to_obj(const std::string & filename)
 
 void PrimoMeshViewer::idle(){
 	// char s[20] = "xxxx.ppm";
-	std::string base_name;
-	base_name += (char)(48 + (sprite_ % 10000) / 1000);
-	base_name += (char)(48 + (sprite_ % 1000) / 100);
-	base_name += (char)(48 + (sprite_ % 100) / 10);
-	base_name += (char)(48 + sprite_ % 10);
-	std::string obj_name;
-	obj_name += "../obj/";
-	obj_name += base_name;
-	obj_name += ".obj";
-	std::string ppm_name = "../ppm/" + base_name + ".ppm";
+
 	if (folding_play_){
 		if(folding_record_){
+			std::string base_name;
+			base_name += (char)(48 + (sprite_ % 10000) / 1000);
+			base_name += (char)(48 + (sprite_ % 1000) / 100);
+			base_name += (char)(48 + (sprite_ % 100) / 10);
+			base_name += (char)(48 + sprite_ % 10);
+			std::string obj_name;
+			obj_name += "../obj/";
+			obj_name += base_name;
+			obj_name += ".obj";
+			std::string ppm_name = "../ppm/" + base_name + ".ppm";
 			char * charx = (char*)(ppm_name.c_str());
 			saveScreenshot(width_, height_, charx);
 			save_mesh_to_obj(obj_name);

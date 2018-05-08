@@ -5,6 +5,7 @@
 #include <Eigen/Eigenvalues>
 #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
+#include "lodepng.h"
 
 
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
@@ -50,6 +51,8 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	printf("Draw Debug Info: false\n");
 
 	bKey_space_is_move_ = true;
+
+	print_counter = 0;
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -436,6 +439,17 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 		glutPostRedisplay();	
 	}
 		break;
+	case 'p':
+	case 'P':
+	{
+		display();
+		glutPostRedisplay();
+		std::string folder("../../PrimoDemoPresentation/");
+		print_counter++;
+		std::string filename(std::to_string(print_counter));
+		std::string png(".png");
+		print_screen(folder+filename+png);
+	}
 	default:
 		GlutExaminer::keyboard(key, x, y);
 		break;
@@ -740,6 +754,47 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	if(dynamicFaceHandles_.size() > 0){
 		dynamic_rotation_centroid_ /= (float)(dynamicFaceHandles_.size() * 3);
 	}
+}
+
+void PrimoMeshViewer::print_screen(std::string& filename)
+{
+	GLenum format = GL_RGB;
+	GLsizei components = 3;
+	GLsizei height = height_;
+	GLsizei width = width_;
+
+	unsigned char * data = (unsigned char *)malloc(components * height * width);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadBuffer(GL_FRONT);
+	glReadPixels(0, 0, width, height, format, GL_UNSIGNED_BYTE, data);
+	std::cout << "second: " << glGetError() << std::endl;
+	int dimx = glutGet(GLUT_WINDOW_WIDTH);
+	int dimy = glutGet(GLUT_WINDOW_HEIGHT);
+	std::cout << "w and h" << height << dimy << std::endl;
+	std::vector<unsigned char> gl_buffer(4 * height * width);
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			std::size_t old_pos = (height - i - 1) * (width * 3) + 3 * j;
+			std::size_t new_pos = i * (width * 4) + 4 * j;
+			gl_buffer[new_pos + 0] = ((unsigned char*)data)[old_pos + 0];
+			gl_buffer[new_pos + 1] = ((unsigned char*)data)[old_pos + 1];
+			gl_buffer[new_pos + 2] = ((unsigned char*)data)[old_pos + 2];
+			gl_buffer[new_pos + 3] = (unsigned char)255;
+		}
+	}
+
+	std::vector<uint8_t> image_buffer;
+	lodepng::encode(image_buffer, gl_buffer, width_, height_);
+	std::cout << "saving file to " << filename << std::endl;
+	lodepng::save_file(image_buffer, filename);
+}
+
+void PrimoMeshViewer::automated_print()
+{
+
 }
 
 void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 

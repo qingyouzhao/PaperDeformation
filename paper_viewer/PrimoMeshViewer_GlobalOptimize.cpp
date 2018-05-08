@@ -233,7 +233,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
             //SpMat current_negA_T(n6, 1);
             // Eij
             {
-                const float w_ij = P_i->weight_ij * 0.1f;
+                const float w_ij = P_i->weight_ij;
                 // get all p^ij p^ji that are used to fill in matrices
                 Pij_ji p(P_i, P_j);
                 Eigen::Vector3f N, M;
@@ -346,125 +346,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
 
                 }
             }
-            // Aij
-            {
-                const float a_ij = P_i->weight_ij;
-                Pij_ji e{
-                    (P_i->f_uv(0, 0, true) + P_i->f_uv(0, 1, true)) * 0.5f, // i_from
-                    (P_i->f_uv(1, 0, true) + P_i->f_uv(1, 1, true)) * 0.5f, // i_to
-                    (P_j->f_uv(0, 0, false) + P_j->f_uv(0, 1, false)) * 0.5f, // j_to
-                    (P_j->f_uv(1, 0, false) + P_j->f_uv(1, 1, false)) * 0.5f // j_from
-                };
-                Eigen::Vector3f N, M;
-                N << e(-1, 0) - e(-1, 3), e(-1, 1) - e(-1, 4), e(-1, 2) - e(-1, 5);
-                M << -e(2,4)+e(1,5), e(2,3)-e(0,5), -e(1,3)+e(0,4);
-                M *= a_ij;
-                N *= a_ij;
-                if(optimizedFaceIdx_2_opUnits_i.find(f_j_id) == optimizedFaceIdx_2_opUnits_i.end()){
-                    // boundary case
-                    Eigen::Matrix<float, 6, 6> DTD; 
-                    DTD<< 
-                    e(1,1)+e(2,2),           -e(0,1),        -e(0,2),                 0,         -e(-1,2),          e(-1,1),
-                                0,     e(0,0)+e(2,2),        -e(1,2),           e(-1,2),                0,         -e(-1,0),
-                                0,                 0,  e(0,0)+e(1,1),          -e(-1,1),          e(-1,0),                0,
-                                0,                 0,              0,                 1,                0,                0,
-                                0,                 0,              0,                 0,                1,                0,
-                                0,                 0,              0,                 0,                0,                1;
-                    DTD *= a_ij;
-                    // copy the upper part to become a symmetric matrix
-                    //std::cout<<"DTD before\n"<<DTD<<std::endl;
-                    DTD = DTD.selfadjointView<Eigen::Upper>();
-                    //std::cout<<"DTD after\n"<<DTD<<std::endl;
-
-                    //////////////////////////////////////////////////////////////////////////////
-                    // std::cout<< "boundary DTD:\n" <<  DTD <<std::endl;
-                    //////////////////////////////////////////////////////////////////////////////
-                    // push DTD into current_B
-                    // current_B.reserve(Eigen::VectorXi::Constant(n6, 6));
-                    const int start_rc = i * 6;
-                    const int end_rc   = start_rc + 6;
-                    for(int r = start_rc, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
-                        for(int c = start_rc, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                            bFill(r, c) += DTD(dtd_i, dtd_j);
-                        }
-                    }
-                    // init current_negA_T
-                    negA_T(start_rc    ) += M(0); 
-                    negA_T(start_rc + 1) += M(1); 
-                    negA_T(start_rc + 2) += M(2); 
-                    negA_T(start_rc + 3) -= N(0); 
-                    negA_T(start_rc + 4) -= N(1); 
-                    negA_T(start_rc + 5) -= N(2);
-                }else{
-                    // general case
-                    Eigen::Matrix<float, 12, 12> DTD;
-                    DTD<<
-                    e(1,1)+e(2,2),           -e(0,1),        -e(0,2),                 0,         -e(-1,2),          e(-1,1),   -e(1,4)-e(2,5),          e(1,3),             e(2,3),                0,          e(-1,2),         -e(-1,1),
-                                0,     e(0,0)+e(2,2),        -e(1,2),           e(-1,2),                0,         -e(-1,0),           e(0,4),  -e(0,3)-e(2,5),             e(2,4),         -e(-1,2),                0,          e(-1,0),
-                                0,                 0,  e(0,0)+e(1,1),          -e(-1,1),          e(-1,0),                0,           e(0,5),          e(1,5),     -e(0,3)-e(1,4),          e(-1,1),         -e(-1,0),                0,
-                                0,                 0,              0,                 1,                0,                0,                0,        -e(-1,5),            e(-1,4),               -1,                0,                0,    
-                                0,                 0,              0,                 0,                1,                0,          e(-1,5),               0,           -e(-1,3),                0,               -1,                0,
-                                0,                 0,              0,                 0,                0,                1,         -e(-1,4),         e(-1,3),                  0,                0,                0,               -1,
-                                0,                 0,              0,                 0,                0,                0,    e(4,4)+e(5,5),         -e(3,4),            -e(3,5),                0,         -e(-1,5),          e(-1,4),
-                                0,                 0,              0,                 0,                0,                0,                0,   e(3,3)+e(5,5),            -e(4,5),          e(-1,5),                0,         -e(-1,3),
-                                0,                 0,              0,                 0,                0,                0,                0,               0,      e(3,3)+e(4,4),         -e(-1,4),          e(-1,3),                0,
-                                0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                1,                0,                0,                                        
-                                0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                1,                0,            
-                                0,                 0,              0,                 0,                0,                0,                0,               0,                  0,                0,                0,                1;
-
-                    DTD *= a_ij;
-
-                    // copy the upper part to become a symmetric matrix
-                    DTD = DTD.selfadjointView<Eigen::Upper>();
-                    
-                    //////////////////////////////////////////////////////////////////////////////
-                    //std::cout<< "DTD:\n" <<  DTD <<std::endl;
-                    //////////////////////////////////////////////////////////////////////////////
-                    // push DTD into current_B
-                    // current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
-                    const int start_I = i * 6;
-                    //const int   end_I = start_I + 6;
-                    const int start_J = optimizedFaceIdx_2_opUnits_i.at(f_j_id) * 6;
-                    //const int   end_J = start_J + 6;
-
-                    for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
-                        for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                            bFill(r, c) += DTD(dtd_i, dtd_j);
-                        }
-                    }
-
-                    for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
-                        for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
-                            bFill(r, c) += DTD(dtd_i, dtd_j);
-                        }
-                    }
-                    for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
-                        for(int c = start_I, dtd_j = 0; dtd_j < 6; ++c, ++dtd_j){
-                            bFill(r, c) += DTD(dtd_i, dtd_j);
-                        }
-                    }
-                    for(int r = start_J, dtd_i = 6; dtd_i < 12; ++r, ++dtd_i){
-                        for(int c = start_J, dtd_j = 6; dtd_j < 12; ++c, ++dtd_j){
-                            bFill(r, c) += DTD(dtd_i, dtd_j);
-                        }
-                    }
-                    // init current_negA_T
-                    negA_T(start_I    ) += M(0); 
-                    negA_T(start_I + 1) += M(1); 
-                    negA_T(start_I + 2) += M(2); 
-                    negA_T(start_I + 3) -= N(0); 
-                    negA_T(start_I + 4) -= N(1); 
-                    negA_T(start_I + 5) -= N(2);
-
-                    negA_T(start_J    ) -= M(0); 
-                    negA_T(start_J + 1) -= M(1); 
-                    negA_T(start_J + 2) -= M(2); 
-                    negA_T(start_J + 3) += N(0); 
-                    negA_T(start_J + 4) += N(1); 
-                    negA_T(start_J + 5) += N(2);  
-
-                }
-            }
+            
 
         }
     }

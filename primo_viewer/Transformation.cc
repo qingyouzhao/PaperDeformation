@@ -44,7 +44,7 @@
 #include <cstring>
 #include "gl.hh"
 #include <Eigen/Geometry>
-#include <glm/gtc/quaternion.hpp>
+// #include <glm/gtc/quaternion.hpp>
 
 //== IMPLEMENTATION ==========================================================
 

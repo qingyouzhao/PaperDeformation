@@ -8,7 +8,7 @@ This source contains the local optimize operations
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
-#include <glm/gtc/quaternion.hpp>
+// #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
 void PrimoMeshViewer::local_optimize(const std::vector<OpenMesh::FaceHandle> &face_handles, const int max_iterations)
 {

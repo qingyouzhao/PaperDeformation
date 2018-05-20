@@ -9,7 +9,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(EIGEN_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
-set(GLM_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glm)
+#set(GLM_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glm)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # additional CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -66,7 +66,7 @@ file(GLOB paper_viewer_headers paper_viewer/*.hh paper_viewer/*.h)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${EIGEN_INCLUDE_DIRECTORY})
-include_directories(${GLM_INCLUDE_DIRECTORY})
+#include_directories(${GLM_INCLUDE_DIRECTORY})
 # no need for gmm here
 # include_directories(gmm)
 

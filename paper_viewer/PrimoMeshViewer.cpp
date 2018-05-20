@@ -4,7 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
-#include <glm/gtc/quaternion.hpp>
+// #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
 #include <string>
 #include "CreasePatternParser.h"

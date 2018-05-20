@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <Eigen/Eigenvalues>
-#include <glm/gtc/quaternion.hpp>
+// #include <glm/gtc/quaternion.hpp>
 #include <unordered_set>
 #include "lodepng.h"
 
@@ -756,7 +756,7 @@ void PrimoMeshViewer::update_dynamic_rotation_axis_and_centroid(){
 	}
 }
 
-void PrimoMeshViewer::print_screen(std::string& filename)
+void PrimoMeshViewer::print_screen(const std::string& filename) const
 {
 	GLenum format = GL_RGB;
 	GLsizei components = 3;

@@ -367,8 +367,8 @@ void CreasePatternParser::triangulate(Mesh& out_mesh)
 		if(i%100 == 0)
 		{std::cout << "pushed " << i<< " faces" << std::endl;}
 		face_vhandles.push_back(vhandle_cache[F2(i, 0)]);
-		face_vhandles.push_back(vhandle_cache[F2(i, 1)]);
 		face_vhandles.push_back(vhandle_cache[F2(i, 2)]);
+		face_vhandles.push_back(vhandle_cache[F2(i, 1)]);
 		out_mesh.add_face(face_vhandles);
 	}
 }
@@ -376,6 +376,7 @@ void CreasePatternParser::triangulate(Mesh& out_mesh)
 CreaseEdge CreasePatternParser::read_line(const std::string& line)
 {
 	CreaseEdge result;
+	static constexpr float y = 0.0f; 
 	result.control_points.clear();
 	std::cout << "reading crease line" << std::endl;
 	std::stringstream ss(line);
@@ -388,8 +389,8 @@ CreaseEdge CreasePatternParser::read_line(const std::string& line)
 	float end_x, end_y;
 	ss >> end_x;
 	ss >> end_y;
-	result.start = Vector3f(start_x, 0, start_y);
-	result.end = Vector3f(end_x, 0, end_y);
+	result.start = Vector3f(start_x, y, start_y);
+	result.end = Vector3f(end_x, y, end_y);
 	switch (result.type)
 	{
 	case 1:
@@ -406,8 +407,8 @@ CreaseEdge CreasePatternParser::read_line(const std::string& line)
 		ss >> p1_y;
 		ss >> p2_x;
 		ss >> p2_y;
-		Vector3f p1 = Vector3f(p1_x, 0, p1_y);
-		Vector3f p2 = Vector3f(p2_x, 0, p2_y);
+		Vector3f p1 = Vector3f(p1_x, y, p1_y);
+		Vector3f p2 = Vector3f(p2_x, y, p2_y);
 		result.control_points.push_back(p1);
 		result.control_points.push_back(p2);
 		ss >> result.segments;

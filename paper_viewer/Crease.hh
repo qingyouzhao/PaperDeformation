@@ -23,7 +23,10 @@ public:
     enum class ECreaseType{NONE, MOUNTAIN, VALLEY} crease_type_;
     void draw() const;
     void draw_prisms(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const;
+    void draw_falt_foldable_faces(const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty) const;
     void fold(float dAngle, OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty);
+    std::vector<int> fromFace_foldable;
+    std::vector<int> toFace_foldable;
 private:
     // crease handles for each Crease
     std::vector<OpenMesh::HalfedgeHandle> he_handles_;

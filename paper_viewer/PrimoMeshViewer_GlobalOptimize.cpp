@@ -168,7 +168,7 @@ public:
 
 };
 static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::HPropHandleT<PrismProperty> &P_PrismProperty, 
-                            const std::vector<OpenMesh::FaceHandle> &face_handles, const std::unordered_map<int,int> &face_idx_2_i, 
+                            std::vector<OpUnit> &opUnits, const std::unordered_map<int,int> &optimizedFaceIdx_2_opUnits_i, 
                             SpMat &B, 
                             Eigen::VectorXf &negA_T){
     BFill bFill(n6);
@@ -178,15 +178,18 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     //std::cout<< "-A^T:\n" << negA_T << std::endl;
     // double plus_equal_duration = 0.0;
     //////////////////////////////////////////////////////////////////////////////
-    for(int i = 0; i < face_handles.size(); ++i){
-        // iterate all faces
-        const OpenMesh::FaceHandle &fh_i = face_handles[i];
-        const int f_i_id = fh_i.idx();
-        for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
+    for(int i = 0; i < opUnits.size(); ++i){
+        const OpUnit &op_unit_i = opUnits[i];
+        //const OpenMesh::FaceHandle &fh_i = face_handles[i];
+        //const int f_i_id = fh_i.idx();
+
+        // interate boundary of the op_unit
+        for(const OpenMesh::HalfedgeHandle &he_i: opUnits[i].boundary_he_handles_){
+        //for(Mesh::ConstFaceHalfedgeIter fhe_it = mesh.cfh_iter(fh_i); fhe_it.is_valid(); ++fhe_it){
             // Grab the opposite half edge and face
-            const Mesh::HalfedgeHandle he_i = *fhe_it;
+            //const Mesh::HalfedgeHandle he_i = *fhe_it;
             Mesh::HalfedgeHandle he_j = mesh.opposite_halfedge_handle(he_i);
-		    Mesh::FaceHandle fh_j = mesh.opposite_face_handle(*fhe_it);
+		    Mesh::FaceHandle fh_j = mesh.opposite_face_handle(he_i);
             // if he_i is a boundary halfedge, there is no opposite prism face,
             // which means that it has no contribution to the total energy E = Sum(w_ij * E_ij)
             // we could skip this half edge he_i now
@@ -238,7 +241,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 M << -p(2,4)+p(1,5), p(2,3)-p(0,5), -p(1,3)+p(0,4);
                 M *= w_ij;
                 N *= w_ij;
-                if(face_idx_2_i.find(f_j_id) == face_idx_2_i.end()){
+                if(optimizedFaceIdx_2_opUnits_i.find(f_j_id) == optimizedFaceIdx_2_opUnits_i.end()){
                     // boundary case
                     Eigen::Matrix<float, 6, 6> DTD; 
                     DTD<< 
@@ -302,7 +305,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                     // current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
                     const int start_I = i * 6;
                     //const int   end_I = start_I + 6;
-                    const int start_J = face_idx_2_i.at(f_j_id) * 6;
+                    const int start_J = optimizedFaceIdx_2_opUnits_i.at(f_j_id) * 6;
                     //const int   end_J = start_J + 6;
 
                     for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
@@ -357,7 +360,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                 M << -e(2,4)+e(1,5), e(2,3)-e(0,5), -e(1,3)+e(0,4);
                 M *= a_ij;
                 N *= a_ij;
-                if(face_idx_2_i.find(f_j_id) == face_idx_2_i.end()){
+                if(optimizedFaceIdx_2_opUnits_i.find(f_j_id) == optimizedFaceIdx_2_opUnits_i.end()){
                     // boundary case
                     Eigen::Matrix<float, 6, 6> DTD; 
                     DTD<< 
@@ -421,7 +424,7 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
                     // current_B.reserve(Eigen::VectorXi::Constant(n6, 12));
                     const int start_I = i * 6;
                     //const int   end_I = start_I + 6;
-                    const int start_J = face_idx_2_i.at(f_j_id) * 6;
+                    const int start_J = optimizedFaceIdx_2_opUnits_i.at(f_j_id) * 6;
                     //const int   end_J = start_J + 6;
 
                     for(int r = start_I, dtd_i = 0; dtd_i < 6; ++r, ++dtd_i){
@@ -474,81 +477,75 @@ static void build_problem_Eigen(const int n6, const Mesh &mesh, const OpenMesh::
     //////////////////////////////////////////////////////////////////////////////
     
 }
-void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, const std::vector<OpenMesh::FaceHandle> &face_handles, float lambda){
-    // 
-    for(int i = 0; i < face_handles.size();++i){
+void PrimoMeshViewer::project_v_and_update_prisms(const Eigen::VectorXf &C, std::vector<OpUnit> &opUnits, float lambda){
+    // // 
+    for(int i = 0; i < opUnits.size();++i){
         float weight_sum = 0;
-        const OpenMesh::FaceHandle &fh_i = face_handles[i];
+        // const OpenMesh::FaceHandle &fh_i = face_handles[i];
         const int i6 = i * 6;
         const OpenMesh::Vec3f wi(C(i6), C(i6 + 1), C(i6 + 2));
         const OpenMesh::Vec3f vi(C(i6 + 3), C(i6 + 4), C(i6 + 5));
-        for(Mesh::ConstFaceHalfedgeIter fh_iter = mesh_.cfh_begin(fh_i); fh_iter.is_valid(); ++fh_iter){
-            PrismProperty &dst = mesh_.property(P_globalPrism_intermediate,*fh_iter);
-            const PrismProperty &src = mesh_.property(P_PrismProperty,*fh_iter);
-            dst = src;
-            dst.FromVertPrismDown += lambda * (OpenMesh::cross(wi, dst.FromVertPrismDown) + vi);
-            dst.FromVertPrismUp += lambda * (OpenMesh::cross(wi, dst.FromVertPrismUp) + vi);
-            dst.ToVertPrismDown += lambda * (OpenMesh::cross(wi, dst.ToVertPrismDown) + vi);
-            dst.ToVertPrismUp += lambda * (OpenMesh::cross(wi, dst.ToVertPrismUp) + vi);
+        for(const OpenMesh::FaceHandle &fh_i: opUnits[i].face_handles_){
+            for(Mesh::ConstFaceHalfedgeIter fh_iter = mesh_.cfh_begin(fh_i); fh_iter.is_valid(); ++fh_iter){
+                PrismProperty &dst = mesh_.property(P_globalPrism_intermediate,*fh_iter);
+                const PrismProperty &src = mesh_.property(P_PrismProperty,*fh_iter);
+                dst = src;
+                dst.FromVertPrismDown += lambda * (OpenMesh::cross(wi, dst.FromVertPrismDown) + vi);
+                dst.FromVertPrismUp += lambda * (OpenMesh::cross(wi, dst.FromVertPrismUp) + vi);
+                dst.ToVertPrismDown += lambda * (OpenMesh::cross(wi, dst.ToVertPrismDown) + vi);
+                dst.ToVertPrismUp += lambda * (OpenMesh::cross(wi, dst.ToVertPrismUp) + vi);
+            }
         }
     }
-    for(const OpenMesh::FaceHandle &fh:face_handles){
-        local_optimize_face(fh, P_globalPrism_intermediate, true);
+    for(OpUnit &op_unit: opUnits){
+        local_optimize_face(op_unit, P_globalPrism_intermediate, true);
     }
 }
-void PrimoMeshViewer::global_optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
-										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations)
+void PrimoMeshViewer::global_optimize_faces(std::vector<OpUnit> &opUnits, 
+										const std::unordered_map<int,int> &optimizedFaceIdx_2_opUnits_i, const int max_iterations)
 {
-    /* #TODO[ZJW][QYZ]: Here we are using Eigen to solve the SPD(symmetric positive definite) linear system.
-       if it is the speed bottleneck, try SuiteSparse(even cuda - GPU implementation) with more pain :)
-       Also, here we are using float instead of double, need to make sure it is sufficient. 
-    */
+    // #TODO[ZJW]: face to opunits
     /* build the linear system. Here we follow the convention in 
        [PLH02]:http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=F1D81AF3257335BC6E902048DF161317?doi=10.1.1.6.5569&rep=rep1&type=pdf
         B C = -A^T. #TODO[ZJW]: add link of supplemental notes for explanation
     */
     // debug for that face_handles and face_idx_2_i data matches
     // do nothing is no optimizable face
-    if(face_handles.size() <= 0) return;
-    #ifndef NDEBUG
-        std::cout << "face_handles size:" << face_handles.size() << std::endl;
-        std::cout << "face_idx_2_i size:" << face_idx_2_i.size() << std::endl;
-        assert(face_handles.size() == face_idx_2_i.size());
-		for(int i = 0; i < face_handles.size(); ++i){
-            // int idx = face_handles[i].idx();
-            assert(face_idx_2_i.at(face_handles[i].idx()) == i);
-        }
-    #endif
+    if(opUnits.size() <= 0) return;
     // Timer total_timer;
-    int n6 = (int)face_handles.size() * 6;
+    int n6 = (int)opUnits.size() * 6;
     // -A^T ("b" in "Ax = b"), it is init to zero.
-    float E_k = 0.0f, E_km1 = E(face_handles);
+    float E_k = 0.0f, E_km1 = E(opUnits);
     // std::cout<<"E_origin: "<<E_origin<<std::endl;
     float lambda = 1.0f;
-    for(int i = 0; i < max_iterations; ++i, lambda *= 0.95f){
+    for(int i = 0; i < 2; ++i, lambda *= 0.6f){
         // find optimal velocities
         Timer solve_linear_system_timer;
         Eigen::VectorXf negA_T = Eigen::VectorXf::Zero(n6);
         SpMat B(n6, n6);
         B.reserve(Eigen::VectorXi::Constant(n6, 40));
-        build_problem_Eigen(n6, mesh_, P_PrismProperty, face_handles, face_idx_2_i, B, negA_T);
+        build_problem_Eigen(n6, mesh_, P_PrismProperty, opUnits, optimizedFaceIdx_2_opUnits_i, B, negA_T);
         std::cout<<"build linear system takes: "<<solve_linear_system_timer.lapString()<<std::endl;
 
         Eigen::SimplicialCholesky<SpMat> solver(B);  // performs a Cholesky factorization  of B
-        assert(solver.info() == Eigen::Success);
+        // assert(solver.info() == Eigen::Success);
+        if(solver.info() != Eigen::Success){
+            break;
+        }
         Eigen::VectorXf x = solver.solve(negA_T);    // use the factorization to solve for the given right hand side
 
         std::cout<<"find optimal velocities takes: "<<solve_linear_system_timer.elapsedString()<<std::endl;
         //std::cout<< x << std::endl;
         // update new prisms to new position and saved in another prismProperty
         // project velocities using anthoer local minimum
-        project_v_and_update_prisms(x,face_handles,lambda);
-        E_k = E(face_handles);
-        std::cout<<"E"<< i <<": "<<E(face_handles)<<std::endl;
-        // if(converge_E(E_k, E_km1)){
-        //     std::cout<<"[Global Optimization]:converge\n";
-        //     break;
-        // }
+        project_v_and_update_prisms(x, opUnits, lambda);
+        E_k = E(opUnits);
+        std::cout<<"E"<< i <<": "<<E_k<<std::endl;
+        if(converge_E(E_k, E_km1)){
+            std::cout<<"[Global Optimization]:converge\n";
+            break;
+        }
+        E_km1 = E_k;
         update_vertices_based_on_prisms();
         mesh_.update_normals(); 
         glutPostRedisplay();

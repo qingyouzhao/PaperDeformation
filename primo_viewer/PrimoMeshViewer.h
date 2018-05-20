@@ -308,4 +308,8 @@ private:
 
 	bool bKey_space_is_move_;
 
+public:
+	void print_screen(std::string& filename);
+	void automated_print();
+	int print_counter;
 };

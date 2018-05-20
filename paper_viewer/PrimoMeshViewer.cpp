@@ -1,3 +1,4 @@
+#include <OpenMesh/Core/IO/MeshIO.hh>
 #include "PrimoMeshViewer.h"
 #include <iostream>
 #include <Eigen/Dense>
@@ -7,10 +8,13 @@
 #include <unordered_set>
 #include <string>
 #include "CreasePatternParser.h"
-
+#include "pic.h"
 
 //const std::string test_crease_file("../data/curve1.cpx");
-
+bool PrimoMeshViewer::folding_play_ = false;
+bool PrimoMeshViewer::folding_record_ = false;
+int PrimoMeshViewer::sprite_ = 0;
+float PrimoMeshViewer::folding_dAngle_ = 1.0f;
 PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	: MeshViewer(_title, _width, _height)
 {
@@ -18,18 +22,18 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 
 	mesh_.add_property(P_PrismProperty);
 	mesh_.add_property(P_globalPrism_intermediate);
-	mesh_.add_property(P_collision);
-	mesh_.add_property(P_faceBN);
+	// mesh_.add_property(P_collision);
+	// mesh_.add_property(P_faceBN);
 	//mesh_.add_property(P_FaceTransformationCache);
 
 	// default: optimized(orange)
-	optimizedFacesColor_[0] = 0.6f;
-	optimizedFacesColor_[1] = 0.6f;
-	optimizedFacesColor_[2] = 0.0f;
+	opUnitsColor_[0] = 0.6f;
+	opUnitsColor_[1] = 0.6f;
+	opUnitsColor_[2] = 0.0f;
 	
-	notOptimizaedFacesColor_[0] = 0.8f;
-	notOptimizaedFacesColor_[1] = 0.8f;
-	notOptimizaedFacesColor_[2] = 0.8f;
+	allFacesColor_[0] = 0.8f;
+	allFacesColor_[1] = 0.8f;
+	allFacesColor_[2] = 0.8f;
 
 	// do not draw prisms at first
 	drawPrisms_ = false;
@@ -50,8 +54,7 @@ PrimoMeshViewer::PrimoMeshViewer(const char* _title, int _width, int _height)
 	drawDebugInfo_ = false;
 	printf("Draw Debug Info: false\n");
 
-	bKey_space_is_move_ = true;
-	folding_angle_ = 0.0f;
+	//folding_angle_ = 0.0f;	
 }
 
 PrimoMeshViewer::~PrimoMeshViewer()
@@ -71,6 +74,11 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	parser.crease_pattern_to_open_mesh(mesh_, crease_hehs, types);
 	//--------------------------------
 
+	//-----------------only for the demo, change all y from 0 to 1 --------------------
+	for(Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); ++v_iter){
+		mesh_.point(*v_iter)[1] += 1.0f;
+	}
+	//---------------------------------------------------------------------------------
 	for(int i = 0; i < crease_hehs.size(); ++i){
 		creases_.emplace_back(crease_hehs[i], mesh_, types[i]);
 	}
@@ -96,6 +104,8 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// init face handles for ray-casting lookup from prim_id to faceHandle
 	get_allFace_handles(allFaceHandles_);
 
+	
+
 	// default: all faces are optimizable
 	// get_allFace_handles(optimizedFaceHandles_);
 	//update_1typeface_indices(optimizedFaceHandles_, optimizedVertexIndices_);
@@ -104,14 +114,19 @@ bool PrimoMeshViewer::open_mesh(const char* _filename)
 	// }
 	// and then, prisms are set up 
 	setup_prisms(allFaceHandles_, EPrismExtrudeMode::VERT_NORMAL);
-	setup_faceBN(allFaceHandles_);
+
+	// #TODO[ZJW]:init all optimizeUnits(OpUnits) based on current Creases.
+	// given setted creases_ and allFaceHandles_, generate all opUnits
+	set_all_opUnits();
+
+	// setup_faceBN(allFaceHandles_);
 	// setup_collisionProperty();
 	//update_1typeface_indices(allFaceHandles_,allVertexIndices_);
 	// init the set of idx of opmizedFaces only for global optimization
 	// for(int i = 0; i <  optimizedFaceHandles_.size(); ++i){
 	// 	optimizedFaceIdx_2_i_[optimizedFaceHandles_[i].idx()] = i;
 	// }
-	float initE = E(optimizedFaceHandles_);
+	float initE = E(opUnits_);
 	assert(fabs(initE) < FLT_EPSILON);
 
 	// read crease pattern curve
@@ -211,7 +226,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	}
 	else if (_draw_mode == "Solid Flat")
 	{
-
+		// only draw all foldable faces 
 		Mesh::ConstFaceVertexIter  fv_it;
 		glEnable(GL_LIGHTING);
 		glShadeModel(GL_FLAT);
@@ -231,9 +246,13 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		// }
 		// glEnd();
 		
-		glColor3fv(optimizedFacesColor_);
 		glBegin(GL_TRIANGLES);
-		for(const OpenMesh::FaceHandle& fh: optimizedFaceHandles_){
+		for(const Crease &crease : creases_){
+			crease.draw_falt_foldable_faces(P_PrismProperty); 
+		}
+		glColor3fv(allFacesColor_);
+		for (const OpenMesh::FaceHandle& fh : allFaceHandles_)
+		{
 			GL::glNormal(mesh_.normal(fh));
 			fv_it = mesh_.cfv_iter(fh); 
 			GL::glVertex(mesh_.point(*fv_it));
@@ -242,7 +261,9 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 			++fv_it;
 			GL::glVertex(mesh_.point(*fv_it));
 		}
+
 		glEnd();
+		
 		glDisable(GL_COLOR_MATERIAL);
 
 	}
@@ -256,8 +277,8 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		glEnableClientState(GL_NORMAL_ARRAY);
 		GL::glVertexPointer(mesh_.points());
 		GL::glNormalPointer(mesh_.vertex_normals());
-		// draw 3 type of faces
-		glColor3fv(notOptimizaedFacesColor_);
+		// draw all faces in solid smooth mode
+		glColor3fv(allFacesColor_);
 		glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices_.size()), GL_UNSIGNED_INT, &indices_[0]);
 
 		// if(dynamicVertexIndices_.size()>0)
@@ -289,7 +310,7 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 	glDisable(GL_COLOR_MATERIAL);
 	glLineWidth(prev_line_width);
 	if(drawPrisms_){
-		// visualize prisms with wireframes
+		// visualize prisms of all OpUnit boundary prisms
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
 		
@@ -300,17 +321,31 @@ void PrimoMeshViewer::draw(const std::string& _draw_mode)
 		}
 		glEnd();
 
-		glBegin(GL_LINES);
-		glColor3fv(optimizedFacesColor_);
-		draw_prisms(optimizedFaceHandles_);
-		glEnd();
+		// glBegin(GL_LINES);
+		// glColor3fv(opUnitsColor_);
+		// for(const OpUnit &opUnit : opUnits_){
+		// 	opUnit.draw_prism(P_PrismProperty);
+		// }
+		// glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
 	if (drawDebugInfo_)
 	{
 		glEnable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHTING);
-		draw_debug_lines();
+		//draw_debug_lines();
+		// only draw vertex normal now
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glBegin(GL_LINES);
+		for(Mesh::VertexIter v_iter = mesh_.vertices_begin(); v_iter != mesh_.vertices_end(); ++v_iter){
+			const Mesh::Point &start = mesh_.point(*v_iter);
+			Mesh::Point dir = mesh_.normal(*v_iter);
+			dir *= averageVertexDisance_;
+			const Mesh::Point end = start + dir;
+			glVertex3f(start[0], start[1], start[2]);
+			glVertex3f(end[0], end[1], end[2]);
+		}
+		glEnd();
 		glDisable(GL_COLOR_MATERIAL);
 	}
 	// draw dynamic faces rotation axis
@@ -350,7 +385,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 
 		// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
 
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
 
 		glutPostRedisplay();
 	}
@@ -363,7 +398,7 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 			// immediately update all prisms, should not use setup_prisms.
 			update_prisms_height_uniform(allFaceHandles_, averageVertexDisance_ * -0.1f);
 			// following the PriMo demo, after changing the prisms' height, we should at once optimize all surface
-			thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+			optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
 		}
 		printf("prismHeight: %f\n", prismHeight_);
 
@@ -402,22 +437,32 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	case 'f':
 	case 'F':{
 		// forward folding
-		folding_angle_ += 0.5;
+		//folding_angle_ += 0.5;
 		for(Crease &crease : creases_){
-			crease.fold(2.0f, P_PrismProperty);
+			crease.fold(folding_dAngle_, P_PrismProperty);
 		}
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
-
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+		//thread_pool_.emplace_back([&]() { optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);});
+		glutPostRedisplay();
 	}
 		break;
 	case 'b':
 	case 'B':{
-		// backward folding
-		folding_angle_ -= 0.5;
-		for(Crease &crease : creases_){
-			crease.fold(-10.0f, P_PrismProperty);
-		}
-		thread_pool_.emplace_back([&]() { optimize_faces(optimizedFaceHandles_, optimizedFaceIdx_2_i_, global_optimize_iterations_);});
+		folding_dAngle_ *= -1.0f;
+		printf("folding_dAngle_: %f\n", folding_dAngle_);
+	}
+		break;
+	case 'r':
+	case 'R':{
+		// used for recording the final vedio
+		folding_record_ = !folding_record_;
+		folding_play_ = !folding_play_; 
+	}
+		break;
+	case 'p':
+	case 'P':{
+		// used for real time demo
+		folding_play_ = !folding_play_; 
 	}
 		break;
 	default:
@@ -426,40 +471,106 @@ void PrimoMeshViewer::keyboard(int key, int x, int y)
 	}
 }
 
-void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
-	// each triangle face has 6 prism vertices and 9 edges
-	for (const OpenMesh::FaceHandle& fh : face_handles){
-		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
-		const Vec3f* pv[6];// 6 vertices of prism
-		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
-			assert(i < 3);
-			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
-			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
-			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
-			pv[i] = &(prop.FromVertPrismUp);
-			pv[i + 3] = &(prop.FromVertPrismDown);
-		}
-		// have got all six vertices of prism, draw 9 edges
-		// 01, 12, 02, 34, 45, 35, 03, 14, 25
-		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
-		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
-		for(int i = 0; i < 9; ++i){
-			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
-			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
-		}
-	}
-}
+// void PrimoMeshViewer::draw_prisms(const std::vector<OpenMesh::FaceHandle> &face_handles) const{
+// 	// each triangle face has 6 prism vertices and 9 edges
+// 	for (const OpenMesh::FaceHandle& fh : face_handles){
+// 		Mesh::ConstFaceHalfedgeCWIter fh_cwit = mesh_.cfh_cwbegin(fh);
+// 		const Vec3f* pv[6];// 6 vertices of prism
+// 		for (int i = 0; fh_cwit.is_valid(); ++fh_cwit, ++i){
+// 			assert(i < 3);
+// 			const PrismProperty& prop = mesh_.property(P_PrismProperty, *fh_cwit);
+// 			// const Vec3f& from_v = mesh_.point(mesh_.from_vertex_handle(*fh_cwit));
+// 			// pv[i]     = from_v + prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+// 			// pv[i + 3] = from_v - prop.FromVertPrismDir_DEPRECATED * prop.FromVertPrismSize_DEPRECATED;
+// 			pv[i] = &(prop.FromVertPrismUp);
+// 			pv[i + 3] = &(prop.FromVertPrismDown);
+// 		}
+// 		// have got all six vertices of prism, draw 9 edges
+// 		// 01, 12, 02, 34, 45, 35, 03, 14, 25
+// 		static const int pv1i[9] = {0, 1, 0, 3, 4, 3, 0, 1, 2};
+// 		static const int pv2i[9] = {1, 2, 2, 4, 5, 5, 3, 4, 5};
+// 		for(int i = 0; i < 9; ++i){
+// 			glVertex3f((*pv[pv1i[i]])[0], (*pv[pv1i[i]])[1], (*pv[pv1i[i]])[2]);
+// 			glVertex3f((*pv[pv2i[i]])[0], (*pv[pv2i[i]])[1], (*pv[pv2i[i]])[2]);
+// 		}
+// 	}
+// }
 
 
-void PrimoMeshViewer::optimize_faces(const std::vector<OpenMesh::FaceHandle> &face_handles, 
+void PrimoMeshViewer::optimize_faces(std::vector<OpUnit> &opUnits, 
 										const std::unordered_map<int,int> &face_idx_2_i, const int max_iterations){
 	// here max_iterations is for global optimization, for local we simply *100.
 	if(optimizeMode_ == EOptimizeMode::LOCAL){
-		local_optimize(face_handles,max_iterations * 100);
+		local_optimize(opUnits,max_iterations * 100);
 	}
 	else{
-		global_optimize_faces(face_handles, face_idx_2_i, max_iterations);
+		global_optimize_faces(opUnits, face_idx_2_i, max_iterations);
+	}
+}
+void PrimoMeshViewer::saveScreenshot(int windowWidth, int windowHeight, char *filename)
+{
+	if (filename == NULL)
+		return;
+
+	// Allocate a picture buffer 
+	Pic * in = pic_alloc(windowWidth, windowHeight, 3, NULL);
+
+	printf("File to save to: %s\n", filename);
+
+	for (int i = windowHeight - 1; i >= 0; i--)
+	{
+		glReadPixels(0, windowHeight - i - 1, windowWidth, 1, GL_RGB, GL_UNSIGNED_BYTE,
+			&in->pix[i*in->nx*in->bpp]);
+	}
+
+	if (ppm_write(filename, in))
+		printf("File saved Successfully\n");
+	else
+		printf("Error in Saving\n");
+
+	pic_free(in);
+}
+
+void PrimoMeshViewer::save_mesh_to_obj(const std::string & filename)
+{
+	if (!OpenMesh::IO::write_mesh(mesh_, filename))
+	{
+		std::cerr << "Write mesh to " << filename << " failed!" << std::endl;
 	}
 }
 
+void PrimoMeshViewer::idle(){
+	// char s[20] = "xxxx.ppm";
+
+	if (folding_play_){
+		if(folding_record_){
+			std::string base_name;
+			base_name += (char)(48 + (sprite_ % 10000) / 1000);
+			base_name += (char)(48 + (sprite_ % 1000) / 100);
+			base_name += (char)(48 + (sprite_ % 100) / 10);
+			base_name += (char)(48 + sprite_ % 10);
+			std::string obj_name;
+			obj_name += "../obj/";
+			obj_name += base_name;
+			obj_name += ".obj";
+			std::string ppm_name = "../ppm/" + base_name + ".ppm";
+			char * charx = (char*)(ppm_name.c_str());
+			saveScreenshot(width_, height_, charx);
+			save_mesh_to_obj(obj_name);
+		}
+		for(Crease &crease : creases_){
+			crease.fold(folding_dAngle_, P_PrismProperty);
+		}
+		optimize_faces(opUnits_, optimizedFaceIdx_2_opUnits_i, global_optimize_iterations_);
+		glutPostRedisplay();
+		++sprite_;
+	}
+	
+	if (sprite_ >= 90) // allow only 90 degree folding now
+	{
+		sprite_ = 0;
+		folding_record_ = false;
+		folding_play_ = false;
+	}
+	glutPostRedisplay();
+}

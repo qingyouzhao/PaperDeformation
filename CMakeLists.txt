@@ -95,8 +95,6 @@ option(LIBIGL_WITH_XML               "Use XML"            OFF)
 
 find_package(LIBIGL REQUIRED QUIET)
 
-
-
 # compile and link
 # add_library(ann ${ann_sources} ${ann_headers})
 # no need for isoex, reconstruct here.
@@ -104,16 +102,16 @@ find_package(LIBIGL REQUIRED QUIET)
 # add_library(eigen ${eigen_sources} ${eigen_headers})
 # add_executable(reconstruct ${reconstruct_sources} ${reconstruct_headers})
 add_executable(primo_viewer ${primo_viewer_sources} ${primo_viewer_headers})
-add_executable(paper_viewer ${paper_viewer_sources} ${paper_viewer_headers})
+add_executable(paper_viewer ${paper_viewer_sources} ${paper_viewer_headers} )
 
 if(WIN32)
-target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES})
+target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} )
 else()
 target_link_libraries(primo_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} -lpthread)
 endif()
 
 if(WIN32)
-target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} igl::core igl::triangle)
+target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} igl::core igl::triangle )
 else()
 target_link_libraries(paper_viewer ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${OPENMESH_LIBRARIES} igl::core igl::triangle -lpthread)
 endif()

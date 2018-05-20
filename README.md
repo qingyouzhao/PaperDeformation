@@ -3,7 +3,7 @@ A paper like deformation project based on Primo mesh deformation method
 
 [Demo Video](https://drive.google.com/open?id=1LaMJiDfBe-cz64l6tx2znnYdjXe_KVf5)
 
-[Proposal ](https://docs.google.com/document/d/1tL1soK8dCjRCe5wNYF6tTwgHeMFWKFtCojogzgtxQ0A/edit?usp=sharing)
+[Paper](https://drive.google.com/file/d/1KyaCO7eSPEd0aMMS6DFJbdxi874QqC3U/view?usp=sharing)
 
 Reference Materials:
 

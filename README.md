@@ -9,9 +9,6 @@ Final results:
 [Paper](https://drive.google.com/file/d/1KyaCO7eSPEd0aMMS6DFJbdxi874QqC3U/view?usp=sharing)
 
 Primo deformation visualization:
-![alt text](https://github.com/qingyouzhao/PaperDeformation/blob/master/images/curve3/curve3_00.png "0 degrees")
-![alt text](https://github.com/qingyouzhao/PaperDeformation/blob/master/images/curve3/curve3_30.png "30 degrees")
-![alt text](https://github.com/qingyouzhao/PaperDeformation/blob/master/images/curve3/curve3_60.png "60 degrees")
 ![alt text](https://github.com/qingyouzhao/PaperDeformation/blob/master/images/curve3/curve3_90.png "90 degrees")
 
 

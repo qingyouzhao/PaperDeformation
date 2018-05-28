@@ -1,6 +1,9 @@
 # Paper Deformation
 A paper like deformation project based on Primo mesh deformation method
 
+Photo: 
+![alt text](https://github.com/qingyouzhao/PaperDeformation/blob/master/images/teaser.png "Teaser")
+
 [Demo Video](https://drive.google.com/open?id=1LaMJiDfBe-cz64l6tx2znnYdjXe_KVf5)
 
 [Paper](https://drive.google.com/file/d/1KyaCO7eSPEd0aMMS6DFJbdxi874QqC3U/view?usp=sharing)
